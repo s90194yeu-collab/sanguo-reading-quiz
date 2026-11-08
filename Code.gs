@@ -126,7 +126,11 @@ function rows_(name) {
   var s = sh_(name); if (!s || s.getLastRow() < 2) return [];
   return s.getRange(2, 1, s.getLastRow() - 1, s.getLastColumn()).getValues();
 }
-function str_(v) { return v === null || v === undefined ? '' : String(v).trim(); }
+function str_(v) {
+  if (v === null || v === undefined) return '';
+  if (Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v)) return Utilities.formatDate(v, 'Asia/Taipei', 'yyyy/MM/dd HH:mm:ss');
+  return String(v).trim();
+}
 function now_() { return Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy/MM/dd HH:mm:ss'); }
 
 function getSettings_() {
