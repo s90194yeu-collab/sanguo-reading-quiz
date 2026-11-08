@@ -15,8 +15,8 @@ var HEAD = {
   '原文': ['回', '回次', '回目', '段落序', '內文'],
   '題庫': ['回', '題號', '類型', '題幹', 'A', 'B', 'C', 'D', '答案', '解析', '對應段落'],
   '插圖': ['回', '序', '標題', '插在第幾段之後', '圖說', '生圖提示詞', '圖片網址或雲端檔案ID'],
-  '存檔': ['帳號', '回', '草稿', '已交卷', '首次得分', '最高得分', '最近得分', '作答次數', '最近作答', '首次交卷時間', '最近交卷時間', '更新時間'],
-  '作答紀錄': ['時間', '帳號', '姓名', '班級', '座號', '回', '作答', '得分', '第幾次'],
+  '存檔': ['帳號', '回', '草稿', '已交卷', '首次得分', '最高得分', '最近得分', '作答次數', '最近作答', '首次交卷時間', '最近交卷時間', '更新時間', '累計閱讀作答秒數', '首次開啟時間'],
+  '作答紀錄': ['時間', '帳號', '姓名', '班級', '座號', '回', '作答', '得分', '第幾次', '累計閱讀作答秒數'],
   '註釋': ['回', '詞語', '注音', '解釋'],
   '人物': ['姓名', '別稱（逗號分隔）', '陣營', '首次出場回', '簡介（勿劇透）'],
   '人物事蹟': ['姓名', '回', '事蹟'],
@@ -24,7 +24,7 @@ var HEAD = {
 };
 var DEFAULT_SET = [
   ['網站標題', '三國演義・閱讀試煉', '顯示在網站最上方'],
-  ['副標題', '南山高中國文科', ''],
+  ['副標題', '古典小說閱讀檢測', ''],
   ['教師密碼', 'nanshan', '進入教師後台的密碼，請務必修改'],
   ['允許重作', '是', '是／否：交卷後可否再作答（成績記首次、最高、最近）'],
   ['交卷後顯示解析', '是', '是／否'],
@@ -34,7 +34,10 @@ var DEFAULT_SET = [
   ['顯示未完成插圖', '是', '是／否：圖片網址還沒填時，是否顯示「畫卷待展」框'],
   ['原文底本', '好讀《三國演義》（2012年4月7日版）|https://www.haodoo.net/', '顯示於每回文末；「|」後為連結'],
   ['參校本', '維基文庫〈三國演義・{回次}〉|https://zh.wikisource.org/zh-hant/三國演義/第{NNN}回', '{回次}＝第一回，{NNN}＝001'],
-  ['校勘說明', '字形依教育部標準字體調整；少數訛字據參校本及通行本改正。', '']
+  ['校勘說明', '字形依教育部標準字體調整；少數訛字據參校本及通行本改正。', ''],
+  ['製作者', '闕宏宇', '顯示於「製作與版權說明」頁'],
+  ['聯絡方式', '', '選填，例如電子郵件；顯示於說明頁'],
+  ['授權聲明', '本站自行撰寫的題目、解析、註釋、人物小卡與回末小結，採用創用 CC「姓名標示─非商業性─相同方式分享 4.0」授權（CC BY-NC-SA 4.0），歡迎教學使用，請註明出處。', '顯示於說明頁，可自行改寫']
 ];
 
 /* ---------- 網頁入口 ---------- */
@@ -62,6 +65,9 @@ function setupSheets() {
       sh.getRange(1, 1, 1, HEAD[name].length).setValues([HEAD[name]])
         .setFontWeight('bold').setBackground('#efe4cc');
       sh.setFrozenRows(1);
+    } else if (sh.getLastColumn() < HEAD[name].length) {
+      var from = sh.getLastColumn() + 1, add = HEAD[name].slice(from - 1);
+      sh.getRange(1, from, 1, add.length).setValues([add]).setFontWeight('bold').setBackground('#efe4cc');
     }
   });
   var set = ss.getSheetByName(SHEET.SET);
@@ -292,7 +298,8 @@ function saveObj_(r) {
   var j = function (v) { try { return v ? JSON.parse(v) : null; } catch (e) { return null; } };
   return { ch: Number(r[1]), draft: j(r[2]), submitted: yes_(r[3]), first: r[4] === '' ? null : Number(r[4]),
     best: r[5] === '' ? null : Number(r[5]), last: r[6] === '' ? null : Number(r[6]), tries: Number(r[7]) || 0,
-    lastAns: j(r[8]), firstTime: str_(r[9]), lastTime: str_(r[10]), updated: str_(r[11]) };
+    lastAns: j(r[8]), firstTime: str_(r[9]), lastTime: str_(r[10]), updated: str_(r[11]),
+    spent: Number(r[12]) || 0, opened: str_(r[13]) };
 }
 function progress_(account) {
   var a = str_(account).toLowerCase(), o = {};
@@ -318,7 +325,9 @@ function apiInit(token) {
   var set = getSettings_();
   var out = { title: set['網站標題'] || '三國演義・閱讀試煉', subtitle: set['副標題'] || '',
     allowRegister: yes_(set['開放外人註冊'] || '是'), user: null, token: null,
-    guestChapters: Object.keys(guestChapters_(set)).map(Number) };
+    guestChapters: Object.keys(guestChapters_(set)).map(Number),
+    about: { maker: set['製作者'] || '', contact: set['聯絡方式'] || '', license: set['授權聲明'] || '',
+      base: sourceOf_(set, 1, '第一回').base, refRoot: 'https://zh.wikisource.org/zh-hant/三國演義', note: set['校勘說明'] || '' } };
   if (token) {
     try {
       var p = verify_(token);
@@ -451,19 +460,27 @@ function cleanBm_(bm) {
   return bm.slice(0, 30).map(function (x) { return { i: Number(x.i) || 0, t: str_(x.t).slice(0, 40), at: str_(x.at).slice(0, 20) }; })
     .filter(function (x) { return x.i > 0; });
 }
-function apiSaveDraft(token, ch, ans, pos, bm) {
+function cleanSpent_(v, prev) {
+  v = Math.round(Number(v) || 0);
+  if (v < 0) v = 0;
+  if (v > 86400) v = 86400;
+  return Math.max(v, prev || 0);
+}
+function apiSaveDraft(token, ch, ans, pos, bm, spent) {
   var p = verify_(token, 's'); ch = Number(ch);
   var lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
     var hit = findSave_(p.a, ch), t = now_();
-    var old = hit ? saveObj_(hit.r).draft : null;
+    var prevObj = hit ? saveObj_(hit.r) : null, old = prevObj ? prevObj.draft : null;
     var draft = JSON.stringify({ ans: ans || {}, pos: Number(pos) || 0, bm: bm ? cleanBm_(bm) : ((old && old.bm) || []) });
+    var sp = cleanSpent_(spent, prevObj ? prevObj.spent : 0);
     if (hit) {
       var s = sh_(SHEET.SAVE);
       s.getRange(hit.row, 3).setValue(draft);
-      s.getRange(hit.row, 12).setValue(t);
+      s.getRange(hit.row, 12, 1, 2).setValues([[t, sp]]);
+      if (!prevObj.opened) s.getRange(hit.row, 14).setValue(t);
     } else {
-      sh_(SHEET.SAVE).appendRow([p.a, ch, draft, '否', '', '', '', 0, '', '', '', t]);
+      sh_(SHEET.SAVE).appendRow([p.a, ch, draft, '否', '', '', '', 0, '', '', '', t, sp, t]);
     }
     return { ok: true, time: t };
   } finally { lock.releaseLock(); }
@@ -486,7 +503,7 @@ function apiSaveBookmarks(token, ch, bm, pos) {
   } finally { lock.releaseLock(); }
 }
 
-function apiSubmit(token, ch, ans, pos) {
+function apiSubmit(token, ch, ans, pos, spent) {
   var p = verify_(token, 's'); ch = Number(ch);
   var full = chapterFull_(ch), set = getSettings_();
   ans = ans || {};
@@ -502,10 +519,11 @@ function apiSubmit(token, ch, ans, pos) {
     var first = prev && prev.first !== null ? prev.first : res.score;
     var best = prev && prev.best !== null ? Math.max(prev.best, res.score) : res.score;
     var row = [p.a, ch, JSON.stringify({ ans: ans, pos: Number(pos) || 0, bm: (prev && prev.draft && prev.draft.bm) || [] }), '是', first, best, res.score, tries,
-      JSON.stringify(ans), prev && prev.firstTime ? prev.firstTime : t, t, t];
+      JSON.stringify(ans), prev && prev.firstTime ? prev.firstTime : t, t, t,
+      cleanSpent_(spent, prev ? prev.spent : 0), prev && prev.opened ? prev.opened : t];
     if (hit) s.getRange(hit.row, 1, 1, row.length).setValues([row]); else s.appendRow(row);
     var st = findStudent_(p.a), u = st ? userObj_(st.r) : { name: '', cls: '', seat: '' };
-    sh_(SHEET.LOG).appendRow([t, p.a, u.name, u.cls, u.seat, ch, JSON.stringify(ans), res.score, tries]);
+    sh_(SHEET.LOG).appendRow([t, p.a, u.name, u.cls, u.seat, ch, JSON.stringify(ans), res.score, tries, row[12]]);
     res.tries = tries; res.best = best; res.summary = full.summary;
     return res;
   } finally { lock.releaseLock(); }
