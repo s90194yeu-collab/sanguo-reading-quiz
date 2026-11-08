@@ -6,7 +6,8 @@
 
 var SHEET = {
   SET: '設定', ROSTER: '學生名單', TEXT: '原文', QB: '題庫',
-  ILL: '插圖', SAVE: '存檔', LOG: '作答紀錄'
+  ILL: '插圖', SAVE: '存檔', LOG: '作答紀錄',
+  NOTE: '註釋', PEOPLE: '人物', DEED: '人物事蹟', SUM: '回末小結'
 };
 var HEAD = {
   '設定': ['項目', '值', '說明'],
@@ -15,7 +16,11 @@ var HEAD = {
   '題庫': ['回', '題號', '類型', '題幹', 'A', 'B', 'C', 'D', '答案', '解析', '對應段落'],
   '插圖': ['回', '序', '標題', '插在第幾段之後', '圖說', '生圖提示詞', '圖片網址或雲端檔案ID'],
   '存檔': ['帳號', '回', '草稿', '已交卷', '首次得分', '最高得分', '最近得分', '作答次數', '最近作答', '首次交卷時間', '最近交卷時間', '更新時間'],
-  '作答紀錄': ['時間', '帳號', '姓名', '班級', '座號', '回', '作答', '得分', '第幾次']
+  '作答紀錄': ['時間', '帳號', '姓名', '班級', '座號', '回', '作答', '得分', '第幾次'],
+  '註釋': ['回', '詞語', '注音', '解釋'],
+  '人物': ['姓名', '別稱（逗號分隔）', '陣營', '首次出場回', '簡介（勿劇透）'],
+  '人物事蹟': ['姓名', '回', '事蹟'],
+  '回末小結': ['回', '本回大事（一行一件）', '名句', '想一想']
 };
 var DEFAULT_SET = [
   ['網站標題', '三國演義・閱讀試煉', '顯示在網站最上方'],
@@ -88,20 +93,29 @@ function setupSheets() {
     var ir = SEED.illus.map(function (x) { return [x.ch, x.no, x.title, x.after, x.caption, x.prompt, x.url]; });
     il.getRange(2, 1, ir.length, 7).setValues(ir);
   }
+  seedIfEmpty_(SHEET.NOTE, (SEED.notes || []).map(function (x) { return [x.ch, x.w, x.zy, x.exp]; }));
+  seedIfEmpty_(SHEET.PEOPLE, (SEED.people || []).map(function (x) { return [x.name, x.alias, x.camp, x.first, x.intro]; }));
+  seedIfEmpty_(SHEET.DEED, (SEED.deeds || []).map(function (x) { return [x.name, x.ch, x.text]; }));
+  seedIfEmpty_(SHEET.SUM, (SEED.summary || []).map(function (x) { return [x.ch, x.events, x.quote, x.think]; }));
   var rs = ss.getSheetByName(SHEET.ROSTER);
   rs.getRange('A:A').setNumberFormat('@'); rs.getRange('B:B').setNumberFormat('@');
   getSecret_();
   clearContentCache();
 }
 
+function seedIfEmpty_(name, rows) {
+  var sh = sh_(name);
+  if (sh && sh.getLastRow() < 2 && rows.length) sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+}
+
 function ensureSetup_() {
   var ss = SpreadsheetApp.getActive();
-  if (!ss.getSheetByName(SHEET.QB) || !ss.getSheetByName(SHEET.SAVE)) setupSheets();
+  if (!ss.getSheetByName(SHEET.QB) || !ss.getSheetByName(SHEET.SAVE) || !ss.getSheetByName(SHEET.SUM)) setupSheets();
 }
 
 function clearContentCache() {
   var c = CacheService.getScriptCache();
-  var keys = ['catalog', 'settings'];
+  var keys = ['catalog', 'settings', 'people'];
   for (var i = 1; i <= 120; i++) keys.push('ch_' + i);
   c.removeAll(keys);
 }
@@ -231,9 +245,35 @@ function chapterFull_(ch) {
   var ill = rows_(SHEET.ILL).filter(function (r) { return Number(r[0]) === ch; }).map(function (r) {
     return { no: Number(r[1]), title: str_(r[2]), after: Number(r[3]) || 0, caption: str_(r[4]), url: imgUrl_(r[6]) };
   }).sort(function (a, b) { return a.no - b.no; });
-  var o = { ch: ch, num: num, title: title, paras: paras, qs: qs, ill: ill };
+  var notes = rows_(SHEET.NOTE).filter(function (r) { return Number(r[0]) === ch && str_(r[1]); })
+    .map(function (r) { return { w: str_(r[1]), zy: str_(r[2]), exp: str_(r[3]) }; });
+  var sm = rows_(SHEET.SUM).filter(function (r) { return Number(r[0]) === ch; })[0];
+  var summary = sm ? { events: str_(sm[1]).split(/\n+/).filter(String), quote: str_(sm[2]), think: str_(sm[3]) } : null;
+  var o = { ch: ch, num: num, title: title, paras: paras, qs: qs, ill: ill, notes: notes, summary: summary };
   try { c.put(key, JSON.stringify(o), 600); } catch (e) { }
   return o;
+}
+
+/* ---------- 人物 ---------- */
+function peopleAll_() {
+  var c = CacheService.getScriptCache(), hit = c.get('people');
+  if (hit) return JSON.parse(hit);
+  var deeds = {};
+  rows_(SHEET.DEED).forEach(function (r) { var n = str_(r[0]); if (n) (deeds[n] = deeds[n] || []).push({ ch: Number(r[1]) || 0, t: str_(r[2]) }); });
+  var list = rows_(SHEET.PEOPLE).filter(function (r) { return str_(r[0]); }).map(function (r) {
+    var n = str_(r[0]);
+    return { name: n, alias: str_(r[1]).split(/[,，、]/).map(str_).filter(function (x) { return x.length >= 2; }),
+      camp: str_(r[2]), first: Number(r[3]) || 1, intro: str_(r[4]),
+      deeds: (deeds[n] || []).sort(function (a, b) { return a.ch - b.ch; }) };
+  });
+  try { c.put('people', JSON.stringify(list), 600); } catch (e) { }
+  return list;
+}
+/** 只給讀到第 ch 回為止的資訊，避免劇透 */
+function peopleFor_(ch) {
+  return peopleAll_().filter(function (p) { return p.first <= ch; }).map(function (p) {
+    return { name: p.name, alias: p.alias, camp: p.camp, intro: p.intro, deeds: p.deeds.filter(function (d) { return d.ch <= ch; }) };
+  });
 }
 
 /* ---------- 存檔 ---------- */
@@ -356,7 +396,7 @@ function apiGuestChapter(ch) {
   return { ch: ch, num: full.num, title: full.title, paras: full.paras, guest: true,
     ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
     qs: full.qs.map(function (q) { return { no: q.no, type: q.type, stem: q.stem, opts: q.opts }; }),
-    allowRetry: true, save: null, source: sourceOf_(set, ch, full.num) };
+    allowRetry: true, save: null, source: sourceOf_(set, ch, full.num), notes: full.notes || [], people: peopleFor_(ch) };
 }
 function apiGuestSubmit(ch, ans) {
   ch = Number(ch); var set = getSettings_();
@@ -364,7 +404,7 @@ function apiGuestSubmit(ch, ans) {
   var full = chapterFull_(ch); ans = ans || {};
   var missing = full.qs.filter(function (q) { return !str_(ans[q.no]); });
   if (missing.length) throw new Error('還有 ' + missing.length + ' 題未作答');
-  return grade_(full, ans, yes_(set['交卷後顯示解析'] || '是'));
+  var g = grade_(full, ans, yes_(set['交卷後顯示解析'] || '是')); g.summary = full.summary; return g;
 }
 
 function apiChapter(token, ch) {
@@ -377,8 +417,9 @@ function apiChapter(token, ch) {
   var out = { ch: ch, num: full.num, title: full.title, paras: full.paras,
     ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
     qs: full.qs.map(function (q) { return { no: q.no, type: q.type, stem: q.stem, opts: q.opts }; }),
-    allowRetry: yes_(set['允許重作'] || '是'), save: save, source: sourceOf_(set, ch, full.num) };
-  if (save && save.submitted) out.result = grade_(full, save.lastAns || {}, showExp);
+    allowRetry: yes_(set['允許重作'] || '是'), save: save, source: sourceOf_(set, ch, full.num),
+    notes: full.notes || [], people: peopleFor_(ch) };
+  if (save && save.submitted) { out.result = grade_(full, save.lastAns || {}, showExp); out.result.summary = full.summary; }
   return out;
 }
 
@@ -461,9 +502,26 @@ function apiSubmit(token, ch, ans, pos) {
     if (hit) s.getRange(hit.row, 1, 1, row.length).setValues([row]); else s.appendRow(row);
     var st = findStudent_(p.a), u = st ? userObj_(st.r) : { name: '', cls: '', seat: '' };
     sh_(SHEET.LOG).appendRow([t, p.a, u.name, u.cls, u.seat, ch, JSON.stringify(ans), res.score, tries]);
-    res.tries = tries; res.best = best;
+    res.tries = tries; res.best = best; res.summary = full.summary;
     return res;
   } finally { lock.releaseLock(); }
+}
+
+/* ---------- 錯題本 ---------- */
+function apiMistakes(token) {
+  var p = verify_(token, 's'), a = str_(p.a).toLowerCase(), showExp = yes_(getSettings_()['交卷後顯示解析'] || '是'), out = [];
+  rows_(SHEET.SAVE).forEach(function (r) {
+    if (str_(r[0]).toLowerCase() !== a) return;
+    var s = saveObj_(r); if (!s.submitted || !s.lastAns) return;
+    var full = chapterFull_(s.ch);
+    full.qs.forEach(function (q) {
+      var mine = str_(s.lastAns[q.no]).toUpperCase();
+      if (mine !== q.ans) out.push({ ch: s.ch, num: full.num, title: full.title, no: q.no, type: q.type, stem: q.stem, opts: q.opts,
+        ans: q.ans, mine: mine, exp: showExp ? q.exp : '', para: q.para });
+    });
+  });
+  out.sort(function (x, y) { return x.ch - y.ch || x.no - y.no; });
+  return out;
 }
 
 /* ---------- 教師後台 ---------- */
@@ -485,7 +543,10 @@ function apiTeacherData(token) {
   var chapters = catalog_().map(function (c) {
     var f = chapterFull_(c.ch);
     return { ch: c.ch, num: c.num, title: c.title,
-      qs: f.qs.map(function (q) { return { no: q.no, type: q.type, stem: q.stem, ans: q.ans }; }) };
+      qs: f.qs.map(function (q) {
+        var pr = f.paras.filter(function (x) { return x.i === q.para; })[0];
+        return { no: q.no, type: q.type, stem: q.stem, ans: q.ans, para: q.para, paraText: pr ? pr.t.replace(/^〔詩〕/, '') : '' };
+      }) };
   });
   return { roster: roster, saves: saves, chapters: chapters, time: now_() };
 }

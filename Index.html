@@ -142,6 +142,68 @@ main:has(.reader){padding-bottom:14px}
 .text .source{writing-mode:horizontal-tb;margin-top:1.4em;padding-top:12px;border-top:1px dashed var(--line);font-size:14px;line-height:1.8;color:var(--mute);text-indent:0}
 .text .source a{color:var(--red)}
 .text.vert p.quote{margin:2em 0 0 1.3em;border-left:none;border-top:3px solid var(--gold)}
+/* 註釋與人物 */
+.text .nt{border-bottom:1.5px dotted var(--red);cursor:help}
+.text .ps{color:#6b3a1e;border-bottom:1px solid rgba(107,58,30,.25);cursor:pointer}
+.text .nt:hover,.text .ps:hover{background:rgba(214,170,80,.25)}
+#tip{position:fixed;z-index:70;display:none;background:#fbf5e6;border:1px solid var(--line);border-top:6px solid var(--red);border-radius:3px;
+  box-shadow:0 14px 30px rgba(60,35,15,.3);padding:14px 16px 12px;font-size:15px;line-height:1.7;max-height:60vh;overflow:auto}
+#tip.show{display:block}
+#tip .tipx{position:absolute;right:6px;top:2px;background:none;border:none;font-size:20px;color:var(--mute)}
+#tip .tiph{display:flex;align-items:baseline;gap:10px;margin-bottom:4px;padding-right:18px}
+#tip .tiph b{font:700 20px var(--f-title)}
+#tip .zy{font-size:14px;color:var(--red);letter-spacing:1px}
+#tip .camp{font:13px var(--f-title);background:var(--jade);color:#fff;padding:0 8px;border-radius:2px}
+#tip .tipa{font-size:13px;color:var(--mute)}
+#tip .tipd{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+#tip .tipd b{font:700 14px var(--f-title);color:var(--wood)}
+#tip .tipd p{margin:4px 0;font-size:14px}
+#tip .tipd p span{display:inline-block;font:12px var(--f-title);color:#fff;background:var(--wood);padding:0 6px;margin-right:6px;border-radius:2px}
+/* 進度與成就 */
+.progress{margin:0 0 26px;padding:18px 22px}
+.pg-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;color:var(--mute)}
+.pg-top b{font:700 17px var(--f-title);color:var(--wood);letter-spacing:2px}
+.pg-bar{height:8px;background:#e6d6b2;border-radius:4px;margin:8px 0 12px;overflow:hidden}
+.pg-bar div{height:100%;background:linear-gradient(90deg,var(--red),var(--gold))}
+.pg-nodes{display:flex;align-items:center;flex-wrap:wrap;gap:0}
+.pg-nodes i{width:22px;height:2px;background:var(--line)}
+.node{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:700 14px var(--f-title);border:2px solid var(--line);color:var(--mute);background:#fffaf0}
+.node.draft{border-color:var(--gold);color:var(--gold)}
+.node.done{background:var(--red);border-color:var(--red);color:#fff}
+.node.perfect{box-shadow:0 0 0 3px rgba(214,170,80,.6)}
+.achs{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:10px;margin-top:10px}
+.ach{text-align:center;cursor:pointer;opacity:.35;filter:grayscale(1)}
+.ach.got{opacity:1;filter:none}
+.ach .seal2{display:inline-grid;place-items:center;width:52px;height:52px;border:2.5px solid var(--red);color:var(--red);border-radius:6px;font:700 18px/1.05 var(--f-title);
+  writing-mode:vertical-rl;letter-spacing:2px;transform:rotate(-5deg);background:rgba(255,245,235,.7)}
+.ach.got .seal2{background:var(--red);color:#fbeee0}
+.ach small{display:block;margin-top:6px;font:13px var(--f-title);color:var(--ink2)}
+/* 錯題本 */
+.mlist{display:grid;gap:18px}
+.mq{padding:20px 24px}
+.mq.fixed{opacity:.75}
+.chno.sm{font-size:13px;padding:2px 8px;letter-spacing:2px}
+.okmark{margin-left:auto;font:700 13px var(--f-title);color:var(--jade);border:1.5px solid var(--jade);padding:0 8px;border-radius:2px}
+.mbar{display:flex;align-items:center;gap:12px;margin-top:8px}
+.mq .opt.wrong{text-decoration:none}
+/* 回末小結 */
+.summ{margin:12px 0 4px;padding:16px 18px;background:#fffaf0;border:1px solid var(--line);border-left:5px solid var(--red)}
+.summ-h{font:700 18px var(--f-title);color:var(--red);letter-spacing:3px;margin-bottom:6px}
+.summ ol{margin:0 0 10px;padding-left:1.4em;line-height:1.8;font-size:15px}
+.summ ol b{color:var(--wood)}
+.summ blockquote{margin:10px 0;padding:8px 14px;background:rgba(160,122,60,.1);border-left:4px solid var(--gold);font:17px/1.7 var(--f-title);color:var(--ink2)}
+.summ .think{font-size:15px;line-height:1.7;margin:8px 0 12px}
+.summ .think b{display:inline-block;font:700 13px var(--f-title);color:#fff;background:var(--jade);padding:0 8px;margin-right:8px;border-radius:2px}
+/* 後台段落分析 */
+.pa{padding:10px 0;border-bottom:1px dashed var(--line);cursor:pointer}
+.pa:hover{background:rgba(160,122,60,.08)}
+.pa-h{display:flex;gap:10px;align-items:baseline;margin-bottom:6px}
+.pa-n{flex:none;font:700 15px var(--f-title);color:var(--wood)}
+.pa-s{flex:1;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pa-h b{flex:none;font:700 15px var(--f-title);color:var(--jade)}
+.pa-h b.hot{color:var(--red)}
+.pa .track{height:12px;background:#eadcbc;border-radius:2px;overflow:hidden}
+.pa .fill{height:100%;background:var(--jade)}.pa .fill.low{background:var(--red)}
 .text p.flash{background:rgba(214,170,80,.35)}
 .text p .pn{font-size:12px;color:var(--mute);font-family:var(--f-title);margin-right:6px;user-select:none}
 .text.vert{writing-mode:vertical-rl;overflow-x:auto;overflow-y:hidden;line-height:2.1;padding:34px 30px}
@@ -525,8 +587,13 @@ function renderHome() {
       '</span><span>' + esc(t[1] || '') + '</span></div>' + stamp + '<div class="st' + (stamp ? '' : ' c') + '">' + st + '</div></div>';
   }).join('');
   view('<div class="homehead"><div><h2>回目</h2><p>' + (S.guest ? '訪客可試讀標有「試讀」的回目；其餘回目請登入後閱讀。' : '點選一回，展卷閱讀並作答。每回五題，答案會自動存檔。') + '</p></div>' +
-    (S.guest ? '' : '<div class="stat"><div><b>' + done + '</b>已完成回數</div><div><b>' + (tot ? Math.round(sum / tot * 100) : 0) + '%</b>最佳答對率</div></div>') + '</div>' +
+    (S.guest ? '' : '<div class="stat"><div><b>' + done + '</b>已完成回數</div><div><b>' + (tot ? Math.round(sum / tot * 100) : 0) + '%</b>最佳答對率</div>' +
+      '<div><button class="btn ghost" id="btnMist">錯題本</button></div></div>') + '</div>' +
+    progressHTML(h) +
     '<div class="cards">' + (cards || '<p>老師尚未開放任何回目。</p>') + '</div>');
+  if ($('#btnMist')) $('#btnMist').onclick = function () { Qin.sfx('wood'); openMistakes(); };
+  $$('.ach[data-tip]').forEach(function (a) { a.onclick = function () { toast(a.dataset.tip, 2600); }; });
+  checkNewAch(h);
   $$('.card').forEach(function (c) {
     c.onclick = function () {
       if (c.classList.contains('locked')) { toast('本回需登入才能閱讀'); return; }
@@ -542,7 +609,10 @@ function openChapter(ch) {
     S.chap = d; var g = null; try { g = JSON.parse(store('sg_guest_' + ch) || 'null'); } catch (e) { }
     S.ans = (g && g.ans) || {}; if (g) d.save = { draft: g }; renderChapter();
   }).catch(fail);
-  call('apiChapter', S.token, ch).then(function (d) { S.chap = d; S.ans = (d.save && d.save.draft && d.save.draft.ans) || {}; renderChapter(); }).catch(fail);
+  call('apiChapter', S.token, ch).then(function (d) {
+    S.chap = d; S.ans = (d.save && d.save.draft && d.save.draft.ans) || {}; renderChapter();
+    if (S.pendingJump) { var j = S.pendingJump; S.pendingJump = null; setTimeout(function () { jumpPara(j); }, 300); }
+  }).catch(fail);
 }
 function placeholderSVG(title) {
   return '<svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="畫卷待展">' +
@@ -558,11 +628,13 @@ function placeholderSVG(title) {
 function renderChapter() {
   var d = S.chap, t = d.title.split(/\s+/), ill = {};
   d.ill.forEach(function (x) { (ill[x.after] = ill[x.after] || []).push(x); });
+  var mk = buildMarkup(d);
   var text = d.paras.map(function (p, k) {
     var txt = p.t, cls = '', h = '';
     var isPoem = function (x) { return x && x.t.indexOf('〔詩〕') === 0 && x.t.length <= 63; };
     if (txt.indexOf('〔詩〕') === 0) { txt = txt.slice(3); cls = txt.length > 60 ? ' class="quote"' : ' class="poem"'; }
-    var body = cls === ' class="poem"' ? esc(txt).replace(/([。！？；])(?=.)/g, '$1<br>') : esc(txt);
+    var body = markup(esc(txt), mk);
+    if (cls === ' class="poem"') body = body.replace(/([。！？；])(?=[^<])/g, '$1<br>');
     if (isPoem(p) && !isPoem(d.paras[k - 1])) h += '<div class="poemgrp">';
     h += '<p data-i="' + p.i + '"' + cls + '>' + body + '</p>';
     if (isPoem(p) && !isPoem(d.paras[k + 1])) h += '</div>';
@@ -588,6 +660,7 @@ function renderChapter() {
   S.bm = (d.save && d.save.draft && d.save.draft.bm) || [];
   if (S.guest) { try { S.bm = JSON.parse(store('sg_bm_guest_' + d.ch) || '[]'); } catch (e) { S.bm = []; } }
   markBm();
+  bindTextTips(tx);
   $('#toHome').onclick = goHome;
   $$('.mtabs .chip').forEach(function (b) {
     b.onclick = function () { $$('.mtabs .chip').forEach(function (x) { x.classList.toggle('on', x === b); }); $$('.cols .pane').forEach(function (p) { p.classList.toggle('on', p.id === b.dataset.p); }); window.scrollTo(0, 0); };
@@ -616,6 +689,252 @@ function sourceHTML(s) {
   if (s.note) parts.push(esc(s.note));
   return parts.length ? '<div class="source">【出處】' + parts.join('；') + '</div>' : '';
 }
+/* ================= 註釋與人物小卡 ================= */
+function buildMarkup(d) {
+  var map = {};
+  (d.people || []).forEach(function (p) { [p.name].concat(p.alias || []).forEach(function (k) { if (k && !map[k]) map[k] = { t: 'p', p: p }; }); });
+  (d.notes || []).forEach(function (n) { map[n.w] = { t: 'n', n: n }; });
+  var keys = Object.keys(map).sort(function (a, b) { return b.length - a.length; });
+  S.noteMap = {}; S.peopleMap = {};
+  (d.notes || []).forEach(function (n) { S.noteMap[n.w] = n; });
+  (d.people || []).forEach(function (p) { S.peopleMap[p.name] = p; });
+  return { re: keys.length ? new RegExp(keys.map(function (k) { return k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|'), 'g') : null, map: map, used: {} };
+}
+function markup(html, mk) {
+  if (!mk || !mk.re) return html;
+  var pp = {};
+  return html.replace(mk.re, function (m) {
+    var x = mk.map[m];
+    if (x.t === 'n') { if (mk.used[m]) return m; mk.used[m] = 1; return '<span class="nt" data-w="' + m + '">' + m + '</span>'; }
+    if (pp[x.p.name]) return m; pp[x.p.name] = 1;
+    return '<span class="ps" data-n="' + esc(x.p.name) + '">' + m + '</span>';
+  });
+}
+function showTip(el, html) {
+  var tip = $('#tip'); if (!tip) { tip = document.createElement('div'); tip.id = 'tip'; document.body.appendChild(tip); }
+  tip.innerHTML = html + '<button class="tipx" aria-label="關閉">×</button>'; tip.className = 'show';
+  var r = el.getBoundingClientRect(), w = Math.min(340, innerWidth - 20);
+  tip.style.width = w + 'px';
+  var left = Math.min(Math.max(10, r.left + r.width / 2 - w / 2), innerWidth - w - 10);
+  tip.style.left = left + 'px'; tip.style.top = '0px';
+  var h = tip.offsetHeight, top = r.bottom + 8;
+  if (top + h > innerHeight - 10) top = Math.max(10, r.top - h - 8);
+  tip.style.top = top + 'px';
+  $('.tipx', tip).onclick = hideTip;
+}
+function hideTip() { var t = $('#tip'); if (t) t.className = ''; }
+document.addEventListener('click', function (e) { if (!e.target.closest('#tip') && !e.target.closest('.nt,.ps')) hideTip(); });
+function bindTextTips(tx) {
+  tx.addEventListener('click', function (e) {
+    var n = e.target.closest('.nt'), p = e.target.closest('.ps');
+    if (n) {
+      var x = S.noteMap[n.dataset.w]; if (!x) return;
+      Qin.sfx('wood');
+      showTip(n, '<div class="tiph"><b>' + esc(x.w) + '</b><span class="zy">' + esc(x.zy) + '</span></div><div class="tipb">' + esc(x.exp) + '</div>');
+    } else if (p) {
+      var c = S.peopleMap[p.dataset.n]; if (!c) return;
+      Qin.sfx('wood');
+      var al = (c.alias || []).filter(function (a) { return a !== c.name; });
+      showTip(p, '<div class="tiph"><b>' + esc(c.name) + '</b>' + (c.camp ? '<span class="camp">' + esc(c.camp) + '</span>' : '') + '</div>' +
+        (al.length ? '<div class="tipa">又稱：' + esc(al.join('、')) + '</div>' : '') +
+        '<div class="tipb">' + esc(c.intro) + '</div>' +
+        (c.deeds && c.deeds.length ? '<div class="tipd"><b>到目前為止</b>' + c.deeds.map(function (d) { return '<p><span>第' + cnum(d.ch) + '回</span>' + esc(d.t) + '</p>'; }).join('') + '</div>' : ''));
+    }
+  });
+  tx.addEventListener('scroll', hideTip);
+}
+
+/* ================= 進度與成就 ================= */
+var ACH = [
+  { id: 'first', name: '初出茅廬', seal: '初出', tip: '完成任一回', test: function (c) { return c.done >= 1; } },
+  { id: 'peach', name: '桃園之義', seal: '桃園', tip: '第一回全對', test: function (c) { return c.perfect[1]; } },
+  { id: 'ace', name: '百步穿楊', seal: '穿楊', tip: '任一回全對', test: function (c) { return c.nPerfect >= 1; } },
+  { id: 'three', name: '三英聚首', seal: '三英', tip: '三回全對', test: function (c) { return c.nPerfect >= 3; } },
+  { id: 'wine', name: '溫酒斬將', seal: '斬將', tip: '第五回全對', test: function (c) { return c.perfect[5]; } },
+  { id: 'five', name: '過關斬將', seal: '過關', tip: '連續完成第一到第五回', test: function (c) { return c.streak >= 5; } },
+  { id: 'fix', name: '知錯能改', seal: '能改', tip: '在錯題本訂正三題', test: function (c) { return c.fixed >= 3; } },
+  { id: 'all', name: '手不釋卷', seal: '釋卷', tip: '完成所有開放的回目', test: function (c) { return c.total > 0 && c.done >= c.total; } }
+];
+function fixedKey() { return 'sg_fixed_' + (S.user ? S.user.account : 'guest'); }
+function fixedSet() { try { return JSON.parse(store(fixedKey()) || '{}'); } catch (e) { return {}; } }
+function achCtx(h) {
+  var c = { done: 0, perfect: {}, nPerfect: 0, streak: 0, fixed: Object.keys(fixedSet()).length, total: h.chapters.length };
+  h.chapters.forEach(function (ch) {
+    var p = h.progress[ch.ch];
+    if (p && p.submitted) { c.done++; if (p.best >= ch.qn && ch.qn) { c.perfect[ch.ch] = true; c.nPerfect++; } }
+  });
+  for (var i = 1; h.progress[i] && h.progress[i].submitted; i++) c.streak = i;
+  return c;
+}
+function progressHTML(h) {
+  if (S.guest) return '<div class="progress scrollpanel"><p class="note" style="margin:0">登入後可記錄閱讀進度、收集成就印章，並使用錯題本。</p></div>';
+  var c = achCtx(h), TOTAL = 120;
+  var nodes = h.chapters.map(function (ch) {
+    var p = h.progress[ch.ch] || {}, cls = p.submitted ? (c.perfect[ch.ch] ? 'done perfect' : 'done') : p.hasDraft ? 'draft' : '';
+    return '<span class="node ' + cls + '" title="' + esc(ch.num + ' ' + ch.title) + '">' + cnum(ch.ch) + '</span>';
+  }).join('<i></i>');
+  var achs = ACH.map(function (a) {
+    var ok = a.test(c);
+    return '<div class="ach' + (ok ? ' got' : '') + '" data-tip="' + esc(a.name + '：' + a.tip + (ok ? '（已獲得）' : '（尚未獲得）')) + '"><span class="seal2">' + a.seal + '</span><small>' + a.name + '</small></div>';
+  }).join('');
+  var got = ACH.filter(function (a) { return a.test(c); }).length;
+  return '<div class="progress scrollpanel"><div class="pg-top"><b>閱讀進度</b><span>已讀 ' + c.done + ' 回／開放 ' + c.total + ' 回・全書 ' + TOTAL + ' 回</span></div>' +
+    '<div class="pg-bar"><div style="width:' + (c.done / TOTAL * 100).toFixed(2) + '%"></div></div>' +
+    '<div class="pg-nodes">' + nodes + '</div>' +
+    '<div class="pg-top" style="margin-top:14px"><b>成就印章</b><span>' + got + '／' + ACH.length + '</span></div><div class="achs">' + achs + '</div></div>';
+}
+function checkNewAch(h) {
+  if (S.guest || !S.user) return;
+  var key = 'sg_ach_' + S.user.account, c = achCtx(h), now = ACH.filter(function (a) { return a.test(c); }).map(function (a) { return a.id; });
+  var old = store(key);
+  store(key, JSON.stringify(now));
+  if (old === null) return;
+  try { old = JSON.parse(old); } catch (e) { old = []; }
+  var fresh = ACH.filter(function (a) { return now.indexOf(a.id) >= 0 && old.indexOf(a.id) < 0; });
+  if (fresh.length) { Qin.sfx('bell'); toast('獲得印章：' + fresh.map(function (a) { return a.name; }).join('、'), 3200); }
+}
+
+/* ================= 錯題本 ================= */
+function openMistakes() {
+  flushDraft();
+  loading('翻開錯題本');
+  call('apiMistakes', S.token).then(function (list) { S.mist = list; S.mistFilter = S.mistFilter || 'todo'; renderMistakes(); }).catch(fail);
+}
+function renderMistakes() {
+  var fx = fixedSet(), all = S.mist || [];
+  var list = all.filter(function (m) { return S.mistFilter === 'all' || !fx[m.ch + '-' + m.no]; });
+  var nFixed = all.filter(function (m) { return fx[m.ch + '-' + m.no]; }).length;
+  var body = list.length ? list.map(function (m) {
+    var k = m.ch + '-' + m.no, done = !!fx[k];
+    return '<div class="mq scrollpanel' + (done ? ' fixed' : '') + '" data-k="' + k + '"><div class="qh"><span class="chno sm">' + esc(m.num) + '</span><span class="qn">第' + cnum(m.no) + '題</span>' +
+      '<span class="tag ' + typeCls(m.type) + '">' + esc(m.type) + '</span>' + (done ? '<span class="okmark">已訂正</span>' : '') + '</div>' +
+      '<p class="stem">' + esc(m.stem) + '</p><div class="opts">' + m.opts.map(function (o, i) {
+        return '<label class="opt" data-l="' + 'ABCD'[i] + '"><span class="L">' + 'ABCD'[i] + '</span><span>' + esc(o) + '</span></label>'; }).join('') + '</div>' +
+      '<div class="fb"></div><div class="mbar"><span class="note">上次你選 ' + (m.mine || '—') + '</span><button class="link" data-go="' + m.ch + '" data-para="' + m.para + '">回原文第 ' + m.para + ' 段</button></div></div>';
+  }).join('') : '<div class="scrollpanel" style="text-align:center;padding:40px"><p style="font:20px var(--f-title)">' + (all.length ? '錯題都訂正完了，了不起！' : '目前沒有錯題。交卷後答錯的題目會收進這裡。') + '</p></div>';
+  view('<div class="homehead"><div><h2>錯題本</h2><p>重新作答答錯過的題目，答對就算訂正。共 ' + all.length + ' 題，已訂正 ' + nFixed + ' 題。</p></div>' +
+    '<div class="rtools"><button class="chip' + (S.mistFilter === 'todo' ? ' on' : '') + '" data-f="todo">未訂正</button><button class="chip' + (S.mistFilter === 'all' ? ' on' : '') + '" data-f="all">全部</button><button class="chip" id="mBack">回目錄</button></div></div>' +
+    '<div class="mlist">' + body + '</div>');
+  $$('[data-f]').forEach(function (b) { b.onclick = function () { S.mistFilter = b.dataset.f; renderMistakes(); }; });
+  $('#mBack').onclick = goHome;
+  $$('.mq').forEach(function (box) {
+    var m = all.filter(function (x) { return x.ch + '-' + x.no === box.dataset.k; })[0], tries = 0;
+    $$('.opt', box).forEach(function (o) {
+      o.onclick = function () {
+        if (box.classList.contains('solved')) return;
+        var L = o.dataset.l, fb = $('.fb', box);
+        if (L === m.ans) {
+          box.classList.add('solved'); o.classList.add('right'); Qin.sfx('bell');
+          var f = fixedSet(); f[box.dataset.k] = 1; store(fixedKey(), JSON.stringify(f));
+          fb.className = 'fb show'; fb.innerHTML = '<span class="verdict ok">✓ 訂正成功</span>' + (m.exp ? '<div>' + esc(m.exp) + '</div>' : '');
+          if (!$('.okmark', box)) $('.qh', box).insertAdjacentHTML('beforeend', '<span class="okmark">已訂正</span>');
+        } else {
+          tries++; o.classList.add('wrong'); Qin.sfx('wood');
+          fb.className = 'fb show';
+          if (tries >= 2) {
+            box.classList.add('solved'); $('.opt[data-l="' + m.ans + '"]', box).classList.add('right');
+            fb.innerHTML = '<span class="verdict no">正解是 ' + m.ans + '</span>' + (m.exp ? '<div>' + esc(m.exp) + '</div>' : '') + '<div class="note">建議回原文再讀一次，下次再來訂正。</div>';
+          } else fb.innerHTML = '<span class="verdict no">再想想</span><div class="note">提示：回原文第 ' + m.para + ' 段找找線索。</div>';
+        }
+      };
+    });
+  });
+  $$('[data-go]').forEach(function (b) { b.onclick = function () { S.pendingJump = +b.dataset.para; openChapter(+b.dataset.go); }; });
+}
+
+/* ================= 回末小結卡 ================= */
+function summaryHTML(sm) {
+  if (!sm) return '';
+  return '<div class="summ"><div class="summ-h">本回大事</div><ol>' + sm.events.map(function (e) {
+    var k = e.indexOf('：'); return '<li>' + (k > 0 ? '<b>' + esc(e.slice(0, k)) + '</b>' + esc(e.slice(k)) : esc(e)) + '</li>'; }).join('') + '</ol>' +
+    (sm.quote ? '<blockquote>「' + esc(sm.quote.replace(/[。]$/, '')) + '」</blockquote>' : '') +
+    (sm.think ? '<p class="think"><b>想一想</b>' + esc(sm.think) + '</p>' : '') +
+    '<button class="btn jade wide" id="dlCard">下載小結卡（圖片）</button></div>';
+}
+function wrapLines(ctx, text, maxW) {
+  var lines = [], cur = '';
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i], test = cur + ch;
+    if (ctx.measureText(test).width > maxW && cur) {
+      if ('，。、；：！？」』）'.indexOf(ch) >= 0) { cur += ch; continue; }
+      lines.push(cur); cur = ch;
+    } else cur = test;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function downloadCard() {
+  var d = S.chap, sm = d.result && d.result.summary; if (!sm) return;
+  var W = 1080, H = 1440, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  var c = cv.getContext('2d');
+  var title = "'LXGW WenKai TC','標楷體',serif", body = "'Noto Serif TC','PMingLiU',serif";
+  Promise.all([document.fonts.load('48px "LXGW WenKai TC"'), document.fonts.load('32px "Noto Serif TC"')]).catch(function () { }).then(function () {
+    var g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#f8f0dc'); g.addColorStop(1, '#ead9b4');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    c.fillStyle = '#4e3220'; c.fillRect(0, 0, W, 34); c.fillRect(0, H - 34, W, 34);
+    c.strokeStyle = '#b08a4a'; c.lineWidth = 3; c.strokeRect(44, 70, W - 88, H - 140);
+    c.fillStyle = '#a8322a'; c.fillRect(90, 120, 190, 64);
+    c.fillStyle = '#fbeee0'; c.font = '700 34px ' + title; c.textAlign = 'center'; c.fillText(d.num, 185, 164);
+    c.textAlign = 'left'; c.fillStyle = '#2a2420'; c.font = '700 50px ' + title;
+    var t = d.title.split(/\s+/); c.fillText(t[0] || '', 90, 260); c.fillText(t[1] || '', 150, 330);
+    c.fillStyle = '#a8322a'; c.font = '700 36px ' + title; c.fillText('本回大事', 90, 420);
+    var y = 480; c.font = '32px ' + body;
+    sm.events.forEach(function (e, i) {
+      c.fillStyle = '#a8322a'; c.fillText((i + 1) + '.', 90, y);
+      c.fillStyle = '#2a2420';
+      wrapLines(c, e, W - 230).forEach(function (ln, k) { c.fillText(ln, 140, y + k * 48); y += 0; });
+      y += wrapLines(c, e, W - 230).length * 48 + 18;
+    });
+    if (sm.quote) {
+      y += 20; c.fillStyle = 'rgba(160,122,60,.12)'; var ql = wrapLines(c, '「' + sm.quote.replace(/[。]$/, '') + '」', W - 260);
+      c.font = '36px ' + title; ql = wrapLines(c, '「' + sm.quote.replace(/[。]$/, '') + '」', W - 260);
+      c.fillRect(90, y - 10, W - 180, ql.length * 54 + 40);
+      c.fillStyle = '#a07a3c'; c.fillRect(90, y - 10, 8, ql.length * 54 + 40);
+      c.fillStyle = '#5b4f45'; ql.forEach(function (ln, k) { c.fillText(ln, 130, y + 44 + k * 54); });
+      y += ql.length * 54 + 70;
+    }
+    if (sm.think) {
+      c.fillStyle = '#3e6a5a'; c.font = '700 32px ' + title; c.fillText('想一想', 90, y + 20);
+      c.fillStyle = '#2a2420'; c.font = '30px ' + body;
+      wrapLines(c, sm.think, W - 220).forEach(function (ln, k) { c.fillText(ln, 90, y + 70 + k * 44); });
+    }
+    var res = d.result;
+    c.save(); c.translate(W - 200, H - 250); c.rotate(-0.12);
+    c.strokeStyle = '#a8322a'; c.lineWidth = 6; c.strokeRect(-80, -80, 160, 160); c.lineWidth = 2; c.strokeRect(-68, -68, 136, 136);
+    c.fillStyle = '#a8322a'; c.textAlign = 'center'; c.font = '700 54px ' + title; c.fillText(res.score + '/' + res.total, 0, 10);
+    c.font = '700 26px ' + title; c.fillText(res.score === res.total ? '全　對' : '已　閱', 0, 52); c.restore();
+    c.textAlign = 'left'; c.fillStyle = '#8b7c6b'; c.font = '26px ' + title;
+    c.fillText((S.user ? (S.user.cls + ' ' + S.user.name) : '試閱讀者') + '・' + new Date().toLocaleDateString('zh-TW'), 90, H - 110);
+    c.fillText($('#siteTitle').textContent, 90, H - 150);
+    cv.toBlob(function (b) {
+      var url = URL.createObjectURL(b), a = document.createElement('a');
+      a.href = url; a.download = d.num + '小結卡.png'; a.target = '_self'; document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+      toast('已下載小結卡');
+    }, 'image/png');
+  });
+}
+
+/* ================= 後台：最需要講解的段落 ================= */
+function paraAnalysis(studs, ch, idx) {
+  var chap = S.tdata.chapters.filter(function (c) { return c.ch === ch; })[0]; if (!chap) return '';
+  var st = qStats(studs, ch, idx), groups = {};
+  chap.qs.forEach(function (q) {
+    var x = st[q.no]; if (!x || !x.n) return;
+    var g = groups[q.para] = groups[q.para] || { para: q.para, text: q.paraText, qs: [], max: 0 };
+    var rate = 1 - x.ok / x.n; g.qs.push({ no: q.no, type: q.type, rate: rate, n: x.n }); g.max = Math.max(g.max, rate);
+  });
+  var list = Object.keys(groups).map(function (k) { return groups[k]; }).sort(function (a, b) { return b.max - a.max; });
+  S.paraList = list;
+  if (!list.length) return '<p class="note">還沒有學生交卷。</p>';
+  return list.map(function (g, i) {
+    var pct = Math.round(g.max * 100);
+    return '<div class="pa" data-k="' + i + '"><div class="pa-h"><span class="pa-n">第 ' + g.para + ' 段</span><span class="pa-s">' + esc(g.text.slice(0, 46)) + '…</span>' +
+      '<b class="' + (pct >= 40 ? 'hot' : '') + '">答錯 ' + pct + '%</b></div><div class="track"><div class="fill' + (pct >= 40 ? ' low' : '') + '" style="width:' + pct + '%"></div></div>' +
+      '<div class="note">' + g.qs.map(function (q) { return '第' + cnum(q.no) + '題（' + q.type + '）答錯 ' + Math.round(q.rate * 100) + '%'; }).join('；') + '</div></div>';
+  }).join('');
+}
+
 /* ---------- 閱讀設定與書籤 ---------- */
 function togglePop(id, draw) {
   var el = $('#' + id), open = el.classList.contains('hidden');
@@ -693,6 +1012,7 @@ function renderQuiz() {
   var head = '<h3>試　題</h3><div class="sub">共 ' + d.qs.length + ' 題・以劇情理解為主' + (d.save && d.save.tries ? '・已作答 ' + d.save.tries + ' 次' : '') + '</div>';
   if (res) head += '<div class="result"><div class="bigseal">' + res.score + '/' + res.total + '<small>' + (res.score === res.total ? '全對' : res.score >= res.total * .6 ? '可也' : '再讀') + '</small></div><div>' +
     (res.score === res.total ? '通讀全回，明察秋毫！' : '對照解析，回原文找找答案所在之處。') + (d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') + (res.best != null || (d.save && d.save.best != null) ? '<div class="note">本回最高：' + (res.best != null ? res.best : d.save.best) + ' 分</div>' : '') + '</div></div>';
+  if (res) head += summaryHTML(res.summary);
   var qs = d.qs.map(function (q) {
     var it = res ? res.items.filter(function (x) { return x.no === q.no; })[0] : null;
     var mine = it ? it.mine : S.ans[q.no];
@@ -723,6 +1043,7 @@ function renderQuiz() {
     $('#submit').onclick = confirmSubmit;
   } else {
     $$('.link', box).forEach(function (b) { b.onclick = function () { jumpPara(+b.dataset.para); }; });
+    if ($('#dlCard')) $('#dlCard').onclick = downloadCard;
     if ($('#retry')) $('#retry').onclick = function () { S.chap.result = null; S.ans = {}; renderQuiz(); box.scrollTop = 0; };
     $('#back2').onclick = goHome;
   }
@@ -835,7 +1156,16 @@ function drawTeacher() {
     '<div class="kpi"><span>交卷回次</span><b>' + subs + '</b></div><div class="kpi"><span>平均答對率（最高分）</span><b>' + (sumQ ? Math.round(sumBest / sumQ * 100) + '%' : '—') + '</b></div>' +
     '<div class="kpi"><span>' + esc(chap ? chap.num : '') + ' 完成人數</span><b>' + cur + '</b></div></div>' +
     '<h4 class="sec">班級總表（格內為最高分）</h4><div class="tablewrap"><table class="grid"><thead>' + thead + '</thead><tbody>' + (tbody || '<tr><td colspan="99">此班尚無名單</td></tr>') + '</tbody></table></div>' +
-    '<h4 class="sec">' + esc(chap ? chap.num + '　' + chap.title : '') + '・各題答對率（以最近一次作答計）</h4><div class="scrollpanel bars">' + (bars || '無題目') + '</div>');
+    '<h4 class="sec">' + esc(chap ? chap.num + '　' + chap.title : '') + '・各題答對率（以最近一次作答計）</h4><div class="scrollpanel bars">' + (bars || '無題目') + '</div>' +
+    '<h4 class="sec">' + esc(chap ? chap.num : '') + '・最需要講解的段落（依答錯率排序，點一下看原文）</h4><div class="scrollpanel bars">' + paraAnalysis(studs, ch, idx) + '</div>');
+  $$('.pa').forEach(function (el) {
+    el.onclick = function () {
+      var g = S.paraList[+el.dataset.k];
+      modal('<h3>第 ' + g.para + ' 段</h3><p style="line-height:2;text-indent:2em">' + esc(g.text) + '</p><div class="note">' +
+        g.qs.map(function (q) { var qq = chap.qs.filter(function (x) { return x.no === q.no; })[0]; return '<p>第' + cnum(q.no) + '題（答錯 ' + Math.round(q.rate * 100) + '%，' + q.n + ' 人作答）：' + esc(qq ? qq.stem : '') + '</p>'; }).join('') +
+        '</div><div class="mbtns"><button class="btn" onclick="closeModal()">關閉</button></div>');
+    };
+  });
   $('#selCls').onchange = function () { S.tCls = this.value; drawTeacher(); };
   $('#selCh').onchange = function () { S.tCh = +this.value; drawTeacher(); };
   $('#tRefresh').onclick = renderTeacher;
