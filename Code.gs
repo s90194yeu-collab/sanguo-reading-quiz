@@ -25,6 +25,7 @@ var DEFAULT_SET = [
   ['交卷後顯示解析', '是', '是／否'],
   ['開放回數', '全部', '「全部」或以逗號列出，例如 1,2,3'],
   ['開放外人註冊', '是', '是／否：不在名單內的人能否自行註冊'],
+  ['訪客試讀回數', '1', '免登入即可閱讀作答的回數，逗號分隔（例：1,2）；留空＝關閉訪客模式。訪客成績不記錄'],
   ['顯示未完成插圖', '是', '是／否：圖片網址還沒填時，是否顯示「畫卷待展」框'],
   ['原文底本', '好讀《三國演義》（2012年4月7日版）|https://www.haodoo.net/', '顯示於每回文末；「|」後為連結'],
   ['參校本', '維基文庫〈三國演義・{回次}〉|https://zh.wikisource.org/zh-hant/三國演義/第{NNN}回', '{回次}＝第一回，{NNN}＝001'],
@@ -60,6 +61,11 @@ function setupSheets() {
   });
   var set = ss.getSheetByName(SHEET.SET);
   if (set.getLastRow() < 2) set.getRange(2, 1, DEFAULT_SET.length, 3).setValues(DEFAULT_SET);
+  else {
+    var have = {};
+    set.getRange(2, 1, set.getLastRow() - 1, 1).getValues().forEach(function (r) { have[str_(r[0])] = true; });
+    DEFAULT_SET.forEach(function (r) { if (!have[r[0]]) set.appendRow(r); });
+  }
 
   var tx = ss.getSheetByName(SHEET.TEXT);
   if (tx.getLastRow() < 2) {
@@ -257,10 +263,18 @@ function progress_(account) {
 
 /* ================= 對前端開放的 API ================= */
 
+function guestChapters_(set) {
+  var o = {}, v = set['訪客試讀回數'];
+  if (v === undefined) v = '1';
+  str_(v).split(/[,，、\s]+/).forEach(function (x) { if (Number(x)) o[Number(x)] = true; });
+  return o;
+}
+
 function apiInit(token) {
   var set = getSettings_();
   var out = { title: set['網站標題'] || '三國演義・閱讀試煉', subtitle: set['副標題'] || '',
-    allowRegister: yes_(set['開放外人註冊'] || '是'), user: null, token: null };
+    allowRegister: yes_(set['開放外人註冊'] || '是'), user: null, token: null,
+    guestChapters: Object.keys(guestChapters_(set)).map(Number) };
   if (token) {
     try {
       var p = verify_(token);
@@ -328,6 +342,29 @@ function apiRegister(f) {
 function apiHome(token) {
   var p = verify_(token, 's');
   return homeData_(p.a);
+}
+
+/* ---------- 訪客模式：免登入、不寫入任何紀錄 ---------- */
+function apiGuestHome() {
+  var g = guestChapters_(getSettings_());
+  return { chapters: catalog_().map(function (c) { var x = JSON.parse(JSON.stringify(c)); x.guest = !!g[c.ch]; return x; }), progress: {} };
+}
+function apiGuestChapter(ch) {
+  ch = Number(ch); var set = getSettings_();
+  if (!guestChapters_(set)[ch]) throw new Error('本回需登入才能閱讀');
+  var full = chapterFull_(ch);
+  return { ch: ch, num: full.num, title: full.title, paras: full.paras, guest: true,
+    ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
+    qs: full.qs.map(function (q) { return { no: q.no, type: q.type, stem: q.stem, opts: q.opts }; }),
+    allowRetry: true, save: null, source: sourceOf_(set, ch, full.num) };
+}
+function apiGuestSubmit(ch, ans) {
+  ch = Number(ch); var set = getSettings_();
+  if (!guestChapters_(set)[ch]) throw new Error('本回需登入才能作答');
+  var full = chapterFull_(ch); ans = ans || {};
+  var missing = full.qs.filter(function (q) { return !str_(ans[q.no]); });
+  if (missing.length) throw new Error('還有 ' + missing.length + ' 題未作答');
+  return grade_(full, ans, yes_(set['交卷後顯示解析'] || '是'));
 }
 
 function apiChapter(token, ch) {

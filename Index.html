@@ -98,6 +98,9 @@ main{max-width:1320px;margin:0 auto;padding:26px 20px 80px}
 .card .stamp{position:absolute;left:10px;bottom:10px;width:50px;height:50px;border:2px solid var(--red);color:var(--red);
   border-radius:50%;display:grid;place-items:center;font:700 15px/1.1 var(--f-title);text-align:center;transform:rotate(-14deg);
   background:rgba(255,245,235,.6)}
+.card.locked{opacity:.55;filter:grayscale(.6);cursor:not-allowed}
+.card.locked:hover{transform:none}
+.guestbox{margin-top:22px;padding-top:18px;border-top:1px dashed var(--line)}
 .card .stamp.draft{border-color:var(--gold);color:var(--gold);border-radius:4px}
 
 /* ---------- 閱讀頁 ---------- */
@@ -107,21 +110,24 @@ main{max-width:1320px;margin:0 auto;padding:26px 20px 80px}
 .rtools{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
 .chip{background:#f8f0dc;border:1px solid var(--line);color:var(--ink2);border-radius:999px;padding:5px 12px;font-size:15px}
 .chip.on{background:var(--wood);color:#f3e6c8;border-color:var(--wood)}
-.cols{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(340px,1fr);gap:26px;align-items:start}
-.text{max-height:calc(100vh - 210px);overflow:auto;font-size:var(--fs);line-height:2.05;text-align:justify;padding:34px 40px}
+main:has(.reader){padding-bottom:14px}
+.reader{display:flex;flex-direction:column;height:calc(100vh - 118px);min-height:460px}
+.cols{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.45fr) minmax(340px,1fr);gap:26px}
+.cols>.scrollpanel{height:100%;min-height:0;border-top:9px solid var(--wood);border-bottom:9px solid var(--wood);border-radius:3px}
+.cols>.scrollpanel:before,.cols>.scrollpanel:after{display:none}
+.text{overflow:auto;font-size:var(--fs);line-height:2.05;text-align:justify;padding:34px 40px}
 .text p{margin:0 0 1.1em;text-indent:2em;transition:background 1.2s}
-.text p.poem{text-indent:0;text-align:center;font-family:var(--f-title);font-size:1.12em;line-height:2.1;color:var(--ink2);
-  border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;margin-bottom:1.6em}
+.text .poemgrp{margin:0 0 1.5em;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.text p.poem{text-indent:0;text-align:center;font-family:var(--f-title);font-size:1.08em;line-height:2;color:var(--ink2);margin:0}
 .text p.quote{text-indent:0;margin:0 2em 1.3em;padding:12px 18px;font-family:var(--f-title);color:var(--ink2);background:rgba(160,122,60,.08);border-left:3px solid var(--gold)}
-.text p.poem+p.poem{margin-top:-1.6em;border-top:none}
 .text .source{writing-mode:horizontal-tb;margin-top:1.4em;padding-top:12px;border-top:1px dashed var(--line);font-size:14px;line-height:1.8;color:var(--mute);text-indent:0}
 .text .source a{color:var(--red)}
 .text.vert p.quote{margin:2em 0 0 1.3em;border-left:none;border-top:3px solid var(--gold)}
 .text p.flash{background:rgba(214,170,80,.35)}
 .text p .pn{font-size:12px;color:var(--mute);font-family:var(--f-title);margin-right:6px;user-select:none}
-.text.vert{writing-mode:vertical-rl;max-height:none;height:calc(100vh - 210px);overflow-x:auto;overflow-y:hidden;line-height:2.1;padding:34px 30px}
+.text.vert{writing-mode:vertical-rl;overflow-x:auto;overflow-y:hidden;line-height:2.1;padding:34px 30px}
 .text.vert p{margin:0 0 0 1.1em}
-.text.vert p.poem{border:none;border-left:1px solid var(--line);border-right:1px solid var(--line);padding:0 14px}
+.text.vert .poemgrp{margin:0 0 0 1.5em;padding:0 12px;border:none;border-left:1px solid var(--line);border-right:1px solid var(--line)}
 .text .endnote{text-align:center;color:var(--mute);font-family:var(--f-title);letter-spacing:6px;text-indent:0}
 
 /* 插圖：裱框 */
@@ -133,7 +139,7 @@ main{max-width:1320px;margin:0 auto;padding:26px 20px 80px}
 .painting figcaption b{color:var(--red);letter-spacing:4px;margin-right:8px}
 
 /* 試題 */
-.quiz{position:sticky;top:88px;max-height:calc(100vh - 110px);overflow:auto;padding:26px 24px}
+.quiz{overflow:auto;padding:26px 24px}
 .quiz h3{margin:0 0 4px;font:700 22px var(--f-title);letter-spacing:4px}
 .quiz .sub{color:var(--mute);font-size:14px;margin-bottom:16px}
 .q{border-top:1px dashed var(--line);padding:16px 0 12px}
@@ -210,8 +216,10 @@ h4.sec{font:700 20px var(--f-title);letter-spacing:3px;margin:28px 0 12px;border
   .mtabs{display:flex;gap:8px;margin-bottom:14px}
   .mtabs button{flex:1}
   .cols .pane{display:none}.cols .pane.on{display:block}
-  .text{max-height:none;padding:24px 20px}.text.vert{height:72vh}
-  .quiz{position:static;max-height:none}
+  main:has(.reader){padding-bottom:70px}
+  .reader{display:block;height:auto}
+  .cols>.scrollpanel{height:auto}
+  .text{padding:24px 20px}.text.vert{height:72vh}
   .couplet{font-size:21px;gap:6px 18px}
   .scrollpanel{padding:22px 18px}
   .cards{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:16px}
@@ -380,22 +388,24 @@ $('#btnHome').onclick = function () { if (S.teacher) renderTeacher(); else goHom
 $('#brand').onclick = function () { if (S.user) goHome(); else if (S.teacher) renderTeacher(); };
 $('#btnLogout').onclick = function () { logout(); };
 function setTop() {
-  var logged = !!(S.user || S.teacher);
+  var logged = !!(S.user || S.teacher || S.guest);
   $('#btnHome').classList.toggle('hidden', !logged);
   $('#btnLogout').classList.toggle('hidden', !logged);
   $('#btnHome').textContent = S.teacher ? '後台' : '目錄';
-  $('#who').textContent = S.teacher ? '教師後台' : S.user ? (S.user.cls + ' ' + (S.user.seat ? S.user.seat + '號 ' : '') + S.user.name) : '';
+  $('#btnLogout').textContent = S.guest ? '登入' : '登出';
+  $('#who').textContent = S.teacher ? '教師後台' : S.guest ? '訪客試讀' : S.user ? (S.user.cls + ' ' + (S.user.seat ? S.user.seat + '號 ' : '') + S.user.name) : '';
 }
 function logout(silent) {
   flushDraft();
-  S.token = S.user = S.teacher = S.home = S.chap = null; store('sg_token', null); setTop(); renderLogin();
-  if (!silent) toast('已登出，後會有期');
+  var wasGuest = S.guest;
+  S.token = S.user = S.teacher = S.home = S.chap = null; S.guest = false; store('sg_token', null); setTop(); renderLogin();
+  if (!silent && !wasGuest) toast('已登出，後會有期');
 }
 
 /* ================= 啟動 ================= */
 call('apiInit', store('sg_token')).then(function (d) {
   $('#siteTitle').textContent = d.title; $('#siteSub').textContent = d.subtitle; document.title = d.title;
-  S.allowRegister = d.allowRegister;
+  S.allowRegister = d.allowRegister; S.guestChapters = d.guestChapters || [];
   if (d.teacher) { S.teacher = d.token; setTop(); renderTeacher(); return; }
   if (d.user) {
     S.token = d.token; S.user = d.user; S.home = d.home; store('sg_token', d.token); setTop();
@@ -428,7 +438,10 @@ function renderLogin(tab) {
   if (tab === 'tea') body =
     '<form id="fTea"><div class="field"><label>教師密碼</label><input name="pw" type="password" required></div>' +
     '<div class="err" id="err"></div><button class="btn wide">升　帳</button></form>';
-  view('<div class="loginwrap scrollpanel"><p class="poemline">滾滾長江東逝水　浪花淘盡英雄</p>' + tabs + body + '</div>');
+  var guest = S.guestChapters && S.guestChapters.length ? '<div class="guestbox"><button class="btn ghost wide" id="btnGuest">訪客試讀（' +
+    S.guestChapters.map(function (n) { return '第' + cnum(n) + '回'; }).join('、') + '）</button><p class="note">免登入即可閱讀作答；訪客成績不會記錄，答案只暫存在這台裝置。</p></div>' : '';
+  view('<div class="loginwrap scrollpanel"><p class="poemline">滾滾長江東逝水　浪花淘盡英雄</p>' + tabs + body + guest + '</div>');
+  if ($('#btnGuest')) $('#btnGuest').onclick = function () { Qin.sfx('wood'); S.guest = true; setTop(); goHome(); };
   $$('.tab').forEach(function (b) { b.onclick = function () { Qin.sfx('wood'); renderLogin(b.dataset.t); }; });
   var fL = $('#fLogin'), fR = $('#fReg'), fT = $('#fTea');
   if (fL) (function (f) { f.onsubmit = function (e) {
@@ -459,6 +472,7 @@ function afterLogin(d) {
 /* ================= 目錄 ================= */
 function goHome() {
   flushDraft();
+  if (S.guest) { loading('翻回目錄'); return call('apiGuestHome').then(function (h) { S.home = h; renderHome(); }).catch(fail); }
   if (!S.token) return renderLogin();
   loading('翻回目錄');
   call('apiHome', S.token).then(function (h) { S.home = h; renderHome(); }).catch(fail);
@@ -469,19 +483,30 @@ function renderHome() {
     var p = h.progress[c.ch] || {}, stamp = '', st = '未讀';
     if (p.submitted) { done++; sum += p.best; tot += c.qn; stamp = '<div class="stamp">' + p.best + '/' + c.qn + '<br>已閱</div>'; st = '作答 ' + p.tries + ' 次'; }
     else if (p.hasDraft) { stamp = '<div class="stamp draft">存檔<br>中</div>'; st = '尚未交卷'; }
+    var lock = S.guest && !c.guest;
+    if (S.guest) { stamp = c.guest ? '<div class="stamp draft">試讀</div>' : ''; st = c.guest ? '免登入' : '登入後閱讀'; }
     var t = c.title.split(/\s+/);
-    return '<div class="card" data-ch="' + c.ch + '"><div class="no">' + esc(c.num) + '</div><div class="vt"><span>' + esc(t[0] || '') +
+    return '<div class="card' + (lock ? ' locked' : '') + '" data-ch="' + c.ch + '"><div class="no">' + esc(c.num) + '</div><div class="vt"><span>' + esc(t[0] || '') +
       '</span><span>' + esc(t[1] || '') + '</span></div>' + stamp + '<div class="st' + (stamp ? '' : ' c') + '">' + st + '</div></div>';
   }).join('');
-  view('<div class="homehead"><div><h2>回目</h2><p>點選一回，展卷閱讀並作答。每回五題，答案會自動存檔。</p></div>' +
-    '<div class="stat"><div><b>' + done + '</b>已完成回數</div><div><b>' + (tot ? Math.round(sum / tot * 100) : 0) + '%</b>最佳答對率</div></div></div>' +
+  view('<div class="homehead"><div><h2>回目</h2><p>' + (S.guest ? '訪客可試讀標有「試讀」的回目；其餘回目請登入後閱讀。' : '點選一回，展卷閱讀並作答。每回五題，答案會自動存檔。') + '</p></div>' +
+    (S.guest ? '' : '<div class="stat"><div><b>' + done + '</b>已完成回數</div><div><b>' + (tot ? Math.round(sum / tot * 100) : 0) + '%</b>最佳答對率</div></div>') + '</div>' +
     '<div class="cards">' + (cards || '<p>老師尚未開放任何回目。</p>') + '</div>');
-  $$('.card').forEach(function (c) { c.onclick = function () { Qin.sfx('wood'); openChapter(+c.dataset.ch); }; });
+  $$('.card').forEach(function (c) {
+    c.onclick = function () {
+      if (c.classList.contains('locked')) { toast('本回需登入才能閱讀'); return; }
+      Qin.sfx('wood'); openChapter(+c.dataset.ch);
+    };
+  });
 }
 
 /* ================= 閱讀＋作答 ================= */
 function openChapter(ch) {
   loading('展開第' + cnum(ch) + '回');
+  if (S.guest) return call('apiGuestChapter', ch).then(function (d) {
+    S.chap = d; var g = null; try { g = JSON.parse(store('sg_guest_' + ch) || 'null'); } catch (e) { }
+    S.ans = (g && g.ans) || {}; if (g) d.save = { draft: g }; renderChapter();
+  }).catch(fail);
   call('apiChapter', S.token, ch).then(function (d) { S.chap = d; S.ans = (d.save && d.save.draft && d.save.draft.ans) || {}; renderChapter(); }).catch(fail);
 }
 function placeholderSVG(title) {
@@ -498,10 +523,14 @@ function placeholderSVG(title) {
 function renderChapter() {
   var d = S.chap, t = d.title.split(/\s+/), ill = {};
   d.ill.forEach(function (x) { (ill[x.after] = ill[x.after] || []).push(x); });
-  var text = d.paras.map(function (p) {
-    var txt = p.t, cls = '';
+  var text = d.paras.map(function (p, k) {
+    var txt = p.t, cls = '', h = '';
+    var isPoem = function (x) { return x && x.t.indexOf('〔詩〕') === 0 && x.t.length <= 63; };
     if (txt.indexOf('〔詩〕') === 0) { txt = txt.slice(3); cls = txt.length > 60 ? ' class="quote"' : ' class="poem"'; }
-    var h = '<p data-i="' + p.i + '"' + cls + '>' + esc(txt) + '</p>';
+    var body = cls === ' class="poem"' ? esc(txt).replace(/([。！？；])(?=.)/g, '$1<br>') : esc(txt);
+    if (isPoem(p) && !isPoem(d.paras[k - 1])) h += '<div class="poemgrp">';
+    h += '<p data-i="' + p.i + '"' + cls + '>' + body + '</p>';
+    if (isPoem(p) && !isPoem(d.paras[k + 1])) h += '</div>';
     (ill[p.i] || []).forEach(function (x) {
       h += '<figure class="painting"><div class="mount" data-src="' + esc(x.url) + '">' +
         (x.url && x.url.indexOf('embed:') === 0 ? '<img data-embed="' + esc(x.url) + '" alt="' + esc(x.title) + '" style="opacity:0;transition:opacity .8s">'
@@ -510,11 +539,11 @@ function renderChapter() {
     });
     return h;
   }).join('') + '<p class="endnote">— 本回完 —</p>' + sourceHTML(d.source);
-  view('<div class="rhead"><div class="chno">' + esc(d.num) + '</div><h2 class="couplet"><span>' + esc(t[0] || '') + '</span><span>' + esc(t[1] || '') + '</span></h2>' +
+  view('<div class="reader"><div class="rhead"><div class="chno">' + esc(d.num) + '</div><h2 class="couplet"><span>' + esc(t[0] || '') + '</span><span>' + esc(t[1] || '') + '</span></h2>' +
     '<div class="rtools"><button class="chip ' + (S.vert ? 'on' : '') + '" id="tgVert">直排</button><button class="chip" id="fsDn">字小</button><button class="chip" id="fsUp">字大</button><button class="chip" id="toHome">回目錄</button></div></div>' +
     '<div class="mtabs"><button class="chip on" data-p="txt">原文</button><button class="chip" data-p="quiz">試題</button></div>' +
     '<div class="cols"><article class="scrollpanel text pane on' + (S.vert ? ' vert' : '') + '" id="txt">' + text + '</article>' +
-    '<aside class="scrollpanel quiz pane" id="quiz"></aside></div>');
+    '<aside class="scrollpanel quiz pane" id="quiz"></aside></div></div>');
   document.documentElement.style.setProperty('--fs', S.fs + 'px');
   renderQuiz();
   var tx = $('#txt');
@@ -559,7 +588,7 @@ function renderQuiz() {
   var d = S.chap, res = d.result, box = $('#quiz');
   var head = '<h3>試　題</h3><div class="sub">共 ' + d.qs.length + ' 題・以劇情理解為主' + (d.save && d.save.tries ? '・已作答 ' + d.save.tries + ' 次' : '') + '</div>';
   if (res) head += '<div class="result"><div class="bigseal">' + res.score + '/' + res.total + '<small>' + (res.score === res.total ? '全對' : res.score >= res.total * .6 ? '可也' : '再讀') + '</small></div><div>' +
-    (res.score === res.total ? '通讀全回，明察秋毫！' : '對照解析，回原文找找答案所在之處。') + (res.best != null || (d.save && d.save.best != null) ? '<div class="note">本回最高：' + (res.best != null ? res.best : d.save.best) + ' 分</div>' : '') + '</div></div>';
+    (res.score === res.total ? '通讀全回，明察秋毫！' : '對照解析，回原文找找答案所在之處。') + (d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') + (res.best != null || (d.save && d.save.best != null) ? '<div class="note">本回最高：' + (res.best != null ? res.best : d.save.best) + ' 分</div>' : '') + '</div></div>';
   var qs = d.qs.map(function (q) {
     var it = res ? res.items.filter(function (x) { return x.no === q.no; })[0] : null;
     var mine = it ? it.mine : S.ans[q.no];
@@ -576,7 +605,7 @@ function renderQuiz() {
   }).join('');
   var bar = res
     ? '<div class="qbar"><span class="savest">已交卷' + (d.save && d.save.lastTime ? '・' + esc(d.save.lastTime) : '') + '</span>' + (d.allowRetry ? '<button class="btn ghost" id="retry">再試一次</button>' : '') + '<button class="btn" id="back2">回目錄</button></div>'
-    : '<div class="qbar"><span class="savest" id="savest">' + (d.save && d.save.updated ? '上次存檔 ' + esc(d.save.updated.slice(5)) : '作答會自動存檔') + '</span><button class="btn ghost" id="saveNow">存檔</button><button class="btn" id="submit">交卷</button></div>';
+    : '<div class="qbar"><span class="savest" id="savest">' + (d.guest ? '訪客模式：答案暫存在這台裝置' : d.save && d.save.updated ? '上次存檔 ' + esc(d.save.updated.slice(5)) : '作答會自動存檔') + '</span><button class="btn ghost" id="saveNow">存檔</button><button class="btn" id="submit">交卷</button></div>';
   box.innerHTML = head + qs + bar;
   if (!res) {
     $$('input[type=radio]', box).forEach(function (r) {
@@ -595,7 +624,7 @@ function renderQuiz() {
   }
 }
 function jumpPara(i) {
-  var p = $('#txt p[data-i="' + i + '"]'); if (!p) return;
+  var p = $('#txt p[data-i="' + i + '"]'); if (!p) return; if (p.parentNode.classList.contains('poemgrp')) p = p.parentNode;
   if (window.innerWidth <= 900) $('.mtabs .chip[data-p="txt"]').click();
   var tx = $('#txt');
   if (window.innerWidth > 900 && !tx.classList.contains('vert')) tx.scrollTo({ top: p.offsetTop - tx.clientHeight / 3, behavior: 'smooth' });
@@ -607,6 +636,12 @@ function saveDraft(manual) {
   clearTimeout(S.draftTimer); S.draftTimer = null;
   if (!S.chap || S.chap.result) return Promise.resolve();
   var ch = S.chap.ch;
+  if (S.guest) {
+    store('sg_guest_' + ch, JSON.stringify({ ans: S.ans, pos: readPos() })); S.posDirty = false;
+    if ($('#savest')) $('#savest').textContent = '訪客模式：答案暫存在這台裝置';
+    if (manual) toast('已暫存在這台裝置');
+    return Promise.resolve();
+  }
   return call('apiSaveDraft', S.token, ch, S.ans, readPos()).then(function (r) {
     if (S.chap && S.chap.ch === ch && $('#savest')) $('#savest').textContent = '墨跡已乾・已存檔 ' + r.time.slice(11, 16);
     if (manual) toast('已存檔');
@@ -614,7 +649,7 @@ function saveDraft(manual) {
   }).catch(function (e) { if ($('#savest')) $('#savest').textContent = '存檔失敗，請檢查網路'; if (manual) fail(e); });
 }
 function flushDraft() {
-  if (S.chap && !S.chap.result && S.token && (S.draftTimer || S.posDirty)) saveDraft(false);
+  if (S.chap && !S.chap.result && (S.token || S.guest) && (S.draftTimer || S.posDirty)) saveDraft(false);
 }
 window.addEventListener('beforeunload', flushDraft);
 document.addEventListener('visibilitychange', function () { if (document.hidden) flushDraft(); });
@@ -627,7 +662,8 @@ function confirmSubmit() {
   modal('<h3>確定交卷？</h3><p>交卷後就會看到答案與解析。</p><div class="mbtns"><button class="btn ghost" onclick="closeModal()">再想想</button><button class="btn" id="okSub">交　卷</button></div>');
   $('#okSub').onclick = function () {
     this.disabled = true; clearTimeout(S.draftTimer); S.draftTimer = null;
-    call('apiSubmit', S.token, S.chap.ch, S.ans, readPos()).then(function (r) {
+    (S.guest ? call('apiGuestSubmit', S.chap.ch, S.ans) : call('apiSubmit', S.token, S.chap.ch, S.ans, readPos())).then(function (r) {
+      if (S.guest) { store('sg_guest_' + S.chap.ch, null); r.tries = null; r.best = null; }
       closeModal(); S.chap.result = r; S.chap.save = S.chap.save || {}; S.chap.save.tries = r.tries; S.chap.save.best = r.best;
       Qin.sfx(r.score === r.total ? 'bell' : 'gong'); renderQuiz(); $('#quiz').scrollTop = 0;
       if (window.innerWidth <= 900) $('.mtabs .chip[data-p="quiz"]').click();
