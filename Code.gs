@@ -401,18 +401,41 @@ function grade_(full, ans, showExp) {
   return { score: score, total: full.qs.length, items: items };
 }
 
-function apiSaveDraft(token, ch, ans, pos) {
+function cleanBm_(bm) {
+  if (!bm || !bm.length) return [];
+  return bm.slice(0, 30).map(function (x) { return { i: Number(x.i) || 0, t: str_(x.t).slice(0, 40), at: str_(x.at).slice(0, 20) }; })
+    .filter(function (x) { return x.i > 0; });
+}
+function apiSaveDraft(token, ch, ans, pos, bm) {
   var p = verify_(token, 's'); ch = Number(ch);
   var lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
     var hit = findSave_(p.a, ch), t = now_();
-    var draft = JSON.stringify({ ans: ans || {}, pos: Number(pos) || 0 });
+    var old = hit ? saveObj_(hit.r).draft : null;
+    var draft = JSON.stringify({ ans: ans || {}, pos: Number(pos) || 0, bm: bm ? cleanBm_(bm) : ((old && old.bm) || []) });
     if (hit) {
       var s = sh_(SHEET.SAVE);
       s.getRange(hit.row, 3).setValue(draft);
       s.getRange(hit.row, 12).setValue(t);
     } else {
       sh_(SHEET.SAVE).appendRow([p.a, ch, draft, '否', '', '', '', 0, '', '', '', t]);
+    }
+    return { ok: true, time: t };
+  } finally { lock.releaseLock(); }
+}
+
+/** 只更新書籤與閱讀位置（交卷後仍可用） */
+function apiSaveBookmarks(token, ch, bm, pos) {
+  var p = verify_(token, 's'); ch = Number(ch);
+  var lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    var hit = findSave_(p.a, ch), t = now_();
+    if (hit) {
+      var d = saveObj_(hit.r).draft || { ans: {} };
+      d.bm = cleanBm_(bm); if (pos !== undefined && pos !== null) d.pos = Number(pos) || 0;
+      sh_(SHEET.SAVE).getRange(hit.row, 3).setValue(JSON.stringify(d));
+    } else {
+      sh_(SHEET.SAVE).appendRow([p.a, ch, JSON.stringify({ ans: {}, pos: Number(pos) || 0, bm: cleanBm_(bm) }), '否', '', '', '', 0, '', '', '', t]);
     }
     return { ok: true, time: t };
   } finally { lock.releaseLock(); }
@@ -433,7 +456,7 @@ function apiSubmit(token, ch, ans, pos) {
     var tries = (prev ? prev.tries : 0) + 1;
     var first = prev && prev.first !== null ? prev.first : res.score;
     var best = prev && prev.best !== null ? Math.max(prev.best, res.score) : res.score;
-    var row = [p.a, ch, JSON.stringify({ ans: ans, pos: Number(pos) || 0 }), '是', first, best, res.score, tries,
+    var row = [p.a, ch, JSON.stringify({ ans: ans, pos: Number(pos) || 0, bm: (prev && prev.draft && prev.draft.bm) || [] }), '是', first, best, res.score, tries,
       JSON.stringify(ans), prev && prev.firstTime ? prev.firstTime : t, t, t];
     if (hit) s.getRange(hit.row, 1, 1, row.length).setValues([row]); else s.appendRow(row);
     var st = findStudent_(p.a), u = st ? userObj_(st.r) : { name: '', cls: '', seat: '' };
