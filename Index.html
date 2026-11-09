@@ -144,8 +144,22 @@ main:has(.reader){padding-bottom:14px}
 .text.vert p.quote{margin:2em 0 0 1.3em;border-left:none;border-top:3px solid var(--gold)}
 /* 註釋與人物 */
 .text .nt{border-bottom:1.5px dotted var(--red);cursor:help}
-.text .ps{color:#6b3a1e;border-bottom:1px solid rgba(107,58,30,.25);cursor:pointer}
-.text .nt:hover,.text .ps:hover{background:rgba(214,170,80,.25)}
+.text .ps{color:#6b3a1e;cursor:pointer}
+/* 專名號：人名、地名、朝代、年號加直線；書名加波浪線。相鄰專名之間留空隙 */
+.text .zm,.preview .zm{background:linear-gradient(currentColor,currentColor) no-repeat 50% 100%/calc(100% - 4px) 1px}
+.text.vert .zm{background-position:0 50%;background-size:1px calc(100% - 4px)}
+.text .zm.bk{background:none;text-decoration:underline wavy;text-decoration-thickness:1px;text-underline-offset:.32em}
+.text.vert .zm.bk{text-underline-position:left}
+.text .zm.pk{cursor:help}
+.pnoff .text .zm,.pnoff .preview .zm{background:none}
+.pnoff .text .zm.bk{text-decoration:none}
+.pnoff .text .ps{border-bottom:1px solid rgba(107,58,30,.25)}
+/* 選字小工具 */
+#selbar{position:fixed;z-index:60;display:none;gap:6px;background:var(--wood);padding:6px;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+#selbar.show{display:flex}
+#selbar a,#selbar button{font:14px var(--f-title);color:#f3e6c8;background:transparent;border:1px solid rgba(243,230,200,.4);border-radius:4px;padding:5px 10px;text-decoration:none;white-space:nowrap;cursor:pointer}
+#selbar a:hover,#selbar button:hover{background:rgba(243,230,200,.15)}
+.text .zm.pk:hover,.text .nt:hover,.text .ps:hover{background:rgba(214,170,80,.25)}
 #tip{position:fixed;z-index:70;display:none;background:#fbf5e6;border:1px solid var(--line);border-top:6px solid var(--red);border-radius:3px;
   box-shadow:0 14px 30px rgba(60,35,15,.3);padding:14px 16px 12px;font-size:15px;line-height:1.7;max-height:60vh;overflow:auto}
 #tip.show{display:block}
@@ -534,11 +548,12 @@ var FONTS = {
   dfkai: { label: '標楷體', css: "'BiauKai','DFKai-SB','標楷體','TW-Kai','Kaiti TC','LXGW WenKai TC',serif" },
   sans: { label: '黑體', css: "'Noto Sans TC','Microsoft JhengHei','微軟正黑體','PingFang TC',sans-serif" }
 };
-var PREF = (function () { var p = {}; try { p = JSON.parse(localStorage.getItem('sg_pref') || '{}'); } catch (e) { } return { font: p.font || 'serif', fs: p.fs || 18, lh: p.lh || 2.05, vert: !!p.vert }; })();
+var PREF = (function () { var p = {}; try { p = JSON.parse(localStorage.getItem('sg_pref') || '{}'); } catch (e) { } return { font: p.font || 'serif', fs: p.fs || 18, lh: p.lh || 2.05, vert: !!p.vert, pn: p.pn !== false }; })();
 S.vert = PREF.vert;
 function applyPref() {
   var r = document.documentElement.style;
   r.setProperty('--fs', PREF.fs + 'px'); r.setProperty('--lh', PREF.lh); r.setProperty('--read-font', (FONTS[PREF.font] || FONTS.serif).css);
+  document.documentElement.classList.toggle('pnoff', !PREF.pn);
   try { localStorage.setItem('sg_pref', JSON.stringify(PREF)); } catch (e) { }
 }
 applyPref();
@@ -834,23 +849,25 @@ function sourceHTML(s) {
 }
 /* ================= 註釋與人物小卡 ================= */
 function buildMarkup(d) {
-  var map = {};
-  (d.people || []).forEach(function (p) { [p.name].concat(p.alias || []).forEach(function (k) { if (k && !map[k]) map[k] = { t: 'p', p: p }; }); });
-  (d.notes || []).forEach(function (n) { map[n.w] = { t: 'n', n: n }; });
+  var map = {}, put = function (k, t, v) { if (!k) return; (map[k] = map[k] || {})[t] = v; };
+  (d.names || []).forEach(function (n) { if (n.w && n.w.length >= 2) put(n.w, 'k', n); });
+  (d.people || []).forEach(function (p) { [p.name].concat(p.alias || []).forEach(function (k) { if (k && !(map[k] && map[k].p)) put(k, 'p', p); }); });
+  (d.notes || []).forEach(function (n) { put(n.w, 'n', n); });
   var keys = Object.keys(map).sort(function (a, b) { return b.length - a.length; });
-  S.noteMap = {}; S.peopleMap = {};
+  S.noteMap = {}; S.peopleMap = {}; S.nameMap = {};
   (d.notes || []).forEach(function (n) { S.noteMap[n.w] = n; });
   (d.people || []).forEach(function (p) { S.peopleMap[p.name] = p; });
+  (d.names || []).forEach(function (n) { S.nameMap[n.w] = n; });
   return { re: keys.length ? new RegExp(keys.map(function (k) { return k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|'), 'g') : null, map: map, used: {} };
 }
 function markup(html, mk) {
   if (!mk || !mk.re) return html;
-  var pp = {};
   return html.replace(mk.re, function (m) {
     var x = mk.map[m];
-    if (x.t === 'n') { if (mk.used[m]) return m; mk.used[m] = 1; return '<span class="nt" data-w="' + m + '">' + m + '</span>'; }
-    if (pp[x.p.name]) return m; pp[x.p.name] = 1;
-    return '<span class="ps" data-n="' + esc(x.p.name) + '">' + m + '</span>';
+    if (x.n && !mk.used[m]) { mk.used[m] = 1; return '<span class="nt" data-w="' + m + '">' + m + '</span>'; }
+    if (x.p) return '<span class="ps zm" data-n="' + esc(x.p.name) + '">' + m + '</span>';
+    if (x.k) return '<span class="zm' + (x.k.k === '書名' ? ' bk' : '') + (x.k.note ? ' pk' : '') + '" data-k="' + m + '">' + m + '</span>';
+    return m;
   });
 }
 function showTip(el, html) {
@@ -866,10 +883,47 @@ function showTip(el, html) {
   $('.tipx', tip).onclick = hideTip;
 }
 function hideTip() { var t = $('#tip'); if (t) t.className = ''; }
-document.addEventListener('click', function (e) { if (!e.target.closest('#tip') && !e.target.closest('.nt,.ps')) hideTip(); });
+document.addEventListener('click', function (e) { if (!e.target.closest('#tip') && !e.target.closest('.nt,.ps,.pk')) hideTip(); });
+var DICT_URL = 'https://dict.revised.moe.edu.tw/search.jsp?md=1&word=';
+function selInfo(tx) {
+  var sel = window.getSelection && window.getSelection(); if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  var r = sel.getRangeAt(0); if (!tx.contains(r.commonAncestorContainer)) return null;
+  var w = sel.toString().replace(/[\s，。、；：？！「」『』（）—…]/g, '');
+  if (!w || w.length > 12) return null;
+  var node = r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentNode, p = node.closest && node.closest('p[data-i]');
+  return { w: w, para: p ? +p.dataset.i : 0, rect: r.getBoundingClientRect() };
+}
+function bindSelection(tx) {
+  var bar = $('#selbar'); if (!bar) { bar = document.createElement('div'); bar.id = 'selbar'; document.body.appendChild(bar); }
+  var show = function () {
+    var x = selInfo(tx); if (!x) { bar.className = ''; return; }
+    bar.innerHTML = '<a href="' + DICT_URL + encodeURIComponent(x.w) + '" target="_blank" rel="noopener">查教育部辭典「' + esc(x.w) + '」</a>' +
+      (S.token && !S.guest ? '<button type="button" id="selAsk">看不懂，告訴老師</button>' : '');
+    bar.className = 'show';
+    var bw = bar.offsetWidth, left = Math.min(Math.max(8, x.rect.left + x.rect.width / 2 - bw / 2), innerWidth - bw - 8);
+    var top = x.rect.top - bar.offsetHeight - 10; if (top < 8) top = x.rect.bottom + 10;
+    bar.style.left = left + 'px'; bar.style.top = top + 'px';
+    var ask = $('#selAsk', bar);
+    if (ask) ask.onmousedown = ask.ontouchstart = function (e) {
+      e.preventDefault(); e.stopPropagation();
+      call('apiAskWord', S.token, S.chap.ch, x.para, x.w).then(function (r) { toast(r.dup ? '這個詞你已經告訴老師了' : '已告訴老師「' + x.w + '」看不懂'); }).catch(fail);
+      bar.className = ''; try { window.getSelection().removeAllRanges(); } catch (er) { }
+    };
+  };
+  var t = null, later = function () { clearTimeout(t); t = setTimeout(show, 260); };
+  document.onselectionchange = later;
+  tx.addEventListener('scroll', function () { bar.className = ''; });
+}
 function bindTextTips(tx) {
+  bindSelection(tx);
   tx.addEventListener('click', function (e) {
-    var n = e.target.closest('.nt'), p = e.target.closest('.ps');
+    var n = e.target.closest('.nt'), p = e.target.closest('.ps'), k = e.target.closest('.pk');
+    if (k && !n && !p) {
+      var z = S.nameMap[k.dataset.k]; if (!z || !z.note) return;
+      Qin.sfx('wood');
+      showTip(k, '<div class="tiph"><b>' + esc(z.w) + '</b><span class="camp">' + esc(z.k) + '</span></div><div class="tipb">' + esc(z.note) + '</div>');
+      return;
+    }
     if (n) {
       var x = S.noteMap[n.dataset.w]; if (!x) return;
       Qin.sfx('wood');
@@ -1375,11 +1429,13 @@ function drawPref(el) {
     '<div class="row"><input type="range" min="14" max="30" step="1" value="' + PREF.fs + '" id="fsRange"></div>' +
     '<h5>行　距</h5><div class="row">' + [[1.8, '緊密'], [2.05, '標準'], [2.4, '寬鬆']].map(function (s) {
     return '<button class="chip' + (PREF.lh === s[0] ? ' on' : '') + '" data-lh="' + s[0] + '">' + s[1] + '</button>'; }).join('') + '</div>' +
-    '<div class="preview">話說天下大勢，分久必合，合久必分。</div>' +
+    '<h5>專名號</h5><div class="row"><button class="chip' + (PREF.pn ? ' on' : '') + '" data-pn="1">顯示</button><button class="chip' + (!PREF.pn ? ' on' : '') + '" data-pn="0">隱藏</button></div>' +
+    '<div class="preview">話說天下大勢，分久必合，合久必分：<span class="zm">周</span>末七國分爭，併入於<span class="zm">秦</span>。<span class="zm">漢朝</span>自<span class="zm">高祖</span>斬白蛇而起義。</div>' +
     '<p class="note" style="margin:8px 0 0">設定會記在這台裝置，下次開啟自動套用。「標楷體」需電腦本身有安裝，沒有時以楷體代替。</p>';
   $$('[data-font]', el).forEach(function (b) { b.onclick = function () { PREF.font = b.dataset.font; applyPref(); drawPref(el); }; });
   $$('[data-fs]', el).forEach(function (b) { b.onclick = function () { PREF.fs = +b.dataset.fs; applyPref(); drawPref(el); }; });
   $$('[data-lh]', el).forEach(function (b) { b.onclick = function () { PREF.lh = +b.dataset.lh; applyPref(); drawPref(el); }; });
+  $$('[data-pn]', el).forEach(function (b) { b.onclick = function () { PREF.pn = b.dataset.pn === '1'; applyPref(); drawPref(el); }; });
   $('#fsRange', el).oninput = function () { PREF.fs = +this.value; applyPref(); $('#fsv', el).textContent = PREF.fs + 'px'; $$('[data-fs]', el).forEach(function (b) { b.classList.toggle('on', +b.dataset.fs === PREF.fs); }); };
 }
 function visiblePara() {
@@ -1543,7 +1599,7 @@ function studentsOf(cls) {
 }
 function tTabs() {
   var t = S.tTab || 'ov';
-  return '<div class="ttabs">' + [['ov', '成績總覽'], ['ann', '公告與必讀'], ['qb', '題庫管理']].map(function (x) {
+  return '<div class="ttabs">' + [['ov', '成績總覽'], ['ann', '公告與必讀'], ['qb', '題庫管理'], ['wd', '學生提問詞語']].map(function (x) {
     return '<button class="chip' + (t === x[0] ? ' on' : '') + '" data-tt="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
 }
 function bindTTabs() {
@@ -1558,6 +1614,7 @@ function bindTTabs() {
 function drawTeacher() {
   if (S.tTab === 'ann') return drawAnn();
   if (S.tTab === 'qb') return drawQB();
+  if (S.tTab === 'wd') return drawWords();
   var d = S.tdata, classes = classList();
   var cls = S.tCls && (S.tCls === '__all' || classes.indexOf(S.tCls) >= 0) ? S.tCls : (classes[0] || '__all');
   var ch = S.tCh || (d.chapters[0] && d.chapters[0].ch) || 1;
@@ -1622,6 +1679,44 @@ function drawTeacher() {
   $('#tXlsx').onclick = downloadXlsx;
   $('#tDrive').onclick = exportDrive;
   $$('tr.clk').forEach(function (tr) { tr.onclick = function () { studentDetail(tr.dataset.a); }; });
+}
+
+
+/* ---------- 教師：學生提問詞語 → 加註 ---------- */
+function drawWords() {
+  if (!S.tw) {
+    view(tTabs() + '<div class="loading">整理學生提問</div>'); bindTTabs();
+    return call('apiTeacherWords', S.teacher).then(function (r) { S.tw = r; drawWords(); }).catch(fail);
+  }
+  var W = S.tw, f = S.twCh || 0, chName2 = function (c) { var x = W.chapters.filter(function (y) { return y.ch === c; })[0]; return x ? x.num : '第' + cnum(c) + '回'; };
+  var list = W.words.filter(function (x) { return !f || x.ch === f; });
+  var todo = list.filter(function (x) { return !x.noted; }).length;
+  var rows = list.map(function (x, i) {
+    return '<div class="scrollpanel titem" data-i="' + i + '"><div><b>' + esc(x.w) + '</b>　<span class="note">' + esc(chName2(x.ch)) + (x.paras.length ? '・第 ' + x.paras.join('、') + ' 段' : '') + '</span>' +
+      (x.noted ? '　<span class="tag t2">已加註</span>' : '') +
+      '<div class="meta">' + x.n + ' 人標記看不懂' + (x.cls.length ? '・' + esc(x.cls.join('、')) : '') + '・最近 ' + esc(shortTime(x.last)) + '</div>' +
+      '<div class="addnote hidden" style="margin-top:10px"><div class="tform" style="padding:0;gap:8px"><div class="row"><label>注音（選填）<input type="text" class="zy" placeholder="例：ㄐㄧ ㄈㄣˇ"></label></div>' +
+      '<label>解釋<textarea class="ex" style="min-height:56px"></textarea></label><div class="mbtns" style="justify-content:flex-start;margin:0"><button class="btn ghost cx">取消</button><button class="btn sv">儲存註釋</button></div></div></div></div>' +
+      '<div class="acts"><a class="btn ghost" style="font-size:14px;padding:4px 10px;text-decoration:none" target="_blank" rel="noopener" href="' + DICT_URL + encodeURIComponent(x.w) + '">查辭典</a>' +
+      '<button class="btn ghost an">' + (x.noted ? '修改註釋' : '加註') + '</button></div></div>';
+  }).join('');
+  view(tTabs() + '<div class="homehead"><div><h2>學生提問詞語</h2><p>學生在原文中選取詞語、按「看不懂，告訴老師」，會彙整在這裡。按「加註」寫好解釋，學生端立即出現虛線註釋。</p></div></div>' +
+    '<div class="tctrl"><select id="twCh"><option value="0">全部回次</option>' + W.chapters.map(function (c) { return '<option value="' + c.ch + '"' + (c.ch === f ? ' selected' : '') + '>' + esc(c.num) + '</option>'; }).join('') + '</select>' +
+    '<span class="note">共 ' + list.length + ' 個詞語，' + todo + ' 個尚未加註</span><button class="btn ghost" id="twRe">重新整理</button></div>' +
+    '<div class="tlist">' + (rows || '<p class="note">目前還沒有學生提問。</p>') + '</div>');
+  bindTTabs();
+  $('#twCh').onchange = function () { S.twCh = +this.value; drawWords(); };
+  $('#twRe').onclick = function () { S.tw = null; drawWords(); };
+  $$('.titem[data-i]').forEach(function (box) {
+    var x = list[+box.dataset.i], form = $('.addnote', box);
+    $('.an', box).onclick = function () { form.classList.toggle('hidden'); $('.ex', box).focus(); };
+    $('.cx', box).onclick = function () { form.classList.add('hidden'); };
+    $('.sv', box).onclick = function () {
+      var btn = this, exp = $('.ex', box).value.trim(); if (!exp) return toast('請填解釋');
+      btn.disabled = true;
+      call('apiTeacherAddNote', S.teacher, { ch: x.ch, w: x.w, zy: $('.zy', box).value.trim(), exp: exp }).then(function (r) { S.tw = r; toast('已加註「' + x.w + '」'); drawWords(); }).catch(function (e) { btn.disabled = false; fail(e); });
+    };
+  });
 }
 
 /* ---------- 教師：公告與必讀 ---------- */

@@ -8,7 +8,7 @@ var SHEET = {
   SET: '設定', ROSTER: '學生名單', TEXT: '原文', QB: '題庫',
   ILL: '插圖', SAVE: '存檔', LOG: '作答紀錄',
   NOTE: '註釋', PEOPLE: '人物', DEED: '人物事蹟', SUM: '回末小結',
-  REL: '人物關係', PLACE: '地點事件', ANN: '公告', FIX: '錯題訂正'
+  REL: '人物關係', PLACE: '地點事件', ANN: '公告', FIX: '錯題訂正', NAME: '專名', ASK: '詞語提問'
 };
 var HEAD = {
   '設定': ['項目', '值', '說明'],
@@ -25,7 +25,9 @@ var HEAD = {
   '人物關係': ['人物甲', '人物乙', '關係', '從第幾回起'],
   '地點事件': ['回', '序', '年代', '地點', '事件', '經度', '緯度'],
   '公告': ['編號', '建立時間', '對象班級（全部或逗號分隔）', '標題', '內容', '必讀回次（逗號分隔）', '截止日期', '置頂'],
-  '錯題訂正': ['帳號', '回', '題號', '訂正時間']
+  '錯題訂正': ['帳號', '回', '題號', '訂正時間'],
+  '專名': ['回（0＝各回通用）', '詞', '類別（人名／地名／朝代／年號／書名）', '說明（選填，點詞時顯示）'],
+  '詞語提問': ['時間', '帳號', '姓名', '班級', '回', '段落', '詞語']
 };
 var DEFAULT_SET = [
   ['網站標題', '三國演義・閱讀試煉', '顯示在網站最上方'],
@@ -110,6 +112,7 @@ function setupSheets() {
   seedIfEmpty_(SHEET.NOTE, (SEED.notes || []).map(function (x) { return [x.ch, x.w, x.zy, x.exp]; }));
   seedIfEmpty_(SHEET.PEOPLE, (SEED.people || []).map(function (x) { return [x.name, x.alias, x.camp, x.first, x.intro]; }));
   seedIfEmpty_(SHEET.DEED, (SEED.deeds || []).map(function (x) { return [x.name, x.ch, x.text]; }));
+  seedIfEmpty_(SHEET.NAME, (SEED.names || []).map(function (x) { return [x.ch, x.w, x.k, x.note]; }));
   seedIfEmpty_(SHEET.REL, (SEED.rels || []).map(function (x) { return [x.a, x.b, x.rel, x.ch]; }));
   seedIfEmpty_(SHEET.PLACE, (SEED.places || []).map(function (x) { return [x.ch, x.no, x.year, x.place, x.event, x.lon, x.lat]; }));
   seedIfEmpty_(SHEET.SUM, (SEED.summary || []).map(function (x) { return [x.ch, x.events, x.quote, x.think]; }));
@@ -267,9 +270,11 @@ function chapterFull_(ch) {
   }).sort(function (a, b) { return a.no - b.no; });
   var notes = rows_(SHEET.NOTE).filter(function (r) { return Number(r[0]) === ch && str_(r[1]); })
     .map(function (r) { return { w: str_(r[1]), zy: str_(r[2]), exp: str_(r[3]) }; });
+  var names = rows_(SHEET.NAME).filter(function (r) { var c = Number(r[0]) || 0; return (c === 0 || c === ch) && str_(r[1]); })
+    .map(function (r) { return { w: str_(r[1]), k: str_(r[2]) || '人名', note: str_(r[3]) }; });
   var sm = rows_(SHEET.SUM).filter(function (r) { return Number(r[0]) === ch; })[0];
   var summary = sm ? { events: str_(sm[1]).split(/\n+/).filter(String), quote: str_(sm[2]), think: str_(sm[3]) } : null;
-  var o = { ch: ch, num: num, title: title, paras: paras, qs: qs, ill: ill, notes: notes, summary: summary };
+  var o = { ch: ch, num: num, title: title, paras: paras, qs: qs, ill: ill, notes: notes, names: names, summary: summary };
   try { c.put(key, JSON.stringify(o), 600); } catch (e) { }
   return o;
 }
@@ -508,7 +513,7 @@ function apiGuestChapter(ch) {
   return { ch: ch, num: full.num, title: full.title, paras: full.paras, guest: true,
     ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
     qs: full.qs.map(function (q) { return { no: q.no, type: q.type, stem: q.stem, opts: q.opts }; }),
-    allowRetry: true, save: null, source: sourceOf_(set, ch, full.num), notes: full.notes || [], people: peopleFor_(ch) };
+    allowRetry: true, save: null, source: sourceOf_(set, ch, full.num), notes: full.notes || [], names: full.names || [], people: peopleFor_(ch) };
 }
 function apiGuestSubmit(ch, ans) {
   ch = Number(ch); var set = getSettings_();
@@ -530,7 +535,7 @@ function apiChapter(token, ch) {
     ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
     qs: full.qs.map(function (q) { return { no: q.no, type: q.type, stem: q.stem, opts: q.opts }; }),
     allowRetry: yes_(set['允許重作'] || '是'), save: save, source: sourceOf_(set, ch, full.num),
-    notes: full.notes || [], people: peopleFor_(ch) };
+    notes: full.notes || [], names: full.names || [], people: peopleFor_(ch) };
   if (save && save.submitted) { out.result = grade_(full, save.lastAns || {}, showExp); out.result.summary = full.summary; }
   return out;
 }
@@ -785,6 +790,68 @@ function applyComicChapter1() {
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, 8).setValues(rows);
   clearContentCache();
   return rows.length;
+}
+
+/** 更新用：把 Seed 裡新增的註釋與專名補進試算表（已有的不動），並清除快取 */
+function syncNotesAndNames() {
+  var add = function (name, seed, key, row) {
+    var have = {}, sh = sh_(name);
+    rows_(name).forEach(function (r) { have[key(r[0], r[1])] = 1; });
+    var rows = (seed || []).filter(function (x) { return !have[key(x.ch, x.w)]; }).map(row);
+    if (rows.length) sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+    return rows.length;
+  };
+  var k = function (c, w) { return (Number(c) || 0) + '|' + str_(w); };
+  var n1 = add(SHEET.NOTE, SEED.notes, k, function (x) { return [x.ch, x.w, x.zy, x.exp]; });
+  var n2 = add(SHEET.NAME, SEED.names, k, function (x) { return [x.ch, x.w, x.k, x.note]; });
+  clearContentCache();
+  return '新增註釋 ' + n1 + ' 條、專名 ' + n2 + ' 條';
+}
+
+/* ---------- 學生標記看不懂的詞語 → 教師加註 ---------- */
+function apiAskWord(token, ch, para, word) {
+  var p = verify_(token, 's'); ch = Number(ch); word = str_(word).replace(/[\s，。、；：？！「」『』（）]/g, '').slice(0, 12);
+  if (!ch || word.length < 1) throw new Error('請選取要詢問的詞語');
+  var a = str_(p.a).toLowerCase(), mine = 0;
+  var data = rows_(SHEET.ASK);
+  for (var i = 0; i < data.length; i++) {
+    if (str_(data[i][1]).toLowerCase() !== a || Number(data[i][4]) !== ch) continue;
+    if (str_(data[i][6]) === word) return { ok: true, dup: true };
+    mine++;
+  }
+  if (mine >= 40) throw new Error('本回已標記很多詞語了，先請老師整理吧');
+  var st = findStudent_(p.a), u = st ? userObj_(st.r) : { name: '', cls: '' };
+  sh_(SHEET.ASK).appendRow([now_(), p.a, u.name, u.cls, ch, Number(para) || '', word]);
+  return { ok: true };
+}
+function apiTeacherWords(token) {
+  verify_(token, 't');
+  var noted = {};
+  rows_(SHEET.NOTE).forEach(function (r) { noted[Number(r[0]) + '|' + str_(r[1])] = 1; });
+  var g = {};
+  rows_(SHEET.ASK).forEach(function (r) {
+    var ch = Number(r[4]), w = str_(r[6]); if (!ch || !w) return;
+    var k = ch + '|' + w, x = g[k] = g[k] || { ch: ch, w: w, n: 0, cls: {}, paras: {}, last: '' };
+    x.n++; if (str_(r[3])) x.cls[str_(r[3])] = 1; if (Number(r[5])) x.paras[Number(r[5])] = 1;
+    var t = str_(r[0]); if (t > x.last) x.last = t;
+  });
+  var list = Object.keys(g).map(function (k) {
+    var x = g[k]; return { ch: x.ch, w: x.w, n: x.n, cls: Object.keys(x.cls), paras: Object.keys(x.paras).map(Number), last: x.last, noted: !!noted[k] };
+  });
+  list.sort(function (a, b) { return (a.noted - b.noted) || b.n - a.n || a.ch - b.ch; });
+  return { words: list, chapters: catalog_().map(function (c) { return { ch: c.ch, num: c.num }; }) };
+}
+function apiTeacherAddNote(token, x) {
+  verify_(token, 't'); x = x || {};
+  var ch = Number(x.ch), w = str_(x.w), exp = str_(x.exp);
+  if (!ch || !w) throw new Error('請填回次與詞語');
+  if (!exp) throw new Error('請填解釋');
+  var data = rows_(SHEET.NOTE), sh = sh_(SHEET.NOTE), row = [ch, w, str_(x.zy), exp];
+  var hit = -1;
+  for (var i = 0; i < data.length; i++) if (Number(data[i][0]) === ch && str_(data[i][1]) === w) hit = i;
+  if (hit >= 0) sh.getRange(hit + 2, 1, 1, 4).setValues([row]); else sh.appendRow(row);
+  clearContentCache();
+  return apiTeacherWords(token);
 }
 
 /** 內嵌插圖：專案內 img_回_序 檔案存放 JPEG 的 base64 */
