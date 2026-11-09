@@ -7,20 +7,25 @@
 var SHEET = {
   SET: '設定', ROSTER: '學生名單', TEXT: '原文', QB: '題庫',
   ILL: '插圖', SAVE: '存檔', LOG: '作答紀錄',
-  NOTE: '註釋', PEOPLE: '人物', DEED: '人物事蹟', SUM: '回末小結'
+  NOTE: '註釋', PEOPLE: '人物', DEED: '人物事蹟', SUM: '回末小結',
+  REL: '人物關係', PLACE: '地點事件', ANN: '公告', FIX: '錯題訂正'
 };
 var HEAD = {
   '設定': ['項目', '值', '說明'],
   '學生名單': ['帳號', '密碼', '姓名', '班級', '座號', 'Email', '身分', '學校', '建立時間', '最近登入'],
   '原文': ['回', '回次', '回目', '段落序', '內文'],
   '題庫': ['回', '題號', '類型', '題幹', 'A', 'B', 'C', 'D', '答案', '解析', '對應段落'],
-  '插圖': ['回', '序', '標題', '插在第幾段之後', '圖說', '生圖提示詞', '圖片網址或雲端檔案ID'],
+  '插圖': ['回', '序', '標題', '插在第幾段之後', '圖說', '生圖提示詞', '圖片網址或雲端檔案ID', '對話氣泡'],
   '存檔': ['帳號', '回', '草稿', '已交卷', '首次得分', '最高得分', '最近得分', '作答次數', '最近作答', '首次交卷時間', '最近交卷時間', '更新時間', '累計閱讀作答秒數', '首次開啟時間'],
   '作答紀錄': ['時間', '帳號', '姓名', '班級', '座號', '回', '作答', '得分', '第幾次', '累計閱讀作答秒數'],
   '註釋': ['回', '詞語', '注音', '解釋'],
   '人物': ['姓名', '別稱（逗號分隔）', '陣營', '首次出場回', '簡介（勿劇透）'],
   '人物事蹟': ['姓名', '回', '事蹟'],
-  '回末小結': ['回', '本回大事（一行一件）', '名句', '想一想']
+  '回末小結': ['回', '本回大事（一行一件）', '名句', '想一想'],
+  '人物關係': ['人物甲', '人物乙', '關係', '從第幾回起'],
+  '地點事件': ['回', '序', '年代', '地點', '事件', '經度', '緯度'],
+  '公告': ['編號', '建立時間', '對象班級（全部或逗號分隔）', '標題', '內容', '必讀回次（逗號分隔）', '截止日期', '置頂'],
+  '錯題訂正': ['帳號', '回', '題號', '訂正時間']
 };
 var DEFAULT_SET = [
   ['網站標題', '三國演義・閱讀試煉', '顯示在網站最上方'],
@@ -37,6 +42,9 @@ var DEFAULT_SET = [
   ['校勘說明', '字形依教育部標準字體調整；少數訛字據參校本及通行本改正。', ''],
   ['製作者', '闕宏宇', '顯示於「製作與版權說明」頁'],
   ['聯絡方式', '', '選填，例如電子郵件；顯示於說明頁'],
+  ['排行榜', '是', '是／否：學生首頁顯示「班級挑戰與排行榜」'],
+  ['排行榜姓名顯示', '遮蔽', '完整／遮蔽（遮蔽時顯示為「王○明」）'],
+  ['全班挑戰目標', '80', '全班完成率目標（%）：全班已完成回次 ÷（人數 × 開放回數）'],
   ['授權聲明', '本站自行撰寫的題目、解析、註釋、人物小卡與回末小結，採用創用 CC「姓名標示─非商業性─相同方式分享 4.0」授權（CC BY-NC-SA 4.0），歡迎教學使用，請註明出處。', '顯示於說明頁，可自行改寫']
 ];
 
@@ -96,12 +104,14 @@ function setupSheets() {
   }
   var il = ss.getSheetByName(SHEET.ILL);
   if (il.getLastRow() < 2) {
-    var ir = SEED.illus.map(function (x) { return [x.ch, x.no, x.title, x.after, x.caption, x.prompt, x.url]; });
-    il.getRange(2, 1, ir.length, 7).setValues(ir);
+    var ir = SEED.illus.map(function (x) { return [x.ch, x.no, x.title, x.after, x.caption, x.prompt, x.url, x.talk || '']; });
+    il.getRange(2, 1, ir.length, 8).setValues(ir);
   }
   seedIfEmpty_(SHEET.NOTE, (SEED.notes || []).map(function (x) { return [x.ch, x.w, x.zy, x.exp]; }));
   seedIfEmpty_(SHEET.PEOPLE, (SEED.people || []).map(function (x) { return [x.name, x.alias, x.camp, x.first, x.intro]; }));
   seedIfEmpty_(SHEET.DEED, (SEED.deeds || []).map(function (x) { return [x.name, x.ch, x.text]; }));
+  seedIfEmpty_(SHEET.REL, (SEED.rels || []).map(function (x) { return [x.a, x.b, x.rel, x.ch]; }));
+  seedIfEmpty_(SHEET.PLACE, (SEED.places || []).map(function (x) { return [x.ch, x.no, x.year, x.place, x.event, x.lon, x.lat]; }));
   seedIfEmpty_(SHEET.SUM, (SEED.summary || []).map(function (x) { return [x.ch, x.events, x.quote, x.think]; }));
   var rs = ss.getSheetByName(SHEET.ROSTER);
   rs.getRange('A:A').setNumberFormat('@'); rs.getRange('B:B').setNumberFormat('@');
@@ -121,7 +131,7 @@ function ensureSetup_() {
 
 function clearContentCache() {
   var c = CacheService.getScriptCache();
-  var keys = ['catalog', 'settings', 'people'];
+  var keys = ['catalog', 'settings', 'people', 'atlas'];
   for (var i = 1; i <= 120; i++) keys.push('ch_' + i);
   c.removeAll(keys);
 }
@@ -253,7 +263,7 @@ function chapterFull_(ch) {
       ans: str_(r[8]).toUpperCase(), exp: str_(r[9]), para: Number(r[10]) || 0 };
   }).sort(function (a, b) { return a.no - b.no; });
   var ill = rows_(SHEET.ILL).filter(function (r) { return Number(r[0]) === ch; }).map(function (r) {
-    return { no: Number(r[1]), title: str_(r[2]), after: Number(r[3]) || 0, caption: str_(r[4]), url: imgUrl_(r[6]) };
+    return { no: Number(r[1]), title: str_(r[2]), after: Number(r[3]) || 0, caption: str_(r[4]), url: imgUrl_(r[6]), talk: parseTalk_(r[7]) };
   }).sort(function (a, b) { return a.no - b.no; });
   var notes = rows_(SHEET.NOTE).filter(function (r) { return Number(r[0]) === ch && str_(r[1]); })
     .map(function (r) { return { w: str_(r[1]), zy: str_(r[2]), exp: str_(r[3]) }; });
@@ -282,8 +292,39 @@ function peopleAll_() {
 /** 只給讀到第 ch 回為止的資訊，避免劇透 */
 function peopleFor_(ch) {
   return peopleAll_().filter(function (p) { return p.first <= ch; }).map(function (p) {
-    return { name: p.name, alias: p.alias, camp: p.camp, intro: p.intro, deeds: p.deeds.filter(function (d) { return d.ch <= ch; }) };
+    return { name: p.name, alias: p.alias, camp: p.camp, first: p.first, intro: p.intro, deeds: p.deeds.filter(function (d) { return d.ch <= ch; }) };
   });
+}
+
+/* ---------- 人物關係圖・地圖與時間軸（只給已讀到的回次） ---------- */
+function atlasAll_() {
+  var c = CacheService.getScriptCache(), hit = c.get('atlas');
+  if (hit) return JSON.parse(hit);
+  var o = {
+    rels: rows_(SHEET.REL).filter(function (r) { return str_(r[0]) && str_(r[1]); })
+      .map(function (r) { return { a: str_(r[0]), b: str_(r[1]), rel: str_(r[2]), ch: Number(r[3]) || 1 }; }),
+    places: rows_(SHEET.PLACE).filter(function (r) { return Number(r[0]) && str_(r[3]); })
+      .map(function (r) { return { ch: Number(r[0]), no: Number(r[1]) || 0, year: str_(r[2]), place: str_(r[3]), event: str_(r[4]), lon: Number(r[5]), lat: Number(r[6]) }; })
+      .sort(function (a, b) { return a.ch - b.ch || a.no - b.no; })
+  };
+  try { c.put('atlas', JSON.stringify(o), 600); } catch (e) { }
+  return o;
+}
+function atlas_(reach) {
+  var all = atlasAll_();
+  return { reach: reach, chapters: catalog_().map(function (c) { return { ch: c.ch, num: c.num, title: c.title }; }),
+    people: peopleFor_(reach), rels: all.rels.filter(function (r) { return r.ch <= reach; }),
+    places: all.places.filter(function (p) { return p.ch <= reach; }) };
+}
+function apiAtlas(token) {
+  var p = verify_(token, 's'), pr = progress_(p.a), reach = 1;
+  Object.keys(pr).forEach(function (k) { reach = Math.max(reach, Number(k)); });
+  return atlas_(reach);
+}
+function apiGuestAtlas() {
+  var g = Object.keys(guestChapters_(getSettings_())).map(Number);
+  if (!g.length) throw new Error('訪客模式未開放');
+  return atlas_(Math.max.apply(null, g));
 }
 
 /* ---------- 存檔 ---------- */
@@ -349,7 +390,65 @@ function apiInit(token) {
 function homeData_(account) {
   var open = openChapters_();
   var list = catalog_().filter(function (x) { return !open || open[x.ch]; });
-  return { chapters: list, progress: progress_(account) };
+  var st = findStudent_(account), cls = st ? str_(st.r[3]) : '';
+  var out = { chapters: list, progress: progress_(account), ann: annFor_(cls) };
+  try { out.board = board_(account, cls, list.length); } catch (e) { out.board = null; }
+  return out;
+}
+
+/* ---------- 公告與必讀 ---------- */
+function annAll_() {
+  return rows_(SHEET.ANN).filter(function (r) { return str_(r[0]) && str_(r[3]); }).map(function (r) {
+    return { id: str_(r[0]), time: str_(r[1]), to: str_(r[2]) || '全部', title: str_(r[3]), body: str_(r[4]),
+      chs: str_(r[5]).split(/[,，、\s]+/).map(Number).filter(Boolean), due: dateStr_(r[6]), pin: yes_(r[7]) };
+  });
+}
+function dateStr_(v) {
+  if (Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v)) return Utilities.formatDate(v, 'Asia/Taipei', 'yyyy/MM/dd');
+  return str_(v).replace(/-/g, '/').slice(0, 10);
+}
+function annFor_(cls) {
+  var today = Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy/MM/dd');
+  return annAll_().filter(function (a) {
+    var to = a.to.split(/[,，、\s]+/).filter(String);
+    var hit = a.to === '全部' || to.indexOf('全部') >= 0 || (cls && to.indexOf(cls) >= 0);
+    var alive = !a.due || a.due >= today || a.pin;
+    return hit && alive;
+  }).sort(function (x, y) { return (y.pin - x.pin) || (y.time > x.time ? 1 : -1); }).slice(0, 8);
+}
+
+/* ---------- 班級挑戰與排行榜 ---------- */
+function maskName_(n) {
+  n = str_(n); if (n.length <= 1) return n || '同學';
+  if (n.length === 2) return n[0] + '○';
+  return n[0] + new Array(n.length - 1).join('○') + n[n.length - 1];
+}
+function board_(account, cls, nOpen) {
+  var set = getSettings_();
+  if (!yes_(set['排行榜'] || '是') || !cls) return null;
+  var me = str_(account).toLowerCase(), full = str_(set['排行榜姓名顯示']) === '完整';
+  var mates = {};
+  rows_(SHEET.ROSTER).forEach(function (r) {
+    if (str_(r[0]) && str_(r[3]) === cls) mates[str_(r[0]).toLowerCase()] = { name: str_(r[2]), done: 0, best: 0, perfect: 0, last: '' };
+  });
+  var qn = {}; catalog_().forEach(function (c) { qn[c.ch] = c.qn; });
+  var open = openChapters_();
+  rows_(SHEET.SAVE).forEach(function (r) {
+    var a = str_(r[0]).toLowerCase(), m = mates[a]; if (!m) return;
+    var s = saveObj_(r); if (!s.submitted || (open && !open[s.ch])) return;
+    m.done++; m.best += s.best || 0; if (qn[s.ch] && s.best === qn[s.ch]) m.perfect++;
+    if (s.firstTime > m.last) m.last = s.firstTime;
+  });
+  var list = Object.keys(mates).map(function (k) { var m = mates[k]; m.acc = k; return m; });
+  list.sort(function (x, y) { return y.done - x.done || y.best - x.best || y.perfect - x.perfect || (x.last < y.last ? -1 : 1); });
+  var rank = 0, prev = null;
+  list.forEach(function (m, i) { var key = m.done + '/' + m.best; if (key !== prev) rank = i + 1; prev = key; m.rank = rank; });
+  var shown = function (m) { return { rank: m.rank, name: m.acc === me || full ? m.name : maskName_(m.name), done: m.done, best: m.best, perfect: m.perfect, me: m.acc === me }; };
+  var mine = list.filter(function (m) { return m.acc === me; })[0];
+  var done = list.reduce(function (t, m) { return t + m.done; }, 0), possible = list.length * nOpen;
+  var target = Math.max(1, Math.min(100, Number(set['全班挑戰目標']) || 80));
+  return { cls: cls, n: list.length, top: list.filter(function (m) { return m.done > 0; }).slice(0, 10).map(shown), me: mine ? shown(mine) : null,
+    challenge: { done: done, possible: possible, goal: Math.ceil(possible * target / 100), target: target } };
 }
 
 function apiLogin(account, password, name) {
@@ -542,8 +641,22 @@ function apiMistakes(token) {
         ans: q.ans, mine: mine, exp: showExp ? q.exp : '', para: q.para });
     });
   });
+  var fx = {};
+  rows_(SHEET.FIX).forEach(function (r) { if (str_(r[0]).toLowerCase() === a) fx[Number(r[1]) + '-' + Number(r[2])] = 1; });
+  out.forEach(function (m) { m.fixed = !!fx[m.ch + '-' + m.no]; });
   out.sort(function (x, y) { return x.ch - y.ch || x.no - y.no; });
   return out;
+}
+/** 錯題訂正：記錄到試算表，換裝置也看得到 */
+function apiMarkFixed(token, list) {
+  var p = verify_(token, 's'), a = str_(p.a).toLowerCase(), have = {}, t = now_(), add = [];
+  rows_(SHEET.FIX).forEach(function (r) { if (str_(r[0]).toLowerCase() === a) have[Number(r[1]) + '-' + Number(r[2])] = 1; });
+  (list || []).slice(0, 60).forEach(function (x) {
+    var ch = Number(x.ch), no = Number(x.no), k = ch + '-' + no;
+    if (ch && no && !have[k]) { have[k] = 1; add.push([p.a, ch, no, t]); }
+  });
+  if (add.length) { var s = sh_(SHEET.FIX); s.getRange(s.getLastRow() + 1, 1, add.length, 4).setValues(add); }
+  return add.length;
 }
 
 /* ---------- 教師後台 ---------- */
@@ -570,7 +683,69 @@ function apiTeacherData(token) {
         return { no: q.no, type: q.type, stem: q.stem, ans: q.ans, para: q.para, paraText: pr ? pr.t.replace(/^〔詩〕/, '') : '' };
       }) };
   });
-  return { roster: roster, saves: saves, chapters: chapters, time: now_() };
+  var fixes = rows_(SHEET.FIX).filter(function (r) { return str_(r[0]); }).map(function (r) { return { account: str_(r[0]), ch: Number(r[1]), no: Number(r[2]) }; });
+  return { roster: roster, saves: saves, chapters: chapters, anns: annAll_(), fixes: fixes, time: now_() };
+}
+
+/* ---------- 教師：公告 ---------- */
+function apiTeacherSaveAnn(token, a) {
+  verify_(token, 't'); a = a || {};
+  var title = str_(a.title).slice(0, 60); if (!title) throw new Error('請填標題');
+  var chs = (a.chs || []).map(Number).filter(Boolean).join(',');
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    var s = sh_(SHEET.ANN), data = rows_(SHEET.ANN), id = str_(a.id);
+    var row = [id || ('A' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)), now_(), str_(a.to) || '全部', title, str_(a.body).slice(0, 1000), chs, str_(a.due), a.pin ? '是' : ''];
+    s.getRange('A:A').setNumberFormat('@'); s.getRange('F:G').setNumberFormat('@');
+    for (var i = 0; i < data.length; i++) if (id && str_(data[i][0]) === id) { row[1] = str_(data[i][1]); s.getRange(i + 2, 1, 1, 8).setValues([row]); return annAll_(); }
+    s.appendRow(row);
+    return annAll_();
+  } finally { lock.releaseLock(); }
+}
+function apiTeacherDelAnn(token, id) {
+  verify_(token, 't');
+  var data = rows_(SHEET.ANN);
+  for (var i = data.length - 1; i >= 0; i--) if (str_(data[i][0]) === str_(id)) sh_(SHEET.ANN).deleteRow(i + 2);
+  return annAll_();
+}
+
+/* ---------- 教師：題庫管理 ---------- */
+function apiTeacherQs(token, ch) {
+  verify_(token, 't'); ch = Number(ch);
+  var f = chapterFull_(ch);
+  return { ch: ch, num: f.num, title: f.title, nParas: f.paras.length,
+    qs: rows_(SHEET.QB).filter(function (r) { return Number(r[0]) === ch; }).map(function (r) {
+      return { no: Number(r[1]), type: str_(r[2]), stem: str_(r[3]), opts: [str_(r[4]), str_(r[5]), str_(r[6]), str_(r[7])], ans: str_(r[8]).toUpperCase(), exp: str_(r[9]), para: Number(r[10]) || 0 };
+    }).sort(function (a, b) { return a.no - b.no; }) };
+}
+function apiTeacherSaveQ(token, q) {
+  verify_(token, 't'); q = q || {};
+  var ch = Number(q.ch), stem = str_(q.stem), opts = (q.opts || []).map(str_), ans = str_(q.ans).toUpperCase();
+  if (!ch) throw new Error('回次錯誤');
+  if (!stem) throw new Error('請填題幹');
+  if (opts.length !== 4 || opts.some(function (o) { return !o; })) throw new Error('四個選項都要填');
+  if ('ABCD'.indexOf(ans) < 0 || ans.length !== 1) throw new Error('答案請選 A～D');
+  var type = ['劇情', '人物', '意象', '修辭'].indexOf(str_(q.type)) >= 0 ? str_(q.type) : '劇情';
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    var s = sh_(SHEET.QB), data = rows_(SHEET.QB), no = Number(q.no) || 0, max = 0;
+    var row = [ch, no, type, stem, opts[0], opts[1], opts[2], opts[3], ans, str_(q.exp), Number(q.para) || ''];
+    for (var i = 0; i < data.length; i++) {
+      if (Number(data[i][0]) !== ch) continue;
+      max = Math.max(max, Number(data[i][1]) || 0);
+      if (no && Number(data[i][1]) === no) { s.getRange(i + 2, 1, 1, 11).setValues([row]); clearContentCache(); return apiTeacherQs(token, ch); }
+    }
+    row[1] = max + 1; s.appendRow(row);
+    clearContentCache();
+    return apiTeacherQs(token, ch);
+  } finally { lock.releaseLock(); }
+}
+function apiTeacherDelQ(token, ch, no) {
+  verify_(token, 't'); ch = Number(ch); no = Number(no);
+  var data = rows_(SHEET.QB);
+  for (var i = data.length - 1; i >= 0; i--) if (Number(data[i][0]) === ch && Number(data[i][1]) === no) sh_(SHEET.QB).deleteRow(i + 2);
+  clearContentCache();
+  return apiTeacherQs(token, ch);
 }
 
 /** 另一種下載：在雲端硬碟產生一份試算表並回傳 xlsx 下載連結 */
@@ -589,6 +764,27 @@ function apiTeacherExportDrive(token, sheets, fileName) {
   });
   SpreadsheetApp.flush();
   return { url: 'https://docs.google.com/spreadsheets/d/' + ss.getId() + '/export?format=xlsx', sheetUrl: ss.getUrl() };
+}
+
+/** 對話氣泡：每行「類型|說話者|x|y|寬|尾x|尾y|文字」，座標與寬度為圖片寬高的百分比；類型：說／想／吼／白 */
+function parseTalk_(v) {
+  return str_(v).split(/\n+/).map(function (ln) {
+    var a = ln.split('|');
+    if (a.length < 8) return null;
+    var n = function (i) { return Math.max(0, Math.min(100, Number(a[i]) || 0)); };
+    return { k: str_(a[0]).trim(), who: str_(a[1]).trim(), x: n(2), y: n(3), w: n(4) || 30, tx: n(5), ty: n(6), t: a.slice(7).join('|').trim() };
+  }).filter(function (b) { return b && b.t; });
+}
+
+/** 第1回改為三格漫畫版：以 Seed 內容取代「插圖」工作表第1回的列（其餘回不動），並清除快取 */
+function applyComicChapter1() {
+  var sh = sh_(SHEET.ILL), data = rows_(SHEET.ILL);
+  for (var i = data.length - 1; i >= 0; i--) if (Number(data[i][0]) === 1) sh.deleteRow(i + 2);
+  var rows = SEED.illus.filter(function (x) { return x.ch === 1; })
+    .map(function (x) { return [x.ch, x.no, x.title, x.after, x.caption, x.prompt, x.url, x.talk || '']; });
+  sh.getRange(sh.getLastRow() + 1, 1, rows.length, 8).setValues(rows);
+  clearContentCache();
+  return rows.length;
 }
 
 /** 內嵌插圖：專案內 img_回_序 檔案存放 JPEG 的 base64 */

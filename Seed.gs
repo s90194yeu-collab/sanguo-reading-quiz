@@ -1,5 +1,471 @@
 /** 《三國演義》第1～5回範例內容（初始化時寫入試算表；之後請直接改試算表） */
 var SEED = {
+"rels": [
+{
+"a": "劉備",
+"b": "關羽",
+"rel": "桃園結義・兄弟",
+"ch": 1
+},
+{
+"a": "劉備",
+"b": "張飛",
+"rel": "桃園結義・兄弟",
+"ch": 1
+},
+{
+"a": "關羽",
+"b": "張飛",
+"rel": "桃園結義・兄弟",
+"ch": 1
+},
+{
+"a": "張角",
+"b": "張寶",
+"rel": "兄弟（地公將軍）",
+"ch": 1
+},
+{
+"a": "張角",
+"b": "張梁",
+"rel": "兄弟（人公將軍）",
+"ch": 1
+},
+{
+"a": "劉備",
+"b": "盧植",
+"rel": "曾拜師受業",
+"ch": 1
+},
+{
+"a": "劉備",
+"b": "公孫瓚",
+"rel": "同窗好友",
+"ch": 1
+},
+{
+"a": "劉焉",
+"b": "劉備",
+"rel": "認作同宗姪兒",
+"ch": 1
+},
+{
+"a": "盧植",
+"b": "張角",
+"rel": "廣宗對陣",
+"ch": 1
+},
+{
+"a": "皇甫嵩",
+"b": "張梁",
+"rel": "潁川火攻",
+"ch": 1
+},
+{
+"a": "曹操",
+"b": "張梁",
+"rel": "率軍截殺",
+"ch": 1
+},
+{
+"a": "劉備",
+"b": "董卓",
+"rel": "救其性命，反遭輕慢",
+"ch": 1
+},
+{
+"a": "朱儁",
+"b": "劉備",
+"rel": "共破張寶，事後冷落",
+"ch": 2
+},
+{
+"a": "孫堅",
+"b": "朱儁",
+"rel": "隨軍攻宛城",
+"ch": 2
+},
+{
+"a": "何進",
+"b": "何太后",
+"rel": "兄妹",
+"ch": 2
+},
+{
+"a": "何進",
+"b": "張讓",
+"rel": "欲誅宦官",
+"ch": 2
+},
+{
+"a": "袁紹",
+"b": "何進",
+"rel": "獻策召外兵",
+"ch": 2
+},
+{
+"a": "何進",
+"b": "張讓",
+"rel": "被張讓等誘殺",
+"ch": 3
+},
+{
+"a": "袁紹",
+"b": "張讓",
+"rel": "率兵入宮誅宦官",
+"ch": 3
+},
+{
+"a": "少帝",
+"b": "陳留王",
+"rel": "兄弟",
+"ch": 3
+},
+{
+"a": "何太后",
+"b": "少帝",
+"rel": "母子",
+"ch": 3
+},
+{
+"a": "董卓",
+"b": "陳留王",
+"rel": "見其應對而萌廢立之意",
+"ch": 3
+},
+{
+"a": "丁原",
+"b": "董卓",
+"rel": "反對廢立",
+"ch": 3
+},
+{
+"a": "丁原",
+"b": "呂布",
+"rel": "義父子",
+"ch": 3
+},
+{
+"a": "李肅",
+"b": "呂布",
+"rel": "同鄉，以赤兔馬說降",
+"ch": 3
+},
+{
+"a": "董卓",
+"b": "呂布",
+"rel": "收為義子",
+"ch": 3
+},
+{
+"a": "丁原",
+"b": "呂布",
+"rel": "被呂布所殺",
+"ch": 3
+},
+{
+"a": "李儒",
+"b": "董卓",
+"rel": "謀士",
+"ch": 3
+},
+{
+"a": "王允",
+"b": "董卓",
+"rel": "勸阻酒後議廢立",
+"ch": 3
+},
+{
+"a": "董卓",
+"b": "陳留王",
+"rel": "立為獻帝",
+"ch": 4
+},
+{
+"a": "董卓",
+"b": "少帝",
+"rel": "廢為弘農王",
+"ch": 4
+},
+{
+"a": "李儒",
+"b": "少帝",
+"rel": "奉命鴆殺",
+"ch": 4
+},
+{
+"a": "袁紹",
+"b": "董卓",
+"rel": "拔劍相向後出走",
+"ch": 4
+},
+{
+"a": "王允",
+"b": "曹操",
+"rel": "借七寶刀",
+"ch": 4
+},
+{
+"a": "曹操",
+"b": "董卓",
+"rel": "借獻刀行刺",
+"ch": 4
+},
+{
+"a": "陳宮",
+"b": "曹操",
+"rel": "棄官相隨，後看破其為人",
+"ch": 4
+},
+{
+"a": "曹操",
+"b": "呂伯奢",
+"rel": "疑心誤殺全家",
+"ch": 4
+},
+{
+"a": "袁紹",
+"b": "曹操",
+"rel": "被推為盟主",
+"ch": 5
+},
+{
+"a": "袁術",
+"b": "孫堅",
+"rel": "扣住糧草",
+"ch": 5
+},
+{
+"a": "孫堅",
+"b": "華雄",
+"rel": "汜水關交戰",
+"ch": 5
+},
+{
+"a": "祖茂",
+"b": "孫堅",
+"rel": "部將，換戴赤幘代死",
+"ch": 5
+},
+{
+"a": "程普",
+"b": "孫堅",
+"rel": "部將",
+"ch": 5
+},
+{
+"a": "黃蓋",
+"b": "孫堅",
+"rel": "部將",
+"ch": 5
+},
+{
+"a": "華雄",
+"b": "祖茂",
+"rel": "斬殺",
+"ch": 5
+},
+{
+"a": "關羽",
+"b": "華雄",
+"rel": "溫酒斬華雄",
+"ch": 5
+},
+{
+"a": "曹操",
+"b": "關羽",
+"rel": "溫酒相贈",
+"ch": 5
+},
+{
+"a": "公孫瓚",
+"b": "劉備",
+"rel": "勸其棄官，引入聯軍",
+"ch": 5
+},
+{
+"a": "呂布",
+"b": "張飛",
+"rel": "虎牢關三英戰呂布",
+"ch": 5
+},
+{
+"a": "呂布",
+"b": "關羽",
+"rel": "虎牢關三英戰呂布",
+"ch": 5
+},
+{
+"a": "呂布",
+"b": "劉備",
+"rel": "虎牢關三英戰呂布",
+"ch": 5
+}
+],
+"places": [
+{
+"ch": 1,
+"no": 1,
+"year": "中平元年（184）",
+"place": "鉅鹿",
+"event": "張角得天書，與張寶、張梁起事",
+"lon": 115.0,
+"lat": 37.25
+},
+{
+"ch": 1,
+"no": 2,
+"year": "中平元年（184）",
+"place": "涿郡",
+"event": "劉關張桃園結義，斬程遠志",
+"lon": 115.97,
+"lat": 39.48
+},
+{
+"ch": 1,
+"no": 3,
+"year": "中平元年（184）",
+"place": "青州",
+"event": "劉備用計解青州之圍",
+"lon": 118.3,
+"lat": 36.8
+},
+{
+"ch": 1,
+"no": 4,
+"year": "中平元年（184）",
+"place": "廣宗",
+"event": "盧植圍張角；劉備救下董卓",
+"lon": 115.25,
+"lat": 36.85
+},
+{
+"ch": 1,
+"no": 5,
+"year": "中平元年（184）",
+"place": "潁川",
+"event": "皇甫嵩火攻黃巾，曹操截殺",
+"lon": 113.45,
+"lat": 34.15
+},
+{
+"ch": 2,
+"no": 6,
+"year": "中平元年（184）",
+"place": "宛城",
+"event": "朱儁、孫堅攻破宛城",
+"lon": 112.53,
+"lat": 33.0
+},
+{
+"ch": 2,
+"no": 7,
+"year": "中平元年（184）～",
+"place": "安喜縣",
+"event": "劉備任縣尉；張飛怒鞭督郵",
+"lon": 115.0,
+"lat": 38.5
+},
+{
+"ch": 2,
+"no": 8,
+"year": "中平六年（189）",
+"place": "洛陽",
+"event": "十常侍亂政；何進召外兵入京",
+"lon": 112.45,
+"lat": 34.62
+},
+{
+"ch": 3,
+"no": 9,
+"year": "中平六年（189）",
+"place": "洛陽",
+"event": "何進被殺，袁紹、曹操入宮誅宦官",
+"lon": 112.45,
+"lat": 34.62
+},
+{
+"ch": 3,
+"no": 10,
+"year": "中平六年（189）",
+"place": "北邙山",
+"event": "少帝與陳留王流落；董卓迎駕",
+"lon": 112.55,
+"lat": 34.85
+},
+{
+"ch": 3,
+"no": 11,
+"year": "中平六年（189）",
+"place": "洛陽",
+"event": "赤兔馬收呂布，丁原被殺",
+"lon": 112.45,
+"lat": 34.62
+},
+{
+"ch": 4,
+"no": 12,
+"year": "中平六年（189）",
+"place": "洛陽",
+"event": "董卓廢少帝、立獻帝；曹操獻刀",
+"lon": 112.45,
+"lat": 34.62
+},
+{
+"ch": 4,
+"no": 13,
+"year": "中平六年（189）",
+"place": "中牟",
+"event": "曹操逃亡被捉，縣令陳宮釋放",
+"lon": 113.97,
+"lat": 34.72
+},
+{
+"ch": 4,
+"no": 14,
+"year": "中平六年（189）",
+"place": "成皋",
+"event": "曹操誤殺呂伯奢一家",
+"lon": 113.25,
+"lat": 34.6
+},
+{
+"ch": 5,
+"no": 15,
+"year": "中平六年（189）",
+"place": "陳留",
+"event": "曹操散家財、發矯詔起兵",
+"lon": 114.7,
+"lat": 34.45
+},
+{
+"ch": 5,
+"no": 16,
+"year": "初平元年（190）",
+"place": "聯軍大營",
+"event": "十七鎮諸侯會盟，推袁紹為盟主",
+"lon": 114.2,
+"lat": 35.15
+},
+{
+"ch": 5,
+"no": 17,
+"year": "初平元年（190）",
+"place": "汜水關",
+"event": "孫堅兵敗；關羽溫酒斬華雄",
+"lon": 113.05,
+"lat": 34.9
+},
+{
+"ch": 5,
+"no": 18,
+"year": "初平元年（190）",
+"place": "虎牢關",
+"event": "三英戰呂布",
+"lon": 113.4,
+"lat": 34.85
+}
+],
 "chapters": [
 {
 "ch": 1,
@@ -515,11 +981,32 @@ var SEED = {
 {
 "ch": 1,
 "no": 1,
+"title": "南華授書",
+"after": 6,
+"caption": "入山採藥的張角，遇南華老仙，授以天書三卷。",
+"prompt": "Inside a misty mountain cave, a failed-scholar herbalist Zhang Jiao in a worn brown robe with a herb basket kneels with both hands raised; before him an ancient immortal with white hair, youthful ruddy face and striking turquoise-green eyes holds a goosefoot-wood staff and offers three bound scrolls that glow faintly gold. Stalactites, drifting mist, a sliver of daylight at the cave mouth. Chinese lianhuanhua comic-book panel, bold black ink outlines, flat mineral pigment colours of cinnabar red, malachite green and ochre with soft wash shading on aged paper, expressive faces, dramatic cinematic 16:9 landscape composition, leave a large calm empty area (sky, wall or mist) in the upper part of the frame for speech bubbles, no text, no speech bubbles, no calligraphy, no watermark, no seal stamp",
+"url": "embed:img_1_1",
+"talk": "白|旁白|2|3|25|0|0|鉅鹿張角，本是個不第秀才，入山採藥……\n說|南華老仙|43|4|42|40|29|此名《太平要術》。汝得之，當代天宣化，普救世人；若萌異心，必獲惡報。\n說|張角|77|70|21|70|57|敢問老丈尊姓大名？"
+},
+{
+"ch": 1,
+"no": 2,
+"title": "榜前長歎",
+"after": 8,
+"caption": "劉備見榜文而歎，張飛厲聲相問，英雄由此相逢。",
+"prompt": "Outside a county town gate in daylight, a crowd gathers before a wall where a recruitment notice (blank paper, no writing) is pasted. In the left foreground Liu Bei, long earlobes, plain scholar robe, gentle benevolent face, stands sighing with downcast eyes. Behind him at right, Zhang Fei, a towering man with a leopard head, round glaring eyes, bristling tiger whiskers and a booming roar, points sharply at him. Villagers in the background. Chinese lianhuanhua comic-book panel, bold black ink outlines, flat mineral pigment colours of cinnabar red, malachite green and ochre with soft wash shading on aged paper, expressive faces, dramatic cinematic 16:9 landscape composition, leave a large calm empty area (sky, wall or mist) in the upper part of the frame for speech bubbles, no text, no speech bubbles, no calligraphy, no watermark, no seal stamp",
+"url": "embed:img_1_2",
+"talk": "吼|張飛|66|3|31|60|27|大丈夫不與國家出力，何故長歎？\n說|劉備|2|3|33|36|32|有志欲破賊安民；恨力不能，故長歎耳。\n白|旁白|56|80|42|0|0|榜文行到涿縣，引出涿縣中一個英雄。"
+},
+{
+"ch": 1,
+"no": 3,
 "title": "桃園三結義",
 "after": 9,
 "caption": "桃花盛開的園中，劉、關、張焚香再拜，誓同生死。",
-"prompt": "In a peach orchard in full pink blossom, three sworn brothers kneel and bow before an incense altar with a black ox and a white horse as sacrifice. Center: Liu Bei, long earlobes, calm benevolent face, plain scholar robe. Left: Guan Yu, jujube-red face, phoenix eyes, silkworm eyebrows, long flowing beard, green robe. Right: Zhang Fei, leopard-like head, round fierce eyes, bristling tiger whiskers, dark armor. Incense smoke curls upward, petals drift in the air, villagers watching from afar. Traditional Chinese gongbi painting with expressive ink-wash, in the manner of Ming-dynasty illustrated novel woodblock prints, mineral pigments of cinnabar red, malachite green, azurite and ochre on aged silk, fine brush lines, dramatic cinematic composition, 16:9 landscape, no text, no calligraphy, no watermark, no seal stamp",
-"url": "embed:img_1_1"
+"prompt": "In a peach orchard in full pink blossom, three sworn brothers stand shoulder to shoulder holding burning incense sticks and bowing before a simple altar table with a black ox and a white horse as sacrifice. Center: Liu Bei, long earlobes, calm face, scholar robe. Left: Guan Yu, jujube-red face, phoenix eyes, silkworm eyebrows, long flowing beard, green robe. Right: Zhang Fei, leopard head, round fierce eyes, bristling whiskers, dark armor. Petals drift in the air, incense smoke curls up. Chinese lianhuanhua comic-book panel, bold black ink outlines, flat mineral pigment colours of cinnabar red, malachite green and ochre with soft wash shading on aged paper, expressive faces, dramatic cinematic 16:9 landscape composition, leave a large calm empty area (sky, wall or mist) in the upper part of the frame for speech bubbles, no text, no speech bubbles, no calligraphy, no watermark, no seal stamp",
+"url": "embed:img_1_3",
+"talk": "說|劉關張|25|3|46|47|39|不求同年同月同日生，但願同年同月同日死！\n白|旁白|75|3|23|0|0|皇天后土，實鑒此心；背義忘恩，天人共戮。"
 },
 {
 "ch": 2,
@@ -528,7 +1015,8 @@ var SEED = {
 "after": 6,
 "caption": "張飛把督郵綁在縣前馬樁上，折柳條痛打。",
 "prompt": "Outside a county post station, an enraged Zhang Fei with round glaring eyes and bristling beard has tied a corrupt inspector in official robes to a wooden hitching post and lashes him with willow switches; broken willow twigs scattered on the ground; a crowd of elderly villagers watching; Liu Bei rushing in from the side with an anxious look. Comic yet righteous mood, no blood. Traditional Chinese gongbi painting with expressive ink-wash, in the manner of Ming-dynasty illustrated novel woodblock prints, mineral pigments of cinnabar red, malachite green, azurite and ochre on aged silk, fine brush lines, dramatic cinematic composition, 16:9 landscape, no text, no calligraphy, no watermark, no seal stamp",
-"url": "embed:img_2_1"
+"url": "embed:img_2_1",
+"talk": ""
 },
 {
 "ch": 3,
@@ -537,7 +1025,8 @@ var SEED = {
 "after": 15,
 "caption": "李肅獻上赤兔馬，「火龍飛下九天來」。",
 "prompt": "Night military camp lit by lanterns. Lü Bu, a tall handsome warrior with a golden hair-crown topped by long pheasant feathers and a red embroidered battle robe, gazes in awe at the legendary blood-red horse Red Hare rearing and neighing, its mane like flames, mist swirling at its hooves. The persuader Li Su in court robes gestures toward it; a table with gold ingots, pearls and a jade belt. Traditional Chinese gongbi painting with expressive ink-wash, in the manner of Ming-dynasty illustrated novel woodblock prints, mineral pigments of cinnabar red, malachite green, azurite and ochre on aged silk, fine brush lines, dramatic cinematic composition, 16:9 landscape, no text, no calligraphy, no watermark, no seal stamp",
-"url": "embed:img_3_1"
+"url": "embed:img_3_1",
+"talk": ""
 },
 {
 "ch": 4,
@@ -546,7 +1035,8 @@ var SEED = {
 "after": 20,
 "caption": "董卓從衣鏡中照見曹操拔刀，曹操急跪獻刀。",
 "prompt": "Inside a dim chamber of the chancellor's mansion, the obese tyrant Dong Zhuo reclines on a couch facing inward toward a tall bronze mirror; in the mirror's reflection we see Cao Cao, slender with narrow eyes and a long beard, behind him drawing a jeweled seven-treasure sabre. Silk screens, candlelight, tense suspended moment. Traditional Chinese gongbi painting with expressive ink-wash, in the manner of Ming-dynasty illustrated novel woodblock prints, mineral pigments of cinnabar red, malachite green, azurite and ochre on aged silk, fine brush lines, dramatic cinematic composition, 16:9 landscape, no text, no calligraphy, no watermark, no seal stamp",
-"url": "embed:img_4_1"
+"url": "embed:img_4_1",
+"talk": ""
 },
 {
 "ch": 5,
@@ -555,7 +1045,8 @@ var SEED = {
 "after": 16,
 "caption": "關羽提刀而回，杯中熱酒尚溫。",
 "prompt": "Inside the allied lords' great command tent, lords in armor seated in two rows look up in astonishment; on the table a cup of wine still steaming. At the tent entrance stands Guan Yu, red-faced with a long beard and green robe, holding the Green Dragon Crescent Blade, having just returned victorious with the enemy general's helmet in hand. War drums and banners outside, no blood. Traditional Chinese gongbi painting with expressive ink-wash, in the manner of Ming-dynasty illustrated novel woodblock prints, mineral pigments of cinnabar red, malachite green, azurite and ochre on aged silk, fine brush lines, dramatic cinematic composition, 16:9 landscape, no text, no calligraphy, no watermark, no seal stamp",
-"url": "embed:img_5_1"
+"url": "embed:img_5_1",
+"talk": ""
 },
 {
 "ch": 5,
@@ -564,7 +1055,8 @@ var SEED = {
 "after": 22,
 "caption": "劉、關、張三人圍住呂布，轉燈兒般廝殺。",
 "prompt": "Before the towering gate of Hulao Pass, Lü Bu on the red horse Red Hare wields a crescent halberd, golden crown with pheasant feathers, fighting three heroes at once: Zhang Fei with a serpent spear, Guan Yu with the crescent blade, Liu Bei with twin swords on a yellow horse. Swirling dust, banners of eight armies on the hills, dynamic circular motion. Traditional Chinese gongbi painting with expressive ink-wash, in the manner of Ming-dynasty illustrated novel woodblock prints, mineral pigments of cinnabar red, malachite green, azurite and ochre on aged silk, fine brush lines, dramatic cinematic composition, 16:9 landscape, no text, no calligraphy, no watermark, no seal stamp",
-"url": "embed:img_5_2"
+"url": "embed:img_5_2",
+"talk": ""
 }
 ],
 "notes": [
