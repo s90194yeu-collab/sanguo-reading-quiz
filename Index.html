@@ -350,63 +350,75 @@ main:has(.reader){padding-bottom:14px}
 .fb .verdict.ok{color:var(--jade)}.fb .verdict.no{color:var(--red)}
 .link{background:none;border:none;color:var(--red);text-decoration:underline;font:14px var(--f-body);padding:0;margin-left:6px}
 .qbar{position:sticky;bottom:-26px;background:linear-gradient(transparent,#f8f1df 30%);padding:18px 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-/* ---- 出征（戰鬥外皮） ---- */
+
+/* ---- 展示模式：電腦自動示範（免登入、不記錄） ---- */
+.demo-bar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;max-width:min(760px,92vw);background:rgba(20,14,8,.92);color:#fbeee0;border:2px solid var(--gold);border-radius:6px;padding:10px 18px;font:17px/1.6 var(--f-title);letter-spacing:1px;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.4);transition:opacity .4s}
+.demo-bar b{color:#ffd24a;margin-right:8px}
+.demo-bar.hide{opacity:0}
+.demo-x{position:fixed;right:14px;bottom:18px;z-index:61;background:rgba(20,14,8,.85);color:#fbeee0;border:1px solid var(--gold);border-radius:20px;padding:5px 14px;font:14px var(--f-title);cursor:pointer}
+.demo-tag{position:fixed;left:14px;bottom:18px;z-index:61;background:var(--red);color:#fbeee0;border-radius:3px;padding:3px 12px;font:700 14px var(--f-title);letter-spacing:2px}
+.dcur{position:fixed;z-index:70;width:22px;height:22px;margin:-4px 0 0 -4px;pointer-events:none;transition:left .9s ease,top .9s ease;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+.dcur svg{width:22px;height:22px}
+.dcur.click:after{content:'';position:absolute;left:-6px;top:-6px;width:34px;height:34px;border:3px solid #ffd24a;border-radius:50%;animation:dclk .45s ease-out forwards}
+@keyframes dclk{from{opacity:1;transform:scale(.3)}to{opacity:0;transform:scale(1.2)}}
+.demo-end{position:fixed;inset:0;z-index:80;background:rgba(10,8,5,.82);display:grid;place-items:center}
+.demo-end>div{background:#f8f1df;border:3px double var(--wood);padding:28px 36px;text-align:center;max-width:min(480px,90vw)}
+.demo-end h3{font-size:26px;letter-spacing:8px;margin:0 0 10px;color:var(--red)}
+.demo-end p{line-height:1.8;margin:6px 0 18px}
+.demo-end .bt-act{justify-content:center}
+.demo-start{margin-top:8px}
+
+/* ---- 作答 ---- */
 .bt{display:flex;flex-direction:column;gap:10px}
 .bt h3{margin:0}
 .bt-intro p{margin:6px 0;line-height:1.8}
 .bt-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .bt-hd b{font:700 17px var(--f-title);letter-spacing:2px}
 .bt-hd span{font:14px var(--f-title);color:var(--ink2)}
-/* 吞食天地式對陣：黑底、左我右敵、分格兵力條、指令框、草地 */
-.bt-field{position:relative;background:#0a0a10;color:#fff;border:3px double #e9dfc8;outline:2px solid var(--wood);padding:10px 10px 22px;overflow:hidden;font-family:var(--f-title)}
-.bt-field:after{content:'';position:absolute;left:0;right:0;bottom:0;height:12px;pointer-events:none;
-  background:repeating-linear-gradient(90deg,#3f8f2f 0 6px,#2f7a22 6px 12px),#2f7a22;border-top:3px solid #6bbf3f}
-@media (min-width:901px){.bt-field{position:sticky;top:-1px;z-index:5}}
-.bt-war{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;position:relative;z-index:1}
-.bt-side{display:flex;flex-direction:column;gap:5px;min-width:0}
-.u{display:grid;grid-template-columns:1fr 40px;align-items:center;gap:6px;min-height:42px;transition:opacity .5s}
-.u.foe{grid-template-columns:40px 1fr}
-.u .sp{width:40px;height:40px;display:grid;place-items:center}
-.u .sp svg{width:36px;height:36px;display:block;image-rendering:pixelated}
-.u.foe .sp svg{transform:scaleX(-1)}
-.u .ib{min-width:0}
-.u .nm{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font:700 15px/1.15 var(--f-title);letter-spacing:1px;text-shadow:1px 1px 0 #000}
-.u .nm small{font:700 14px var(--f-title);letter-spacing:0;font-variant-numeric:tabular-nums}
-.u .ub{height:9px;margin-top:3px;border:1px solid #fff;background:#000;padding:1px;box-sizing:border-box}
-.u .ub i{display:block;height:100%;width:100%;transition:width .7s linear;background:repeating-linear-gradient(90deg,var(--c) 0 4px,transparent 4px 6px)}
-.u.me{--c:#f08a24}.u.foe{--c:#4f86f0}
-.u.low .ub i{--c:#e0463a}
-.u.dead{opacity:.3;filter:grayscale(1)}
-.bt-fx{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
-.fx-n{position:absolute;font:700 22px var(--f-title);text-shadow:0 0 3px #000,1px 1px 0 #000;animation:fxUp 1.2s ease-out forwards}
-.fx-n.hit{color:#ffd24a}.fx-n.hurt{color:#ff6b5a}.fx-n.heal{color:#7cf29a}
-@keyframes fxUp{0%{opacity:0;transform:translateY(6px) scale(.8)}15%{opacity:1;transform:translateY(0) scale(1.15)}100%{opacity:0;transform:translateY(-30px)}}
-.shake{animation:btShake .42s}
-@keyframes btShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
-.lunge{animation:btLunge .45s}
-@keyframes btLunge{0%{transform:translateX(0)}40%{transform:translateX(18px) scale(1.12)}100%{transform:translateX(0)}}
-.lungeL{animation:btLungeL .45s}
-@keyframes btLungeL{0%{transform:translateX(0)}40%{transform:translateX(-18px) scale(1.12)}100%{transform:translateX(0)}}
-.ploy{position:absolute;left:50%;top:50%;z-index:4;transform:translate(-50%,-50%);pointer-events:none;writing-mode:vertical-rl;display:block;white-space:nowrap;
-  background:rgba(168,50,42,.88);border:2px solid #fff;padding:10px 12px;animation:ployIn 1.7s ease-out forwards}
-.ploy b{display:block;margin-left:12px;font:700 34px/1.1 var(--f-title);letter-spacing:6px;color:#fff3dc;text-shadow:0 0 10px #e8742a,0 2px 0 #7a1f18}
-.ploy small{display:block;font:13px/1.3 var(--f-title);letter-spacing:2px;color:#fbe9cf}
-@keyframes ployIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}12%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
-.bt-cmd{display:flex;gap:10px;align-items:stretch;background:#0a0a10;border:3px double #e9dfc8;outline:2px solid var(--wood);padding:8px;color:#fff;font-family:var(--f-title)}
-.bt-por{flex:none;width:84px;border:2px solid #e9dfc8;display:grid;justify-items:center;align-content:center;gap:2px;padding:4px;background:#1b1420}
-.bt-por svg{width:56px;height:56px;image-rendering:pixelated}
-.bt-por span{font:700 14px var(--f-title);letter-spacing:2px}
-.cmd-box{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;align-content:center;border:2px solid #fff;border-radius:4px;padding:6px 10px}
-.cmd{background:none;border:none;color:#fff;font:700 18px var(--f-title);letter-spacing:3px;text-align:left;padding:4px 2px;cursor:pointer}
-.cmd:before{content:'\00a0\00a0'}
-.cmd.on:before{content:'▶ ';color:#ffd24a}
-.cmd:hover{color:#ffd24a}
-.cmd{white-space:nowrap}
-.cmd small{font-size:12px;letter-spacing:0;color:#9fb0c8;margin-left:4px}
-.bt-gens{display:grid;gap:6px;padding:8px;border:1px solid var(--line);background:#fbf5e4}
-.bt-gens div{font-size:14px;line-height:1.6}
-.bt-gens b{font-family:var(--f-title);margin-right:6px}
-.bt-gens small{color:var(--ink2)}
+/* 戰況面板：仿吞食天地對陣（黑底、兩側名字與橫條、中間小人面對面、下方說明框、草地） */
+.bf{background:#0a0a10;color:#fff;border:3px double #e9dfc8;outline:2px solid var(--wood);font-family:var(--f-title);position:relative;overflow:hidden}
+.bf-top{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid #3a3a48;font-size:13px}
+.bf-tag{background:#e9dfc8;color:#2a1d12;font-weight:700;padding:0 8px;letter-spacing:2px}
+.bf-title{font-size:16px;letter-spacing:2px;flex:1}
+.bf-top small{color:#9fb0c8}
+.bf-field{position:relative;padding:8px 10px 18px;min-height:150px;display:grid;align-content:center}
+.bf-field:after{content:'';position:absolute;left:0;right:0;bottom:0;height:10px;pointer-events:none;background:repeating-linear-gradient(90deg,#3f8f2f 0 6px,#2f7a22 6px 12px);border-top:3px solid #6bbf3f}
+.bf-war{display:grid;grid-template-columns:1fr 1fr;column-gap:10px}
+.bf-side{display:flex;flex-direction:column;gap:3px;min-width:0}
+.bf-sh{font-size:12px;color:#c9d3e3;letter-spacing:1px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bf-sh i{font-style:normal;padding:0 6px;margin-left:4px;border:1px solid currentColor}
+.st-勝{color:#7cf29a}.st-平{color:#ffd24a}.st-敗{color:#ff7a6b}
+.bu{display:grid;grid-template-columns:70px 1fr 30px;align-items:center;gap:6px;min-height:30px}
+.bu.foe{grid-template-columns:30px 1fr 70px}
+.bu .sp{width:30px;height:30px;display:grid;place-items:center}
+.bu .sp svg{width:28px;height:28px;display:block;image-rendering:pixelated}
+.bu.foe .sp svg{transform:scaleX(-1)}
+.bu .nm{font:700 14px/1.1 var(--f-title);letter-spacing:1px;text-shadow:1px 1px 0 #000;white-space:nowrap}
+.bu .nm small{display:block;font:12px var(--f-title);letter-spacing:0}
+.bu.foe .nm{text-align:right}
+.bu .ub{height:8px;border:1px solid #fff;background:#000;padding:1px;box-sizing:border-box}
+.bu .ub i{display:block;height:100%;transition:width .9s ease;background:repeating-linear-gradient(90deg,var(--c) 0 4px,transparent 4px 6px)}
+.bu.me{--c:#f08a24}.bu.foe{--c:#4f86f0}
+.bu.lose .sp{opacity:.45;filter:grayscale(.7)}
+.bu.lose .ub i{--c:#e0463a}
+.bf.duel .bu{min-height:46px;grid-template-columns:70px 1fr 46px}.bf.duel .bu.foe{grid-template-columns:46px 1fr 70px}
+.bf.duel .bu .sp{width:46px;height:46px}.bf.duel .bu .sp svg{width:44px;height:44px}
+.bf-calm{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;padding-bottom:4px}
+.bf-calm .pc{display:grid;justify-items:center;gap:3px;font-size:13px;letter-spacing:1px}
+.bf-calm .pc svg{width:40px;height:40px;image-rendering:pixelated}
+.bf-calm .none{color:#9fb0c8;font-size:14px;letter-spacing:3px}
+.bf-note{display:flex;gap:10px;align-items:baseline;padding:6px 10px;border-top:1px solid #3a3a48;font-size:13.5px;line-height:1.6;background:#12121c}
+.bf-note span{flex:1}
+.bf-note button{background:none;border:none;color:#ffd24a;font:inherit;font-size:13px;cursor:pointer;text-decoration:underline;white-space:nowrap}
+.bf-shake{animation:btShake .42s}.bf-lunge{animation:btLunge .45s}
+@keyframes btShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@keyframes btLunge{0%{transform:translateX(0)}40%{transform:translateX(8px) scale(1.12)}100%{transform:translateX(0)}}
+.cols>#bf{grid-column:1;grid-row:1}
+.cols>#txt{grid-column:1;grid-row:2}
+.cols>#quiz{grid-column:2;grid-row:1/3}
+.cols.hasbf{grid-template-rows:auto minmax(0,1fr)}
+.cols.hasbf>#bf{margin-bottom:12px}
+.cols:not(.hasbf)>#txt{grid-row:1/3}
 .bt-dots{display:flex;gap:5px;justify-content:center;flex-wrap:wrap}
 .bt-dots span{width:22px;height:22px;border:1.5px solid var(--ink2);border-radius:50%;display:grid;place-items:center;font:700 12px var(--f-title);color:var(--ink2)}
 .bt-dots span.ok{background:var(--jade);border-color:var(--jade);color:#fff}
@@ -424,7 +436,7 @@ main:has(.reader){padding-bottom:14px}
 @keyframes genIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .bt-end{padding:12px;border:1px solid var(--line);background:#f3e9d2;margin-bottom:8px}
 .bt-end h3{font-size:24px;letter-spacing:6px;margin:0 0 4px;color:var(--red)}
-@media (prefers-reduced-motion:reduce){.shake,.lunge,.lungeL,.fx-n,.ploy{animation-duration:.01s}.u .ub i{transition:none}}
+@media (prefers-reduced-motion:reduce){.bf-shake,.bf-lunge{animation-duration:.01s}.bu .ub i{transition:none}}
 .savest{font-size:14px;color:var(--mute);margin-right:auto}
 .result{display:flex;align-items:center;gap:18px;padding:14px;margin:6px 0 4px;background:#f3e9d2;border:1px solid var(--line)}
 .bigseal{width:86px;height:86px;flex:none;border:3px double var(--red);color:var(--red);border-radius:6px;display:grid;place-items:center;
@@ -478,6 +490,9 @@ h4.sec{font:700 20px var(--f-title);letter-spacing:3px;margin:28px 0 12px;border
   .mtabs{display:flex;gap:8px;margin-bottom:14px}
   .mtabs button{flex:1}
   .cols .pane{display:none}.cols .pane.on{display:block}
+  .cols>#bf{position:sticky;top:0;z-index:6}
+  .cols>#bf .bf-field{min-height:128px}
+  .cols>#bf .bf-note{font-size:12.5px;padding:4px 8px}
   main:has(.reader){padding-bottom:70px}
   .reader{display:block;height:auto}
   .cols>.scrollpanel{height:auto}
@@ -721,9 +736,10 @@ function renderLogin(tab) {
     '<form id="fTea"><div class="field"><label>教師密碼</label><input name="pw" type="password" required></div>' +
     '<div class="err" id="err"></div><button class="btn wide">升　帳</button></form>';
   var guest = S.guestChapters && S.guestChapters.length ? '<div class="guestbox"><button class="btn wide jade" id="btnGuest">免註冊、免登入　直接試閱' +
-    S.guestChapters.map(function (n) { return '第' + cnum(n) + '回'; }).join('、') + '</button><p class="note">試閱可閱讀並作答；成績不記錄，答案與書籤暫存在這台裝置。要累積成績請在下方登入。</p></div>' : '';
+    S.guestChapters.map(function (n) { return '第' + cnum(n) + '回'; }).join('、') + '</button><button class="btn wide ghost demo-start" id="btnDemo">▶ 展示模式（電腦自動示範）</button><p class="note">試閱可閱讀並作答；成績不記錄，答案與書籤暫存在這台裝置。要累積成績請在下方登入。</p></div>' : '';
   view('<div class="loginwrap scrollpanel"><p class="poemline">滾滾長江東逝水　浪花淘盡英雄</p>' + guest + tabs + body + '</div>');
   if ($('#btnGuest')) $('#btnGuest').onclick = function () { Qin.sfx('wood'); S.guest = true; setTop(); goHome(); };
+  if ($('#btnDemo')) $('#btnDemo').onclick = function () { startDemo(); };
   $$('.tab').forEach(function (b) { b.onclick = function () { Qin.sfx('wood'); renderLogin(b.dataset.t); }; });
   var fL = $('#fLogin'), fR = $('#fReg'), fT = $('#fTea');
   if (fL) (function (f) { f.onsubmit = function (e) {
@@ -845,11 +861,13 @@ function renderChapter() {
     '<div class="rtools"><button class="chip ' + (S.vert ? 'on' : '') + '" id="tgVert">直排</button><button class="chip" id="btnPref">字型・字級</button><button class="chip" id="btnBm">書籤</button><button class="chip" id="toHome">回目錄</button></div>' +
     '<div class="pop hidden" id="popPref"></div><div class="pop hidden" id="popBm"></div></div>' +
     '<div class="mtabs"><button class="chip on" data-p="txt">原文</button><button class="chip" data-p="quiz">試題</button></div>' +
-    '<div class="cols"><article class="scrollpanel text pane on' + (S.vert ? ' vert' : '') + '" id="txt">' + text + '</article>' +
+    '<div class="cols"><div id="bf" class="bf pane on" style="display:none"></div><article class="scrollpanel text pane on' + (S.vert ? ' vert' : '') + '" id="txt">' + text + '</article>' +
     '<aside class="scrollpanel quiz pane" id="quiz"></aside></div></div>');
   renderQuiz();
+  S.mobTab = 'txt';
   var tx = $('#txt');
-  $('#tgVert').onclick = function () { S.vert = PREF.vert = !S.vert; applyPref(); this.classList.toggle('on', S.vert); tx.classList.toggle('vert', S.vert); if (S.vert) tx.scrollLeft = tx.scrollWidth; };
+  bfInit(d);
+  $('#tgVert').onclick = function () { S.vert = PREF.vert = !S.vert; applyPref(); this.classList.toggle('on', S.vert); tx.classList.toggle('vert', S.vert); if (S.vert) tx.scrollLeft = tx.scrollWidth; setTimeout(bfUpdate, 60); };
   $('#btnPref').onclick = function (e) { e.stopPropagation(); togglePop('popPref', drawPref); };
   $('#btnBm').onclick = function (e) { e.stopPropagation(); togglePop('popBm', drawBm); };
   S.bm = (d.save && d.save.draft && d.save.draft.bm) || [];
@@ -859,7 +877,7 @@ function renderChapter() {
   bindTextTips(tx);
   $('#toHome').onclick = goHome;
   $$('.mtabs .chip').forEach(function (b) {
-    b.onclick = function () { $$('.mtabs .chip').forEach(function (x) { x.classList.toggle('on', x === b); }); $$('.cols .pane').forEach(function (p) { p.classList.toggle('on', p.id === b.dataset.p); }); window.scrollTo(0, 0); };
+    b.onclick = function () { $$('.mtabs .chip').forEach(function (x) { x.classList.toggle('on', x === b); }); S.mobTab = b.dataset.p; $$('.cols .pane').forEach(function (p) { p.classList.toggle('on', p.id === b.dataset.p || (p.id === 'bf' && b.dataset.p === 'txt')); }); window.scrollTo(0, 0); };
   });
   $$('img[data-embed]').forEach(function (im) {
     var key = im.dataset.embed;
@@ -1562,15 +1580,11 @@ function readPos() {
   if (tx.classList.contains('vert')) return 0;
   return Math.max(0, Math.min(1, tx.scrollTop / Math.max(1, tx.scrollHeight - tx.clientHeight)));
 }
-/* ================= 出征：抽 N 題、亂序作答、即時戰況 ================= */
-var FOE = { 1: ['程遠志', '黃', ''], 2: ['張寶', '黃', ''], 3: ['丁原', '丁', 'd'], 4: ['董卓', '董', 'd'], 5: ['華雄', '華', 'd'] };
-var PLOYS = [['火　計', '長社縱火，士氣大振'], ['伏　兵', '鳴金為號，左右齊出'], ['連　環', '計中有計，環環相扣']];
-function foeOf(ch) { var f = FOE[ch] || ['敵軍', '賊', '']; return { name: f[0], ch: f[1], cls: f[2] }; }
-function btOutcome(s, n) { return s === n ? ['全　勝', '殲滅敵軍，無一漏網！'] : s >= n * .8 ? ['大　勝', '大破敵軍，明察秋毫。'] : s >= n * .6 ? ['小　勝', '擊退敵軍，仍有疏漏，回原文補一補。'] : ['敗　退', '兵敗退守，對照解析再戰一回。']; }
-var ALLY = ['劉備', '關羽', '張飛'];
-var APAL = { '劉備': { h: '#3a5fd0', a: '#e2b93b', s: '#f0c8a0' }, '關羽': { h: '#1f6b3a', a: '#2f9e5c', s: '#d9573b' }, '張飛': { h: '#1b1b22', a: '#4a5bd0', s: '#c98a5a' } };
+/* ================= 戰況面板：隨目前讀到的原文段落顯示雙方形勢（不受作答影響） ================= */
+var APAL = { '劉備': { h: '#3a5fd0', a: '#e2b93b', s: '#f0c8a0' }, '關羽': { h: '#1f6b3a', a: '#2f9e5c', s: '#d9573b' }, '張飛': { h: '#1b1b22', a: '#4a5bd0', s: '#c98a5a' },
+  '曹操': { h: '#222', a: '#c0392b', s: '#f0c8a0' }, '董卓': { h: '#3b3a46', a: '#8a78c0', s: '#e0b890' } };
 var SPR = ['.....hhhh....', '....hhhhhh...', '....hssssh...', '....sdssds...', '.....ssss...w', '...aaaaaaaa.w', '..saaaaaaas.w', '..saaddaaas.w', '...aaaaaaa..w', '...aaaaaaa..w', '....dd.dd...w', '....dd.dd....', '...ddd.ddd...'];
-/** 像素小人（13×13 點陣，向右站立；敵軍以 CSS 翻轉） */
+/** 像素小人（13×13 點陣，向右站立；敵方以 CSS 翻轉） */
 function spr(pal, weapon) {
   var C = { h: pal.h, a: pal.a, s: pal.s || '#f0c8a0', d: '#2a2018', w: '#e8e8e8' }, rc = '';
   SPR.forEach(function (row, y) {
@@ -1583,54 +1597,108 @@ function spr(pal, weapon) {
   });
   return '<svg viewBox="0 0 13 13" shape-rendering="crispEdges" aria-hidden="true">' + rc + '</svg>';
 }
-function btSplit(N, k, f) { var a = [], base = Math.floor(N / k), rem = N % k; for (var i = 0; i < k; i++) a.push((base + (i < rem ? 1 : 0)) * f); return a; }
-/** 依出題數編組：我軍最多 3 將；敵軍 1 將帶最多 3 兵（兵先倒、將最後倒） */
-function btMk(N, ch) {
-  var fo = foeOf(ch), k = Math.min(3, N), hp = btSplit(N, k, 50), A = [], E = [], e = Math.min(4, N), sd = e > 1 ? Math.max(1, Math.floor(N * .2)) : 0, gen = N - (e - 1) * sd;
-  for (var i = 0; i < k; i++) A.push({ name: ALLY[i], max: hp[i], hp: hp[i] });
-  E.push({ name: fo.name, max: gen * 100, hp: gen * 100, gen: true });
-  for (i = 1; i < e; i++) E.push({ name: '兵　士', max: sd * 100, hp: sd * 100 });
-  return { A: A, E: E };
+/** 依人名、其次依軍名挑配色 */
+function palFor(unit, side) {
+  if (APAL[unit]) return APAL[unit];
+  var k = unit + '|' + side;
+  if (/黃巾|太平道|張角|張寶|張梁|程遠志|鄧茂/.test(k)) return { h: '#c79a1e', a: '#e8c04a', s: '#f0c8a0' };
+  if (/曹操/.test(k)) return APAL['曹操'];
+  if (/董卓/.test(k)) return APAL['董卓'];
+  if (/涿郡|義軍|義士|結義|玄德|劉關張/.test(k)) return { h: '#2a6e3a', a: '#3f9d57', s: '#f0c8a0' };
+  if (/官軍|漢軍|守軍|朝廷|幽州|盧植|皇甫嵩|朱儁|騎都尉|劉焉|鄒靖/.test(k)) return { h: '#3a5fd0', a: '#8aa8e8', s: '#f0c8a0' };
+  return { h: '#6a5a4a', a: '#b0a090', s: '#e0b890' };
 }
-function nextAlive(arr, n) { for (var k = 0; k < arr.length; k++) { var i = (n + k) % arr.length; if (arr[i].hp > 0) return i; } return -1; }
-function foeTarget(E) { for (var i = 1; i < E.length; i++) if (E[i].hp > 0) return i; return E[0].hp > 0 ? 0 : -1; }
-function btSum(a) { return a.reduce(function (t, u) { return t + u.hp; }, 0); }
-/** 依已作答的結果重播戰況（兵力、連對、計策） */
-function btReplay(st) {
-  var N = st.qs.length, m = btMk(N, S.chap.ch); st.A = m.A; st.E = m.E; st.atkN = 0; st.eN = 0; st.hN = 0;
-  st.max = N * 50; st.foeMax = N * 100; st.me = st.max; st.foe = st.foeMax; st.streak = 0; st.ploys = 0; st.i = N; st.last = null;
-  for (var k = 0; k < N; k++) {
-    var r = st.done[st.qs[k].no]; if (!r) { st.i = k; break; }
-    btApply(st, r);
-  }
+var BF_PCT = { '佔優': 92, '相持': 58, '潰敗': 16 }, BF_CLS = { '佔優': 'st-勝', '相持': 'st-平', '潰敗': 'st-敗' };
+/** 依段落與段內位置，排出整回的戰況時間軸 */
+function bfPrepare(d) {
+  var rows = (d.bf || []).map(function (r, k) {
+    var t = (d.paras[r.para - 1] || {}).t || '', at = 0;
+    if (r.anchor) { var j = t.indexOf(r.anchor); at = j < 0 ? 0 : j / Math.max(1, t.length); }
+    return Object.assign({}, r, { at: at, o: k });
+  });
+  rows.sort(function (x, y) { return x.para - y.para || x.at - y.at || x.o - y.o; });
+  return rows;
 }
-function btApply(st, r) {
-  var A = st.A, E = st.E, L = st.last = { ok: r.ok, ploy: null, heal: 0, atk: -1, tgt: -1, healIdx: -1 };
-  if (r.ok) {
-    L.atk = nextAlive(A, st.atkN++); L.tgt = foeTarget(E); if (L.tgt >= 0) E[L.tgt].hp = Math.max(0, E[L.tgt].hp - 100); st.streak++;
-    if (st.streak % 3 === 0) {
-      L.ploy = PLOYS[st.ploys % PLOYS.length]; st.ploys++;
-      var bi = -1, bd = 0; A.forEach(function (u, i) { if (u.hp > 0 && u.max - u.hp > bd) { bd = u.max - u.hp; bi = i; } });
-      if (bi >= 0) { L.heal = Math.min(50, bd); L.healIdx = bi; A[bi].hp += L.heal; }
+function bfSide(sd, role, prev) {
+  var units = sd.units && sd.units.length ? sd.units.slice(0, 4) : [sd.name || '—'], pct = BF_PCT[sd.state] || 58, foe = role === 'foe';
+  var same = units.length === 1 && units[0] === sd.name, head = same && !sd.troops ? '<div class="bf-sh">&nbsp;</div>' : '<div class="bf-sh">' + esc(same ? '' : sd.name) + (sd.troops ? (same ? '' : '・') + '兵力 ' + esc(sd.troops) : '') + '</div>';
+  return '<div class="bf-side">' + head + units.map(function (u, i) {
+    var p0 = prev && prev.units && prev.units.indexOf(u) >= 0 ? (BF_PCT[prev.state] || pct) : pct;
+    var info = '<div class="nm">' + esc(u) + '<small class="' + (BF_CLS[sd.state] || '') + '">' + esc(sd.state || '') + '</small></div>', bar = '<div class="ub"><i data-w="' + pct + '" style="width:' + p0 + '%"></i></div>',
+      sp = '<div class="sp">' + spr(palFor(u, sd.name), true) + '</div>';
+    return '<div class="bu ' + (foe ? 'foe' : 'me') + (sd.state === '潰敗' ? ' lose' : '') + '" data-u="' + esc(u) + '">' + (foe ? sp + bar + info : info + bar + sp) + '</div>';
+  }).join('') + '</div>';
+}
+function bfRender(row, prev, box) {
+  var duel = row.scene === '單挑', calm = row.scene === '平時', f;
+  if (calm) {
+    var ps = (row.a.units || []).slice(0, 5);
+    f = '<div class="bf-calm">' + (ps.length ? ps.map(function (u) { return '<div class="pc">' + spr(palFor(u, row.a.name), true) + '<span>' + esc(u) + '</span></div>'; }).join('') : '<div class="none">此段無戰事</div>') + '</div>';
+  } else f = '<div class="bf-war">' + bfSide(row.a, 'me', prev && prev.scene !== '平時' ? prev.a : null) + bfSide(row.b, 'foe', prev && prev.scene !== '平時' ? prev.b : null) + '</div>';
+  box.className = 'bf pane' + (S.mobTab === 'quiz' ? '' : ' on') + (duel ? ' duel' : '');
+  box.innerHTML = '<div class="bf-top"><span class="bf-tag">' + esc(row.scene) + '</span><b class="bf-title">' + esc(row.title) + '</b><small>依文意示意</small></div>' +
+    '<div class="bf-field">' + f + '</div>' +
+    '<div class="bf-note"><span>' + esc(row.note) + '</span>' + (row.basis ? '<button data-para="' + row.basis + '">看原文第 ' + row.basis + ' 段</button>' : '') + '</div>';
+  var bt = $('.bf-note button', box); if (bt) bt.onclick = function () { jumpPara(+bt.dataset.para); };
+  requestAnimationFrame(function () { requestAnimationFrame(function () {
+    $$('.ub i', box).forEach(function (i) { i.style.width = i.dataset.w + '%'; });
+    if (prev && !calm && prev.scene !== '平時') {
+      [['a', 'me'], ['b', 'foe']].forEach(function (k) {
+        if (prev[k[0]].state === row[k[0]].state) return;
+        var cls = row[k[0]].state === '潰敗' ? 'bf-shake' : row[k[0]].state === '佔優' ? 'bf-lunge' : '';
+        if (cls) $$('.bu.' + k[1] + ' .sp', box).forEach(function (e) { e.classList.add(cls); });
+      });
     }
+  }); });
+}
+/** 依閱讀位置決定目前戰況（往回捲會跟著倒退） */
+function bfUpdate() {
+  var B = S.bfs; if (!B || !B.rows.length) return;
+  var tx = $('#txt'); if (!tx) return;
+  var mobile = window.innerWidth <= 900, vert = tx.classList.contains('vert'), ps = B.ps, cur = 0, frac = 0, line;
+  if (!ps.length) return;
+  if (vert) {
+    var r0 = tx.getBoundingClientRect(); line = r0.right - r0.width * .2;
+    for (var k = 0; k < ps.length; k++) { var q = ps[k].getBoundingClientRect(); if (q.right >= line) { cur = k; frac = Math.min(1, Math.max(0, (q.right - line) / Math.max(1, q.width))); } else break; }
   } else {
-    var ea = []; E.forEach(function (u, i) { if (u.hp > 0) ea.push(i); }); L.atk = ea.length ? ea[st.eN++ % ea.length] : -1;
-    L.tgt = nextAlive(A, st.hN++); if (L.tgt >= 0) A[L.tgt].hp = Math.max(0, A[L.tgt].hp - 50); st.streak = 0;
+    var rr = mobile ? { top: 0, height: innerHeight } : tx.getBoundingClientRect(); line = rr.top + (mobile ? (($('#bf') ? $('#bf').offsetHeight : 0) + innerHeight * .25) : rr.height * .3);
+    for (var k2 = 0; k2 < ps.length; k2++) { var q2 = ps[k2].getBoundingClientRect(); if (q2.top <= line) { cur = k2; frac = Math.min(1, Math.max(0, (line - q2.top) / Math.max(1, q2.height))); } else break; }
   }
-  st.me = btSum(A); st.foe = btSum(E);
+  var idx = +ps[cur].dataset.i, pick = null;
+  B.rows.forEach(function (r) { if (r.para < idx || (r.para === idx && r.at <= frac + 1e-6)) pick = r; });
+  if (S.demoPos != null) pick = B.rows[S.demoPos] || pick;
+  if (pick === B.cur) return;
+  var prev = B.cur; B.cur = pick; var box = $('#bf'); if (!box) return;
+  if (!pick) { box.innerHTML = ''; box.style.display = 'none'; return; }
+  box.style.display = ''; bfRender(pick, prev, box);
+}
+function bfInit(d) {
+  var box = $('#bf'), cols = $('.cols'); S.bfs = null; S.demoPos = null;
+  if (!box) return;
+  var rows = bfPrepare(d); if (!rows.length) { box.style.display = 'none'; return; }
+  cols.classList.add('hasbf');
+  S.bfs = { rows: rows, cur: undefined, ps: $$('#txt p[data-i]') };
+  var tick = function () { if (S.bfTick) return; S.bfTick = requestAnimationFrame(function () { S.bfTick = 0; bfUpdate(); }); };
+  $('#txt').addEventListener('scroll', tick); window.addEventListener('scroll', tick, { passive: true }); window.addEventListener('resize', tick);
+  bfUpdate();
+}
+
+/* ================= 作答：每次從題庫抽 N 題，一題一題作答 ================= */
+function btOutcome(s, n) { return s === n ? ['全　對', '通讀全回，明察秋毫！'] : s >= n * .8 ? ['優　良', '大體讀通，細處再對照解析。'] : s >= n * .6 ? ['及　格', '仍有疏漏，回原文補一補。'] : ['再　讀', '對照解析，回原文再讀一回。']; }
+function btReplay(st) {
+  var N = st.qs.length; st.i = N; st.pick = null;
+  for (var k = 0; k < N; k++) if (!st.done[st.qs[k].no]) { st.i = k; break; }
 }
 function renderQuiz() {
   var d = S.chap, box = $('#quiz'), st = S.bt;
   if (!st && d.bt && d.bt.state === 'ongoing') { st = S.bt = { qs: d.bt.qs, done: d.bt.done || {}, ticket: null, gans: {}, phase: 'ask' }; btReplay(st); if (st.i >= st.qs.length) st.phase = 'end'; }
   if (st) return renderBattle();
   if (d.result) return renderResult();
-  var fo = foeOf(d.ch), n = d.qn || 5, tries = d.save && d.save.tries;
-  box.innerHTML = '<div class="bt bt-intro"><h3>出　征</h3><div class="sub">對陣 ' + esc(fo.name) + '・共 ' + n + ' 合' + (tries ? '・已出征 ' + tries + ' 次' : '') + '</div>' +
-    btArena(btMk(n, d.ch), null) +
-    '<p>先讀原文，再領兵出征。共 ' + n + ' 合，每一合只作答一題。</p>' +
-    '<p>答對：擊退敵軍；答錯：折損兵力。<b>連對三題</b>可發動計策，回復士氣。作答時可隨時對照左側原文。</p>' +
+  var n = d.qn || 5, tries = d.save && d.save.tries;
+  box.innerHTML = '<div class="bt bt-intro"><h3>閱讀檢測</h3><div class="sub">共 ' + n + ' 題' + (tries ? '・已作答 ' + tries + ' 次' : '') + '</div>' +
+    '<p>先讀原文，再開始作答。每題作答後立即顯示正解與解析，作答時可隨時對照左側原文。</p>' +
     (d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') +
-    '<div class="bt-act"><button class="btn" id="btGo">出　征</button></div></div>';
+    '<div class="bt-act"><button class="btn" id="btGo">開始作答</button></div></div>';
   $('#btGo').onclick = function () { btStart(this); };
 }
 function btStart(btn) {
@@ -1648,52 +1716,11 @@ function btDots(st) {
     var r = st.done[q.no]; return '<span class="' + (r ? (r.ok ? 'ok' : 'no') : '') + (k === st.i && st.phase !== 'end' ? ' now' : '') + '">' + (k + 1) + '</span>';
   }).join('') + '</div>';
 }
-function btUnit(u, i, side, pre) {
-  var foe = side === 'foe', pal = foe ? (u.gen ? (S.chap && S.chap.ch >= 3 ? { h: '#3b3a46', a: '#8a78c0', s: '#e0b890' } : { h: '#c79a1e', a: '#e8c04a', s: '#f0c8a0' }) : { h: '#c0392b', a: '#f0a0a0', s: '#f0c8a0' }) : (APAL[u.name] || { h: '#3a5fd0', a: '#e2b93b' });
-  var pct = Math.round(u.hp / u.max * 100), info = '<div class="ib"><div class="nm"><span>' + esc(u.name) + '</span><small id="n' + side + i + '">' + u.hp + '</small></div><div class="ub"><i id="h' + side + i + '" style="width:' + pct + '%"></i></div></div>',
-    sp = '<div class="sp" id="s' + side + i + '">' + spr(pal, u.gen || !foe) + '</div>';
-  return '<div class="u ' + (foe ? 'foe' : 'me') + (u.hp <= 0 ? ' dead' : '') + (u.hp > 0 && u.hp <= u.max * .4 ? ' low' : '') + '" id="u' + side + i + '">' + (foe ? sp + info : info + sp) + '</div>';
-}
-/** 對陣畫面：左我軍、右敵軍；pre = 動畫起點的兵力（先畫舊值，再由 btPlay 推到新值） */
-function btArena(m, pre) {
-  var A = m.A.map(function (u, i) { return pre ? { name: u.name, max: u.max, hp: pre.A[i] } : u; }), E = m.E.map(function (u, i) { return pre ? { name: u.name, max: u.max, gen: u.gen, hp: pre.E[i] } : u; });
-  return '<div class="bt-field" id="btField"><div class="bt-fx" id="btFx"></div><div class="bt-war"><div class="bt-side">' +
-    A.map(function (u, i) { return btUnit(u, i, 'me'); }).join('') + '</div><div class="bt-side">' + E.map(function (u, i) { return btUnit(u, i, 'foe'); }).join('') + '</div></div></div>';
-}
-function btField(st, ch, anim) { return btArena(st, anim); }
-function btCmd(st) {
-  var who = nextAlive(st.A, st.atkN), u = who >= 0 ? st.A[who] : st.A[0], gp = $('#btGens') ? ' ' : '';
-  return '<div class="bt-cmd"><div class="bt-por">' + spr(APAL[u.name] || { h: '#3a5fd0', a: '#e2b93b' }, true) + '<span>' + esc(u.name) + '</span></div>' +
-    '<div class="cmd-box"><button class="cmd on" data-c="atk">攻擊</button><button class="cmd" data-c="plan">謀略<small>' + (st.streak % 3) + '／3</small></button>' +
-    '<button class="cmd" data-c="gen">部將</button><button class="cmd" data-c="ret">撤退</button></div></div><div id="btGens"></div>';
-}
-function btCmdBind(box) {
-  $$('.cmd', box).forEach(function (b) {
-    b.onclick = function () {
-      var c = b.dataset.c, g = $('#btGens');
-      if (c === 'atk') toast('點選下方一個答案出招');
-      else if (c === 'plan') toast('連對三題發動計策，回復兵力（目前連對 ' + (S.bt ? S.bt.streak : 0) + '）');
-      else if (c === 'gen') {
-        if (g.innerHTML) { g.innerHTML = ''; return; }
-        var ps = (S.chap.people || []); g.innerHTML = '<div class="bt-gens">' + (ps.length ? ps.map(function (x) { return '<div><b>' + esc(x.name) + '</b><small>' + esc(x.camp || '') + '・' + esc(x.intro || '') + '</small></div>'; }).join('') : '<div>本回尚無人物資料</div>') + '</div>';
-      } else if (c === 'ret') {
-        if (S.guest && !confirm('訪客撤退後戰況不會保留，確定撤退？')) return;
-        if (!S.guest) toast('進度已保留，下次可繼續');
-        goHome();
-      }
-    };
-  });
-}
-function btFloat(id, text, cls) {
-  var fx = $('#btFx'), f = $('#' + id); if (!fx || !f) return;
-  var fr = fx.getBoundingClientRect(), r = f.getBoundingClientRect();
-  fx.insertAdjacentHTML('beforeend', '<span class="fx-n ' + cls + '" style="left:' + (r.left - fr.left + r.width / 2 - 14) + 'px;top:' + (r.top - fr.top - 2) + 'px">' + esc(text) + '</span>');
-}
-function renderBattle(anim) {
+function renderBattle() {
   var st = S.bt, d = S.chap, box = $('#quiz'), N = st.qs.length;
   if (st.phase === 'end') {
-    box.innerHTML = '<div class="bt">' + '<div class="bt-hd"><b>戰事已畢</b><span>' + N + ' 合皆已作答</span></div>' + btField(st, d.ch) + btDots(st) +
-      '<p>十合已畢，收兵結算戰果。</p><div class="bt-act"><button class="btn" id="btFin">收兵・結算</button></div></div>';
+    box.innerHTML = '<div class="bt"><div class="bt-hd"><b>作答完畢</b><span>' + N + ' 題皆已作答</span></div>' + btDots(st) +
+      '<p>全部作答完畢，請交卷結算。</p><div class="bt-act"><button class="btn" id="btFin">交卷・結算</button></div></div>';
     $('#btFin').onclick = function () { btFinish(this); }; return;
   }
   var q = st.qs[st.i], r = st.done[q.no], shown = st.phase === 'shown' && r;
@@ -1703,56 +1730,19 @@ function renderBattle(anim) {
     else if (st.pick === L) cls += ' sel busy';
     return '<div class="' + cls + '" data-l="' + L + '"><span class="L">' + L + '</span><span>' + esc(o) + '</span></div>';
   }).join('');
-  var gen = '';
-  if (shown && r.ok && r.who) {
-    var pp = (d.people || []).filter(function (x) { return x.name === r.who; })[0];
-    gen = '<div class="gen"><div class="nm">' + esc(r.who) + '</div><div><b>' + esc(r.who) + ' 出陣！</b>' + (pp ? '<small>' + esc(pp.camp) + '・' + esc(pp.intro) + '</small>' : '') + '</div></div>';
-  }
-  var fb = shown ? '<div class="fb show"><span class="verdict ' + (r.ok ? 'ok">✓ 命中，敵軍折損' : 'no">✗ 失手，正解為 ' + r.ans) + '</span>' +
-    (r.exp ? '<div>' + esc(r.exp) + '</div>' : '') + (q.para || r.para ? '<button class="link" data-para="' + (r.para || q.para) + '">看原文第 ' + (r.para || q.para) + ' 段</button>' : '') + '</div>' + gen : '';
+  var fb = shown ? '<div class="fb show"><span class="verdict ' + (r.ok ? 'ok">✓ 答對了' : 'no">✗ 正解為 ' + r.ans) + '</span>' +
+    (r.exp ? '<div>' + esc(r.exp) + '</div>' : '') + (q.para || r.para ? '<button class="link" data-para="' + (r.para || q.para) + '">看原文第 ' + (r.para || q.para) + ' 段</button>' : '') + '</div>' : '';
   var last = st.i + 1 >= N;
-  box.innerHTML = '<div class="bt' + (shown ? ' shown' : '') + '"><div class="bt-hd"><b>第 ' + cnum(st.i + 1) + ' 合</b><span>對陣 ' + esc(foeOf(d.ch).name) + '・' + (st.i + 1) + '／' + N + '</span></div>' +
-    btField(st, d.ch, shown && anim ? anim : null) + btCmd(st) + btDots(st) +
+  box.innerHTML = '<div class="bt' + (shown ? ' shown' : '') + '"><div class="bt-hd"><b>第 ' + cnum(st.i + 1) + ' 題</b><span>' + (st.i + 1) + '／' + N + '</span></div>' + btDots(st) +
     '<div class="q' + (shown ? ' locked' : '') + '"><div class="qh"><span class="tag ' + typeCls(q.type) + '">' + esc(q.type) + '</span></div><p class="stem">' + esc(q.stem) + '</p><div class="opts">' + opts + '</div>' + fb + '</div>' +
-    (shown ? '<div class="bt-act"><button class="btn" id="btNext">' + (last ? '收兵・結算' : '下一合') + '</button></div>' : '<div class="note">點選一個答案出招</div>') + '</div>';
-  btCmdBind(box);
+    (shown ? '<div class="bt-act"><button class="btn" id="btNext">' + (last ? '交卷・結算' : '下一題') + '</button></div>' : '<div class="note">點選一個答案</div>') + '</div>';
   if (!shown) {
     $$('.opt', box).forEach(function (o) { o.onclick = function () { btAnswer(o.dataset.l); }; });
   } else {
     $$('.link', box).forEach(function (b) { b.onclick = function () { jumpPara(+b.dataset.para); }; });
     $('#btNext').onclick = function () { Qin.sfx('wood'); if (last) { st.phase = 'end'; renderBattle(); } else { st.i++; st.phase = 'ask'; st.pick = null; renderBattle(); box.scrollTop = 0; } };
-    if (anim) btPlay(st, r, anim);
-    setTimeout(function () { var fb = $('.fb', box); if (fb && fb.scrollIntoView) fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 1300);
+    setTimeout(function () { var fb = $('.fb', box); if (fb && fb.scrollIntoView) fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 300);
   }
-}
-function btPlay(st, r, anim) {
-  var L = st.last || {};
-  requestAnimationFrame(function () {
-    if (!$('#btField')) return;
-    st.A.forEach(function (u, i) { btSet('me', i, u); }); st.E.forEach(function (u, i) { btSet('foe', i, u); });
-    if (r.ok) {
-      Qin.sfx('bell');
-      var a = $('#sme' + L.atk); if (a) a.classList.add('lunge');
-      setTimeout(function () { var t = $('#sfoe' + L.tgt); if (t) { t.classList.add('shake'); btFloat('sfoe' + L.tgt, '−100', 'hit'); } }, 200);
-    } else {
-      Qin.sfx('gong');
-      var e = $('#sfoe' + L.atk); if (e) e.classList.add('lungeL');
-      setTimeout(function () { var t = $('#sme' + L.tgt); if (t) { t.classList.add('shake'); btFloat('sme' + L.tgt, '−50', 'hurt'); } }, 200);
-    }
-    if (L.ploy) {
-      setTimeout(function () {
-        var f = $('#btField'); if (!f) return;
-        f.insertAdjacentHTML('beforeend', '<div class="ploy"><b>' + esc(L.ploy[0]) + '</b><small>' + esc(L.ploy[1]) + '</small></div>');
-        if (L.heal) btFloat('sme' + L.healIdx, '+' + L.heal, 'heal');
-      }, 650);
-    }
-  });
-}
-/** 把單位的兵力條與數字推到新值，倒下者變灰 */
-function btSet(side, i, u) {
-  var h = $('#h' + side + i), n = $('#n' + side + i), w = $('#u' + side + i); if (!h) return;
-  h.style.width = Math.round(u.hp / u.max * 100) + '%'; n.textContent = u.hp;
-  w.classList.toggle('dead', u.hp <= 0); w.classList.toggle('low', u.hp > 0 && u.hp <= u.max * .4);
 }
 function btAnswer(letter) {
   var st = S.bt, q = st.qs[st.i]; if (st.busy || st.done[q.no]) return;
@@ -1760,8 +1750,8 @@ function btAnswer(letter) {
   $$('#quiz .opt').forEach(function (o) { o.classList.toggle('sel', o.dataset.l === letter); o.classList.toggle('busy', o.dataset.l === letter); o.classList.toggle('dim', o.dataset.l !== letter); });
   (S.guest ? call('apiGuestBattleAnswer', st.ticket, q.no, letter) : call('apiBattleAnswer', S.token, S.chap.ch, q.no, letter)).then(function (r) {
     st.busy = false; if (S.bt !== st) return;
-    var pre = { A: st.A.map(function (u) { return u.hp; }), E: st.E.map(function (u) { return u.hp; }) }; st.done[q.no] = r; st.gans[q.no] = letter; btApply(st, r); st.phase = 'shown';
-    renderBattle(pre);
+    st.done[q.no] = r; st.gans[q.no] = letter; st.phase = 'shown'; Qin.sfx(r.ok ? 'bell' : 'gong');
+    renderBattle();
   }).catch(function (e) { st.busy = false; st.pick = null; renderBattle(); fail(e); });
 }
 function btFinish(btn) {
@@ -1773,8 +1763,8 @@ function btFinish(btn) {
   }).catch(function (e) { if (btn) btn.disabled = false; fail(e); });
 }
 function renderResult() {
-  var d = S.chap, res = d.result, box = $('#quiz'), oc = btOutcome(res.score, res.total), fo = foeOf(d.ch);
-  var head = '<div class="bt-end"><h3>' + oc[0] + '</h3><div>' + esc(fo.name) + '軍：' + oc[1] + '</div></div>' +
+  var d = S.chap, res = d.result, box = $('#quiz'), oc = btOutcome(res.score, res.total);
+  var head = '<div class="bt-end"><h3>' + oc[0] + '</h3><div>' + oc[1] + '</div></div>' +
     '<div class="result"><div class="bigseal">' + res.score + '/' + res.total + '<small>' + (res.score === res.total ? '全對' : res.score >= res.total * .6 ? '可也' : '再讀') + '</small></div><div>' +
     (res.score === res.total ? '通讀全回，明察秋毫！' : '對照解析，回原文找找答案所在之處。') + (d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') +
     (res.best != null || (d.save && d.save.best != null) ? '<div class="note">本回最高：' + (res.best != null ? res.best : d.save.best) + ' 分</div>' : '') + '</div></div>';
@@ -1784,18 +1774,104 @@ function renderResult() {
       var L = 'ABCD'[i], cls = 'opt'; if (L === it.ans) cls += ' right'; else if (L === it.mine) cls += ' wrong';
       return '<div class="' + cls + '"><span class="L">' + L + '</span><span>' + esc(o) + '</span></div>';
     }).join('');
-    return '<div class="q locked"><div class="qh"><span class="qn">第' + cnum(qi + 1) + '合</span><span class="tag ' + typeCls(it.type) + '">' + esc(it.type) + '</span></div>' +
+    return '<div class="q locked"><div class="qh"><span class="qn">第' + cnum(qi + 1) + '題</span><span class="tag ' + typeCls(it.type) + '">' + esc(it.type) + '</span></div>' +
       '<p class="stem">' + esc(it.stem) + '</p><div class="opts">' + opts + '</div><div class="fb show"><span class="verdict ' + (it.ok ? 'ok">✓ 答對了' : 'no">✗ 正解為 ' + it.ans) + '</span>' +
       (it.exp ? '<div>' + esc(it.exp) + '</div>' : '') + (it.para ? '<button class="link" data-para="' + it.para + '">看原文第 ' + it.para + ' 段</button>' : '') + '</div></div>';
   }).join('');
-  var bar = '<div class="qbar"><span class="savest">' + (d.guest ? '訪客試玩' : '已收兵' + (d.save && d.save.lastTime ? '・' + esc(d.save.lastTime) : '')) + '</span>' +
-    (d.allowRetry ? '<button class="btn ghost" id="retry">再戰（抽新題）</button>' : '') + '<button class="btn" id="back2">回目錄</button></div>';
-  box.innerHTML = '<div class="bt">' + head + (rv ? '<h3>戰後檢討</h3>' + rv : '<p class="note">這是較早前的作答紀錄，沒有逐題檢討；再戰一次即可看到每題解析。</p>') + bar + '</div>';
+  var bar = '<div class="qbar"><span class="savest">' + (d.guest ? '訪客試玩' : '已交卷' + (d.save && d.save.lastTime ? '・' + esc(d.save.lastTime) : '')) + '</span>' +
+    (d.allowRetry ? '<button class="btn ghost" id="retry">再作答一次（抽新題）</button>' : '') + '<button class="btn" id="back2">回目錄</button></div>';
+  box.innerHTML = '<div class="bt">' + head + (rv ? '<h3>逐題檢討</h3>' + rv : '<p class="note">這是較早前的作答紀錄，沒有逐題檢討；再戰一次即可看到每題解析。</p>') + bar + '</div>';
   $$('.link', box).forEach(function (b) { b.onclick = function () { jumpPara(+b.dataset.para); }; });
   if ($('#dlCard')) $('#dlCard').onclick = downloadCard;
   if ($('#retry')) $('#retry').onclick = function () { btStart(this); };
   $('#back2').onclick = goHome;
 }
+/* ================= 展示模式：電腦自動讀一回、看戰況變化、作答、結算 ================= */
+function startDemo() {
+  if (S.demo) return;
+  var D = S.demo = { abort: false, speed: window.__demoSpeed || 1 };
+  S.guest = true; setTop();
+  if (!Qin.isOn()) { Qin.toggle(); $('#btnMusic').classList.add('on'); }
+  document.body.insertAdjacentHTML('beforeend', '<div class="demo-tag" id="dTag">展示模式</div><button class="demo-x" id="dX">✕ 結束展示</button><div class="demo-bar hide" id="dBar"></div>' +
+    '<div class="dcur" id="dCur" style="left:60%;top:70%"><svg viewBox="0 0 22 22"><path d="M2 1l16 9-7 2 4 8-3 1-4-8-6 5z" fill="#fff" stroke="#222" stroke-width="1.4" stroke-linejoin="round"/></svg></div>');
+  $('#dX').onclick = function () { endDemo(true); };
+  var sleep = function (ms) { return new Promise(function (ok, no) { setTimeout(function () { D.abort ? no('abort') : ok(); }, ms / D.speed); }); };
+  var cap = function (h, ms) { var b = $('#dBar'); if (!b) return Promise.resolve(); b.innerHTML = h; b.classList.remove('hide'); return sleep(ms || 3800); };
+  var uncap = function () { var b = $('#dBar'); if (b) b.classList.add('hide'); };
+  var moveTo = function (el) {
+    var c = $('#dCur'); if (!c || !el) return sleep(200);
+    var r = el.getBoundingClientRect(); c.style.left = (r.left + Math.min(r.width / 2, 120)) + 'px'; c.style.top = (r.top + r.height / 2) + 'px'; return sleep(1000);
+  };
+  var click = function (el) {
+    return moveTo(el).then(function () { var c = $('#dCur'); c.classList.remove('click'); void c.offsetWidth; c.classList.add('click'); return sleep(350); }).then(function () { if (el) el.click(); });
+  };
+  var waitFor = function (sel, ms) { var t0 = Date.now(); return new Promise(function (ok, no) { (function chk() { if (D.abort) return no('abort'); if ($(sel)) return ok($(sel)); if (Date.now() - t0 > (ms || 12000)) return no('timeout ' + sel); setTimeout(chk, 150); })(); }); };
+  var scrollRow = function (r) {
+    var tx = $('#txt'), p = $('#txt p[data-i="' + r.para + '"]'); if (!p) return sleep(300);
+    var t = (S.chap.paras[r.para - 1] || {}).t || '', j = r.anchor ? t.indexOf(r.anchor) : 0, at = j < 0 ? 0 : j / Math.max(1, t.length) + .003;
+    if (window.innerWidth <= 900) {
+      var line = innerHeight * .25 + ($('#bf') ? $('#bf').offsetHeight : 0), y = p.getBoundingClientRect().top + scrollY + p.offsetHeight * at - line + 2; window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    } else tx.scrollTo({ top: Math.max(0, p.offsetTop + p.offsetHeight * at - tx.clientHeight * .3 + 2), behavior: 'smooth' });
+    return sleep(1500);
+  };
+  var seenScene = {};
+  var EXPLAIN = {
+    '平時': '這一段沒有戰事，面板顯示登場人物。戰況面板<b>只跟著你讀到的段落變化</b>。',
+    '軍陣': '軍陣：原文有寫兵力才標數字（五百、五萬），沒寫就只標「佔優／相持／潰敗」，依文意示意。',
+    '單挑': '單挑：一對一，隨原文招式推進；往回捲，戰況也會跟著倒退。',
+    '謀略': '謀略：記錄計策與伏兵，雙方形勢依原文而變。'
+  };
+  var run = function () {
+    return loadHome().then(function () { return cap('<b>展示模式</b>電腦自動示範一整回的閱讀、戰況與作答；<br>不登入、不記錄成績。', 4200); })
+      .then(function () { var c = $('.card[data-ch="1"]'); return click(c); })
+      .then(function () { return waitFor('#bf .bf-title', 15000); })
+      .then(function () { if (S.vert) { $('#tgVert').click(); } return cap('<b>第一回</b>左上是「戰況面板」，隨著原文往下讀，雙方形勢會跟著改變。', 4200); })
+      .then(function () {
+        var rows = S.bfs ? S.bfs.rows : [], chain = Promise.resolve();
+        rows.forEach(function (r, k) {
+          chain = chain.then(function () { return scrollRow(r); }).then(function () {
+            var ex = !seenScene[r.scene]; seenScene[r.scene] = 1;
+            return cap('<b>第 ' + r.para + ' 段</b>' + (ex ? EXPLAIN[r.scene] + '<br>' : '') + esc(r.title) + '：' + esc(r.note), ex ? 6200 : 3400);
+          });
+          if (r.title === '關羽對程遠志' && r.note.indexOf('一刀') >= 0) {
+            chain = chain.then(function () { uncap(); return scrollRow(rows[8]); }).then(function () { return cap('<b>往回捲</b>戰況跟著倒退：回到「大興山對陣」，雙方仍然相持。', 4200); });
+          }
+        });
+        return chain;
+      })
+      .then(function () { uncap(); var q = $('.mtabs .chip[data-p="quiz"]'); if (window.innerWidth <= 900 && q) q.click(); return cap('<b>答題</b>與戰況分開：題目每次從題庫隨機抽出，對錯只計成績，不影響戰況。', 4800); })
+      .then(function () { return click($('#btGo')); })
+      .then(function () { return waitFor('.bt .opt', 12000); })
+      .then(function () {
+        var pick = [1, 2, 0, 3, 1, 2, 3, 0, 2, 1], chain = Promise.resolve(), n = (S.bt && S.bt.qs.length) || 10;
+        for (var k = 0; k < n; k++) (function (k) {
+          chain = chain.then(function () { return waitFor('#quiz .opt:not(.dim)', 8000); })
+            .then(function () { return sleep(600); })
+            .then(function () { var opts = $$('#quiz .opt'); return click(opts[pick[k % pick.length] % opts.length]); })
+            .then(function () { return waitFor('#btNext', 8000); })
+            .then(function () { return k === 0 ? cap('<b>即時解析</b>每題作答後立即顯示正解與解析，可按「看原文第 N 段」回頭對照。', 4600) : sleep(1500); })
+            .then(function () { return click($('#btNext')); });
+        })(k);
+        return chain;
+      })
+      .then(function () { return waitFor('#btFin', 8000); })
+      .then(function () { return click($('#btFin')); })
+      .then(function () { return waitFor('.bt-end', 8000); })
+      .then(function () { return cap('<b>結算</b>顯示成績與逐題檢討；登入後成績才會存檔，老師後台可看全班統計。', 5200); })
+      .then(function () { uncap(); return sleep(300); });
+  };
+  var loadHome = function () { S.guest = true; goHome(); return waitFor('.card[data-ch="1"]', 15000).then(function () { return sleep(800); }); };
+  run().then(function () { endDemo(false); }).catch(function (e) { if (e !== 'abort') { try { console.error(e); } catch (x) { } endDemo(false); } });
+}
+function endDemo(quit) {
+  var D = S.demo; if (!D) return; D.abort = true; S.demo = null; S.demoPos = null;
+  ['dTag', 'dX', 'dBar', 'dCur'].forEach(function (id) { var e = $('#' + id); if (e) e.remove(); });
+  if (quit) { S.guest = false; S.token ? goHome() : renderLogin(); return; }
+  document.body.insertAdjacentHTML('beforeend', '<div class="demo-end" id="dEnd"><div><h3>展示結束</h3><p>這是電腦自動示範的流程，沒有記錄任何成績。<br>戰況面板會隨閱讀位置變化，答題對錯只計成績。</p><div class="bt-act"><button class="btn" id="dAgain">重新展示</button><button class="btn ghost" id="dHome">回首頁</button></div></div></div>');
+  $('#dAgain').onclick = function () { $('#dEnd').remove(); startDemo(); };
+  $('#dHome').onclick = function () { $('#dEnd').remove(); S.guest = false; S.token ? goHome() : renderLogin(); };
+}
+
 function jumpPara(i) {
   var p = $('#txt p[data-i="' + i + '"]'); if (!p) return; if (p.parentNode.classList.contains('poemgrp')) p = p.parentNode;
   if (window.innerWidth <= 900) $('.mtabs .chip[data-p="txt"]').click();

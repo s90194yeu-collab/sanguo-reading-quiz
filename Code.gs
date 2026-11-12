@@ -8,7 +8,7 @@ var SHEET = {
   SET: '設定', ROSTER: '學生名單', TEXT: '原文', QB: '題庫',
   ILL: '插圖', SAVE: '存檔', LOG: '作答紀錄',
   NOTE: '註釋', PEOPLE: '人物', DEED: '人物事蹟', SUM: '回末小結',
-  REL: '人物關係', PLACE: '地點事件', ANN: '公告', FIX: '錯題訂正', NAME: '專名', ASK: '詞語提問'
+  REL: '人物關係', PLACE: '地點事件', ANN: '公告', FIX: '錯題訂正', NAME: '專名', ASK: '詞語提問', BF: '戰況'
 };
 var HEAD = {
   '設定': ['項目', '值', '說明'],
@@ -27,7 +27,8 @@ var HEAD = {
   '公告': ['編號', '建立時間', '對象班級（全部或逗號分隔）', '標題', '內容', '必讀回次（逗號分隔）', '截止日期', '置頂'],
   '錯題訂正': ['帳號', '回', '題號', '訂正時間'],
   '專名': ['回（0＝各回通用）', '詞', '類別（人名／地名／朝代／年號／書名）', '說明（選填，點詞時顯示）'],
-  '詞語提問': ['時間', '帳號', '姓名', '班級', '回', '段落', '詞語']
+  '詞語提問': ['時間', '帳號', '姓名', '班級', '回', '段落', '詞語'],
+  '戰況': ['回', '段', '錨句（該段中的一句話，戰況從這句起換畫面；空白＝段首）', '場景（軍陣／單挑／謀略／平時）', '標題', '甲方名稱', '甲方人物（頓號分隔）', '甲方兵力（原文有寫才填）', '甲方勢（佔優／相持／潰敗）', '乙方名稱', '乙方人物', '乙方兵力', '乙方勢', '說明（依文意示意）', '依據段']
 };
 var DEFAULT_SET = [
   ['網站標題', '三國演義・閱讀試煉', '顯示在網站最上方'],
@@ -63,7 +64,8 @@ function doGet() {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('三國演義閱讀檢測')
     .addItem('初始化／補建工作表', 'setupSheets')
-    .addItem('第一回題庫更新為 20 題（出征模式）', 'applyQuestionBank1')
+    .addItem('第一回題庫更新為 20 題', 'applyQuestionBank1')
+    .addItem('第一回戰況更新（隨原文顯示勝負）', 'applyBattleData1')
     .addItem('清除網站快取（改完原文或題庫後按）', 'clearContentCache')
     .addToUi();
 }
@@ -118,10 +120,22 @@ function setupSheets() {
   seedIfEmpty_(SHEET.REL, (SEED.rels || []).map(function (x) { return [x.a, x.b, x.rel, x.ch]; }));
   seedIfEmpty_(SHEET.PLACE, (SEED.places || []).map(function (x) { return [x.ch, x.no, x.year, x.place, x.event, x.lon, x.lat]; }));
   seedIfEmpty_(SHEET.SUM, (SEED.summary || []).map(function (x) { return [x.ch, x.events, x.quote, x.think]; }));
+  seedIfEmpty_(SHEET.BF, (SEED.bf || []).map(bfRow_));
   var rs = ss.getSheetByName(SHEET.ROSTER);
   rs.getRange('A:A').setNumberFormat('@'); rs.getRange('B:B').setNumberFormat('@');
   getSecret_();
   clearContentCache();
+}
+
+function bfRow_(x) { return [x.ch, x.para, x.anchor, x.scene, x.title, x.aName, x.aUnits, x.aTroops, x.aState, x.bName, x.bUnits, x.bTroops, x.bState, x.note, x.basis]; }
+/** 已部署的專案：把第一回戰況寫進「戰況」工作表（先刪掉第一回舊列再寫入；請先執行 setupSheets） */
+function applyBattleData1() {
+  var sh = sh_(SHEET.BF); if (!sh) { setupSheets(); sh = sh_(SHEET.BF); }
+  for (var r = sh.getLastRow(); r >= 2; r--) if (Number(sh.getRange(r, 1).getValue()) === 1) sh.deleteRow(r);
+  var rows = (SEED.bf || []).filter(function (x) { return x.ch === 1; }).map(bfRow_);
+  if (rows.length) sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+  clearContentCache();
+  return '第一回戰況：寫入 ' + rows.length + ' 列';
 }
 
 function seedIfEmpty_(name, rows) {
@@ -277,7 +291,13 @@ function chapterFull_(ch) {
     .map(function (r) { return { w: str_(r[1]), k: str_(r[2]) || '人名', note: str_(r[3]) }; });
   var sm = rows_(SHEET.SUM).filter(function (r) { return Number(r[0]) === ch; })[0];
   var summary = sm ? { events: str_(sm[1]).split(/\n+/).filter(String), quote: str_(sm[2]), think: str_(sm[3]) } : null;
-  var o = { ch: ch, num: num, title: title, paras: paras, qs: qs, ill: ill, notes: notes, names: names, summary: summary };
+  var bf = rows_(SHEET.BF).filter(function (r) { return Number(r[0]) === ch && str_(r[3]); }).map(function (r, k) {
+    return { k: k, para: Number(r[1]) || 1, anchor: str_(r[2]), scene: str_(r[3]), title: str_(r[4]),
+      a: { name: str_(r[5]), units: str_(r[6]).split(/[、,，]/).map(function (x) { return x.trim(); }).filter(String), troops: str_(r[7]), state: str_(r[8]) },
+      b: { name: str_(r[9]), units: str_(r[10]).split(/[、,，]/).map(function (x) { return x.trim(); }).filter(String), troops: str_(r[11]), state: str_(r[12]) },
+      note: str_(r[13]), basis: Number(r[14]) || Number(r[1]) || 0 };
+  });
+  var o = { ch: ch, num: num, title: title, paras: paras, qs: qs, ill: ill, notes: notes, names: names, summary: summary, bf: bf };
   try { c.put(key, JSON.stringify(o), 600); } catch (e) { }
   return o;
 }
@@ -515,7 +535,7 @@ function apiGuestChapter(ch) {
   var full = chapterFull_(ch);
   return { ch: ch, num: full.num, title: full.title, paras: full.paras, guest: true,
     ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
-    qn: Math.min(full.qs.length, drawN_(set)), bt: { state: 'none' },
+    qn: Math.min(full.qs.length, drawN_(set)), bt: { state: 'none' }, bf: full.bf || [],
     allowRetry: true, save: null, source: sourceOf_(set, ch, full.num), notes: full.notes || [], names: full.names || [], people: peopleFor_(ch) };
 }
 
@@ -530,7 +550,7 @@ function apiChapter(token, ch) {
   if (save && save.draft) delete save.draft.bt;
   var out = { ch: ch, num: full.num, title: full.title, paras: full.paras,
     ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
-    qn: Math.min(full.qs.length, drawN_(set)), bt: { state: 'none' },
+    qn: Math.min(full.qs.length, drawN_(set)), bt: { state: 'none' }, bf: full.bf || [],
     allowRetry: yes_(set['允許重作'] || '是'), save: save, source: sourceOf_(set, ch, full.num),
     notes: full.notes || [], names: full.names || [], people: peopleFor_(ch) };
   if (bt && !bt.fin) out.bt = btView_(full, bt, showExp);
