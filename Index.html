@@ -375,50 +375,73 @@ main:has(.reader){padding-bottom:14px}
 .bt-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .bt-hd b{font:700 17px var(--f-title);letter-spacing:2px}
 .bt-hd span{font:14px var(--f-title);color:var(--ink2)}
-/* 戰況面板：仿吞食天地對陣（黑底、兩側名字與橫條、中間小人面對面、下方說明框、草地） */
-.bf{background:#0a0a10;color:#fff;border:3px double #e9dfc8;outline:2px solid var(--wood);font-family:var(--f-title);position:relative;overflow:hidden}
-.bf-top{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid #3a3a48;font-size:13px}
-.bf-tag{background:#e9dfc8;color:#2a1d12;font-weight:700;padding:0 8px;letter-spacing:2px}
+/* 戰況面板：16-bit 風格（SNES 式藍底視窗、場景背景、像素人物、分段血條） */
+.bf{--sz:72px;background:#101850;color:#fff;border:3px solid #f4f4ff;outline:2px solid #14143c;border-radius:5px;font-family:var(--f-title);position:relative;overflow:hidden;text-shadow:1px 1px 0 #000}
+.bf-top{display:flex;align-items:center;gap:8px;padding:4px 10px;background:linear-gradient(#2e40d0,#16207a);border-bottom:2px solid #f4f4ff;font-size:13px}
+.bf-tag{background:#f4d24a;color:#3a2a00;font-weight:700;padding:0 8px;letter-spacing:2px;border:2px solid #3a2a00;text-shadow:none;line-height:1.35}
 .bf-title{font-size:16px;letter-spacing:2px;flex:1}
-.bf-top small{color:#9fb0c8}
-.bf-field{position:relative;padding:8px 10px 18px;min-height:150px;display:grid;align-content:center}
-.bf-field:after{content:'';position:absolute;left:0;right:0;bottom:0;height:10px;pointer-events:none;background:repeating-linear-gradient(90deg,#3f8f2f 0 6px,#2f7a22 6px 12px);border-top:3px solid #6bbf3f}
-.bf-war{display:grid;grid-template-columns:1fr 1fr;column-gap:10px}
-.bf-side{display:flex;flex-direction:column;gap:3px;min-width:0}
-.bf-sh{font-size:12px;color:#c9d3e3;letter-spacing:1px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bf-sh i{font-style:normal;padding:0 6px;margin-left:4px;border:1px solid currentColor}
-.st-勝{color:#7cf29a}.st-平{color:#ffd24a}.st-敗{color:#ff7a6b}
-.bu{display:grid;grid-template-columns:70px 1fr 30px;align-items:center;gap:6px;min-height:30px}
-.bu.foe{grid-template-columns:30px 1fr 70px}
-.bu .sp{width:30px;height:30px;display:grid;place-items:center}
-.bu .sp svg{width:28px;height:28px;display:block;image-rendering:pixelated}
-.bu.foe .sp svg{transform:scaleX(-1)}
-.bu .nm{font:700 14px/1.1 var(--f-title);letter-spacing:1px;text-shadow:1px 1px 0 #000;white-space:nowrap}
-.bu .nm small{display:block;font:12px var(--f-title);letter-spacing:0}
-.bu.foe .nm{text-align:right}
-.bu .ub{height:8px;border:1px solid #fff;background:#000;padding:1px;box-sizing:border-box}
-.bu .ub i{display:block;height:100%;transition:width .9s ease;background:repeating-linear-gradient(90deg,var(--c) 0 4px,transparent 4px 6px)}
-.bu.me{--c:#f08a24}.bu.foe{--c:#4f86f0}
-.bu.lose .sp{opacity:.45;filter:grayscale(.7)}
-.bu.lose .ub i{--c:#e0463a}
-.bf.duel .bu{min-height:46px;grid-template-columns:70px 1fr 46px}.bf.duel .bu.foe{grid-template-columns:46px 1fr 70px}
-.bf.duel .bu .sp{width:46px;height:46px}.bf.duel .bu .sp svg{width:44px;height:44px}
-.bf-calm{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;padding-bottom:4px}
-.bf-calm .pc{display:grid;justify-items:center;gap:3px;font-size:13px;letter-spacing:1px}
-.bf-calm .pc svg{width:40px;height:40px;image-rendering:pixelated}
-.bf-calm .none{color:#9fb0c8;font-size:14px;letter-spacing:3px}
-.bf-note{display:flex;gap:10px;align-items:baseline;padding:6px 10px;border-top:1px solid #3a3a48;font-size:13.5px;line-height:1.6;background:#12121c}
+.bf-top small{color:#b8c8ff}
+.bf-step{display:flex;align-items:center;gap:6px}
+.bf-step em{font-style:normal;font-size:13px;min-width:52px;text-align:center;color:#ffe9a0}
+.bf-step button{background:#f4d24a;color:#3a2a00;border:2px solid #3a2a00;font-weight:700;padding:0 10px;line-height:1.4;text-shadow:none;cursor:pointer}
+.bf-step button:active{transform:translateY(1px)}
+.bf-field{position:relative;padding:6px 8px 16px;min-height:170px;display:grid;align-content:center;background:#000;overflow:hidden}
+.bf-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center bottom;image-rendering:pixelated;z-index:0}
+.bf-war{position:relative;z-index:1;display:grid;gap:0}
+.bf-hd{display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:4px;min-height:20px}
+.bf-hd span{background:rgba(12,16,70,.82);border:1px solid #9fb0ff;padding:0 8px;letter-spacing:1px;line-height:1.55}
+.bf-hd span:empty{visibility:hidden}
+.bf-row{display:grid;grid-template-columns:minmax(78px,25%) 1fr minmax(78px,25%);align-items:center;min-height:calc(var(--sz) * .86)}
+.inf{background:linear-gradient(#2a3bb4,#141e70);border:2px solid #f4f4ff;border-radius:3px;padding:2px 6px 3px;min-width:0;box-shadow:2px 2px 0 #000}
+.inf .nm{display:flex;justify-content:space-between;align-items:baseline;gap:6px;font:700 14px/1.25 var(--f-title);letter-spacing:1px;white-space:nowrap}
+.inf .nm b{overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.inf.b .nm{flex-direction:row-reverse}
+.inf .ub{height:9px;background:#000;border:1px solid #f4f4ff;padding:1px;margin:2px 0 0;box-sizing:border-box}
+.inf .ub i{display:block;height:100%;transition:width 1s steps(16);background:repeating-linear-gradient(90deg,var(--c) 0 3px,rgba(0,0,0,.55) 3px 4px)}
+.inf small{font-size:11px;letter-spacing:0;flex:none}
+.inf.b{text-align:right}
+.inf.win{--c:#4cd964}.inf.win small{color:#8bf5a2}
+.inf.even{--c:#ffd24a}.inf.even small{color:#ffe07a}
+.inf.lose{--c:#ff5a4a}.inf.lose small{color:#ff9a8c}
+.stage{display:flex;justify-content:center;align-items:flex-end;gap:calc(var(--sz) * .3)}
+.sp{width:var(--sz);height:var(--sz);position:relative;flex:none}
+.sp:after{content:'';position:absolute;left:14%;right:14%;bottom:1%;height:calc(var(--sz) * .09);border-radius:50%;background:rgba(0,0,0,.38);z-index:-1}
+.sp canvas{width:100%;height:100%;display:block;image-rendering:pixelated}
+.sp.b canvas{transform:scaleX(-1)}
+.sp.none{visibility:hidden}
+.sp.lose{filter:grayscale(.7) brightness(.82)}
+.sp.lose canvas{margin-top:6%}
+.bf-war[data-n="1"]{--sz:96px}.bf-war[data-n="2"]{--sz:72px}.bf-war[data-n="3"],.bf-war[data-n="4"]{--sz:48px}
+.bf.duel .bf-war{--sz:96px}
+.bf-calm{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-end;gap:10px 18px;padding:8px 0 4px}
+.bf-calm .pc{display:grid;justify-items:center;gap:2px;font-size:13px;letter-spacing:1px}
+.bf-calm .pc span{background:rgba(12,16,70,.82);border:1px solid #9fb0ff;padding:0 8px}
+.bf-none{text-align:center;padding:20px 0 8px;font-size:15px;letter-spacing:4px}
+.bf-none,.bf-calm{text-shadow:1px 1px 0 #000}
+.bf-note{display:flex;gap:10px;align-items:baseline;padding:6px 10px;border-top:2px solid #f4f4ff;font-size:13.5px;line-height:1.6;background:linear-gradient(#2a3bb4,#141e70)}
 .bf-note span{flex:1}
-.bf-note button{background:none;border:none;color:#ffd24a;font:inherit;font-size:13px;cursor:pointer;text-decoration:underline;white-space:nowrap}
-.bf-shake{animation:btShake .42s}.bf-lunge{animation:btLunge .45s}
+.bf-note button{background:none;border:none;color:#ffe07a;font:inherit;font-size:13px;cursor:pointer;text-decoration:underline;white-space:nowrap;text-shadow:inherit}
+.bf-q{padding:0 10px 6px;font-size:12.5px;color:#cdd8ff;background:#141e70;line-height:1.55}
+.sp.bf-lunge-a{animation:bfLungeA .5s}.sp.bf-lunge-b{animation:bfLungeB .5s}.sp.bf-shake{animation:btShake .42s}
 @keyframes btShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
-@keyframes btLunge{0%{transform:translateX(0)}40%{transform:translateX(8px) scale(1.12)}100%{transform:translateX(0)}}
-.cols>#bf{grid-column:1;grid-row:1}
-.cols>#txt{grid-column:1;grid-row:2}
-.cols>#quiz{grid-column:2;grid-row:1/3}
-.cols.hasbf{grid-template-rows:auto minmax(0,1fr)}
-.cols.hasbf>#bf{margin-bottom:12px}
-.cols:not(.hasbf)>#txt{grid-row:1/3}
+@keyframes bfLungeA{0%{transform:translateX(0)}40%{transform:translateX(18px)}100%{transform:translateX(0)}}
+@keyframes bfLungeB{0%{transform:translateX(0)}40%{transform:translateX(-18px)}100%{transform:translateX(0)}}
+/* 版面：原文／戰況／檢測自由選搭（桌面） */
+.vgrp{display:inline-flex;align-items:center;gap:6px;padding-right:10px;margin-right:4px;border-right:1px solid var(--line)}
+.vgrp b{font:700 14px var(--f-title);color:var(--ink2);letter-spacing:1px}
+.cols{grid-template-areas:"bf quiz" "txt quiz";grid-template-rows:auto minmax(0,1fr);gap:12px 26px}
+.cols>#bf{grid-area:bf}.cols>#txt{grid-area:txt}.cols>#quiz{grid-area:quiz}
+.cols.no-bf>#bf,.cols.no-txt>#txt,.cols.no-quiz>#quiz{display:none!important}
+.cols.no-bf{grid-template-areas:"txt quiz";grid-template-rows:minmax(0,1fr)}
+.cols.no-quiz{grid-template-columns:minmax(0,1fr);grid-template-areas:"bf" "txt";width:100%;max-width:1040px;margin:0 auto}
+.cols.no-quiz.no-bf{grid-template-areas:"txt";grid-template-rows:minmax(0,1fr)}
+.cols.no-txt{grid-template-areas:"bf quiz";grid-template-rows:minmax(0,1fr)}
+.cols.no-txt>#bf{align-self:start}
+.cols.no-txt.no-quiz{grid-template-columns:minmax(0,1fr);grid-template-areas:"bf";grid-template-rows:auto;max-width:1040px}
+.cols.no-txt.no-bf{grid-template-columns:minmax(0,1fr);grid-template-areas:"quiz";max-width:820px;margin:0 auto;width:100%}
+.cols.no-txt>#bf .bf-field{min-height:260px}
+.cols.no-txt>#bf .bf-war[data-n="1"]{--sz:120px}.cols.no-txt>#bf .bf-war[data-n="2"]{--sz:96px}.cols.no-txt>#bf .bf-war[data-n="3"],.cols.no-txt>#bf .bf-war[data-n="4"]{--sz:72px}
+.cols.no-txt>#bf.duel .bf-war{--sz:120px}
 .bt-dots{display:flex;gap:5px;justify-content:center;flex-wrap:wrap}
 .bt-dots span{width:22px;height:22px;border:1.5px solid var(--ink2);border-radius:50%;display:grid;place-items:center;font:700 12px var(--f-title);color:var(--ink2)}
 .bt-dots span.ok{background:var(--jade);border-color:var(--jade);color:#fff}
@@ -486,13 +509,23 @@ h4.sec{font:700 20px var(--f-title);letter-spacing:3px;margin:28px 0 12px;border
 @media (max-width:900px){
   .top{padding:8px 12px}.brand h1{font-size:19px;letter-spacing:2px}.brand small{display:none}.seal{width:38px;height:38px;font-size:14px}
   main{padding:18px 12px 70px}
-  .cols{grid-template-columns:1fr}
+  .cols,.cols[class]{display:block;max-width:none;width:auto}
   .mtabs{display:flex;gap:8px;margin-bottom:14px}
   .mtabs button{flex:1}
-  .cols .pane{display:none}.cols .pane.on{display:block}
-  .cols>#bf{position:sticky;top:0;z-index:6}
-  .cols>#bf .bf-field{min-height:128px}
+  .vgrp{border-right:0;padding-right:0;flex-wrap:wrap}
+  .cols .pane{display:none!important}.cols .pane.on{display:block!important}
+  .cols>#bf{position:sticky;top:var(--topH,56px);z-index:6;margin-bottom:10px}
+  .cols>#bf .bf-field{min-height:120px;padding:4px 6px 14px}
   .cols>#bf .bf-note{font-size:12.5px;padding:4px 8px}
+  .bf-row{grid-template-columns:minmax(64px,27%) 1fr minmax(64px,27%)}
+  .inf .nm{font-size:13px}
+  .bf-war[data-n="1"]{--sz:72px}.bf-war[data-n="2"]{--sz:48px}.bf-war[data-n="3"],.bf-war[data-n="4"]{--sz:48px}
+  .bf-war[data-n="3"] .bf-row,.bf-war[data-n="4"] .bf-row{min-height:36px}
+  .bf.duel .bf-war{--sz:72px}
+  .cols.no-txt>#bf{position:static}
+  .cols.no-txt>#bf .bf-field{min-height:200px}
+  .cols.no-txt>#bf .bf-war[data-n="1"]{--sz:96px}.cols.no-txt>#bf .bf-war[data-n="2"]{--sz:72px}.cols.no-txt>#bf .bf-war[data-n="3"],.cols.no-txt>#bf .bf-war[data-n="4"]{--sz:48px}
+  .cols.no-txt>#bf.duel .bf-war{--sz:96px}
   main:has(.reader){padding-bottom:70px}
   .reader{display:block;height:auto}
   .cols>.scrollpanel{height:auto}
@@ -637,7 +670,7 @@ var FONTS = {
   dfkai: { label: '標楷體', css: "'BiauKai','DFKai-SB','標楷體','TW-Kai','Kaiti TC','LXGW WenKai TC',serif" },
   sans: { label: '黑體', css: "'Noto Sans TC','Microsoft JhengHei','微軟正黑體','PingFang TC',sans-serif" }
 };
-var PREF = (function () { var p = {}; try { p = JSON.parse(localStorage.getItem('sg_pref') || '{}'); } catch (e) { } return { font: p.font || 'serif', fs: p.fs || 18, lh: p.lh || 2.05, vert: !!p.vert, pn: p.pn !== false }; })();
+var PREF = (function () { var p = {}; try { p = JSON.parse(localStorage.getItem('sg_pref') || '{}'); } catch (e) { } return { font: p.font || 'serif', fs: p.fs || 18, lh: p.lh || 2.05, vert: !!p.vert, pn: p.pn !== false, view: { txt: !p.view || p.view.txt !== false, bf: !p.view || p.view.bf !== false, quiz: !p.view || p.view.quiz !== false } }; })();
 S.vert = PREF.vert;
 function applyPref() {
   var r = document.documentElement.style;
@@ -677,8 +710,9 @@ $('#btnMusic').onclick = function () { var on = Qin.toggle(); this.classList.tog
 $('#btnSfx').onclick = function () { var on = !this.classList.contains('on'); this.classList.toggle('on', on); Qin.setSfx(on); store('sg_sfx', on ? '1' : '0'); };
 if (store('sg_sfx') === '0') { $('#btnSfx').classList.remove('on'); Qin.setSfx(false); }
 // 瀏覽器規定須先互動才能出聲：記得上次開著琴音，就在第一次點擊時接續
-document.addEventListener('pointerdown', function first() {
+document.addEventListener('pointerdown', function first(e) {
   document.removeEventListener('pointerdown', first, true);
+  if (e && e.target && e.target.closest && e.target.closest('#btnMusic')) return;   // 直接點「琴音」鈕時交給按鈕自己切換，避免先開後關
   if (store('sg_music') === '1' && !Qin.isOn()) { Qin.toggle(); $('#btnMusic').classList.add('on'); }
 }, true);
 $('#btnHome').onclick = function () { if (S.teacher) renderTeacher(); else goHome(); };
@@ -858,7 +892,7 @@ function renderChapter() {
     return h;
   }).join('') + '<p class="endnote">— 本回完 —</p>' + sourceHTML(d.source);
   view('<div class="reader"><div class="rhead"><div class="chno">' + esc(d.num) + '</div><h2 class="couplet"><span>' + esc(t[0] || '') + '</span><span>' + esc(t[1] || '') + '</span></h2>' +
-    '<div class="rtools"><button class="chip ' + (S.vert ? 'on' : '') + '" id="tgVert">直排</button><button class="chip" id="btnPref">字型・字級</button><button class="chip" id="btnBm">書籤</button><button class="chip" id="toHome">回目錄</button></div>' +
+    '<div class="rtools"><span class="vgrp" role="group" aria-label="顯示內容"><b>顯示</b><button class="chip" data-v="txt">原文</button><button class="chip" data-v="bf">戰況畫面</button><button class="chip" data-v="quiz">閱讀檢測</button></span><button class="chip ' + (S.vert ? 'on' : '') + '" id="tgVert">直排</button><button class="chip" id="btnPref">字型・字級</button><button class="chip" id="btnBm">書籤</button><button class="chip" id="toHome">回目錄</button></div>' +
     '<div class="pop hidden" id="popPref"></div><div class="pop hidden" id="popBm"></div></div>' +
     '<div class="mtabs"><button class="chip on" data-p="txt">原文</button><button class="chip" data-p="quiz">試題</button></div>' +
     '<div class="cols"><div id="bf" class="bf pane on" style="display:none"></div><article class="scrollpanel text pane on' + (S.vert ? ' vert' : '') + '" id="txt">' + text + '</article>' +
@@ -867,6 +901,7 @@ function renderChapter() {
   S.mobTab = 'txt';
   var tx = $('#txt');
   bfInit(d);
+  viewBind(); applyView();
   $('#tgVert').onclick = function () { S.vert = PREF.vert = !S.vert; applyPref(); this.classList.toggle('on', S.vert); tx.classList.toggle('vert', S.vert); if (S.vert) tx.scrollLeft = tx.scrollWidth; setTimeout(bfUpdate, 60); };
   $('#btnPref').onclick = function (e) { e.stopPropagation(); togglePop('popPref', drawPref); };
   $('#btnBm').onclick = function (e) { e.stopPropagation(); togglePop('popBm', drawBm); };
@@ -876,9 +911,7 @@ function renderChapter() {
   markBm();
   bindTextTips(tx);
   $('#toHome').onclick = goHome;
-  $$('.mtabs .chip').forEach(function (b) {
-    b.onclick = function () { $$('.mtabs .chip').forEach(function (x) { x.classList.toggle('on', x === b); }); S.mobTab = b.dataset.p; $$('.cols .pane').forEach(function (p) { p.classList.toggle('on', p.id === b.dataset.p || (p.id === 'bf' && b.dataset.p === 'txt')); }); window.scrollTo(0, 0); };
-  });
+  $$('.mtabs .chip').forEach(function (b) { b.onclick = function () { S.mobTab = b.dataset.p; applyView(); window.scrollTo(0, 0); }; });
   $$('img[data-embed]').forEach(function (im) {
     var key = im.dataset.embed;
     var hit = S.imgCache && S.imgCache[key];
@@ -1576,37 +1609,223 @@ function drawBm(el) {
 
 function readPos() {
   var tx = $('#txt'); if (!tx) return 0;
+  if (tx.offsetParent === null) return S.lastPos || 0;   // 原文被隱藏時，沿用最後一次的閱讀位置
+  var v = readPos0(tx); S.lastPos = v; return v;
+}
+function readPos0(tx) {
   if (window.innerWidth <= 900) return Math.max(0, Math.min(1, scrollY / Math.max(1, document.body.scrollHeight - innerHeight)));
   if (tx.classList.contains('vert')) return 0;
   return Math.max(0, Math.min(1, tx.scrollTop / Math.max(1, tx.scrollHeight - tx.clientHeight)));
 }
 /* ================= 戰況面板：隨目前讀到的原文段落顯示雙方形勢（不受作答影響） ================= */
-var APAL = { '劉備': { h: '#3a5fd0', a: '#e2b93b', s: '#f0c8a0' }, '關羽': { h: '#1f6b3a', a: '#2f9e5c', s: '#d9573b' }, '張飛': { h: '#1b1b22', a: '#4a5bd0', s: '#c98a5a' },
-  '曹操': { h: '#222', a: '#c0392b', s: '#f0c8a0' }, '董卓': { h: '#3b3a46', a: '#8a78c0', s: '#e0b890' } };
-var SPR = ['.....hhhh....', '....hhhhhh...', '....hssssh...', '....sdssds...', '.....ssss...w', '...aaaaaaaa.w', '..saaaaaaas.w', '..saaddaaas.w', '...aaaaaaa..w', '...aaaaaaa..w', '....dd.dd...w', '....dd.dd....', '...ddd.ddd...'];
-/** 像素小人（13×13 點陣，向右站立；敵方以 CSS 翻轉） */
-function spr(pal, weapon) {
-  var C = { h: pal.h, a: pal.a, s: pal.s || '#f0c8a0', d: '#2a2018', w: '#e8e8e8' }, rc = '';
-  SPR.forEach(function (row, y) {
-    var x = 0;
-    while (x < 13) {
-      var c = row.charAt(x); if (c === '.' || (c === 'w' && !weapon)) { x++; continue; }
-      var x2 = x; while (x2 < 13 && row.charAt(x2) === c) x2++;
-      rc += '<rect x="' + x + '" y="' + y + '" width="' + (x2 - x) + '" height="1" fill="' + C[c] + '"/>'; x = x2;
+/* ================= 16-bit 像素引擎：人物點陣（24×24）、場景背景（canvas） ================= */
+var PX = (function () {
+  var W = 24, H = 24;
+  /* 角色身體，16 欄×24 列，面向右；整體往右平移 4 欄放進 24 欄畫布 */
+  var BODY = [
+    '................',
+    '................',
+    '................',
+    '.....oooooo.....',
+    '....ohhhhhhoo...',
+    '...ohhHHhhhhho..',
+    '...ohhhhhhhhhho.',
+    '...ohhhkkkkkkko.',
+    '...ohhkkkkkekko.',
+    '....ohkkkkkkkko.',
+    '.....okkkkkkoo..',
+    '......oosskoo...',
+    '....oooaaaaooo..',
+    '...oBBaaaaaAAo..',
+    '..oBaaaggaaaAAo.',
+    '..okoaaggaaaAok.',
+    '..okoaaaaaaaAoo.',
+    '...ooccccccccoo.',
+    '....occCcccCco..',
+    '....occc..cccoo.',
+    '....oCCo..oCCo..',
+    '....obbo..obbbo.',
+    '...obbbo..obbbbo',
+    '...oooo....oooo.'
+  ];
+  /* 頭飾：覆蓋第 0~6 列（16 欄） */
+  var HEAD = {
+    helm: [ '......pp........', '.....oppp.......', '....ohhhhho.....', '...ohhhhhhho....', '..ohhHHhhhhoo...', '..ohhhhhhhhhho..', '..ohhhhhhhhhhho.' ],
+    band: [ '................', '.....oooooo.....', '....ohhhhhhoo...', '..pphhHHhhhhho..', '.pp.ohhhhhhhho..', '.p..ohhhhhhhhho.', '....ohhhhhhhhho.' ],
+    crown:[ '.....gg.........', '....oggoo.......', '...ohgghhoo.....', '...ohhHHhhhho...', '...ohhhhhhhhho..', '...ohhhhhhhhhho.', '...ohhhkkkkkkko.' ],
+    wild: [ '....o.oo.o......', '...ohohhohho....', '..ohhhHHhhhho...', '.ohhhhhhhhhhho..', '.ohhhhhhhhhhhho.', '.ohhhhhhhhhhhho.', '.ohhhhhkkkkkkko.' ],
+    cap:  [ '................', '....oooooo......', '...ogggggoo.....', '...ohhHHhhhho...', '...ohhhhhhhhho..', '...ohhhhhhhhhho.', '...ohhhkkkkkkko.' ]
+  };
+  /* 鬍鬚：疊在臉下方 */
+  var BEARD = {
+    none: [],
+    long: [[11, 9, 'd'], [12, 9, 'd'], [12, 10, 'd'], [11, 10, 'd'], [10, 10, 'd'], [12, 11, 'd'], [11, 11, 'd'], [12, 12, 'd'], [11, 12, 'd'], [12, 13, 'd'], [11, 13, 'd'], [12, 14, 'd'], [11, 14, 'd'], [11, 15, 'd'], [12, 15, 'D']],
+    bushy: [[8, 9, 'd'], [9, 9, 'd'], [10, 9, 'd'], [11, 9, 'd'], [12, 9, 'd'], [13, 9, 'd'], [9, 10, 'd'], [10, 10, 'd'], [11, 10, 'd'], [12, 10, 'd'], [10, 11, 'd'], [11, 11, 'd'], [12, 8, 'd'], [13, 8, 'd']],
+    must: [[11, 9, 'd'], [12, 9, 'd'], [13, 9, 'd'], [10, 10, 'd'], [11, 10, 'd']]
+  };
+  /* 武器（24 欄×24 列疊層）。每項為 [x, y, 字元] 的集合，由 rect/line 輔助組出 */
+  function line(a, x0, y0, x1, y1, c) {
+    var dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, er = dx - dy;
+    for (;;) { a.push([x0, y0, c]); if (x0 === x1 && y0 === y1) break; var e2 = 2 * er; if (e2 > -dy) { er -= dy; x0 += sx; } if (e2 < dx) { er += dx; y0 += sy; } }
+  }
+  function weapon(kind, atk) {
+    var a = [], i;
+    if (kind === 'sword') {            // 單刀／雙股劍
+      if (!atk) { for (i = 4; i <= 14; i++) { a.push([19, i, 'm']); a.push([20, i, 'M']); } a.push([19, 3, 'm']); a.push([18, 15, 'g']); a.push([19, 15, 'g']); a.push([20, 15, 'g']); a.push([19, 16, 'w']); }
+      else { for (i = 16; i <= 23; i++) { a.push([i, 14, 'm']); a.push([i, 15, 'M']); } a.push([15, 14, 'g']); a.push([15, 15, 'g']); a.push([15, 16, 'g']); a.push([14, 15, 'w']); }
+    } else if (kind === 'spear') {      // 長矛
+      if (!atk) { line(a, 15, 20, 22, 8, 'w'); a.push([22, 7, 'm']); a.push([23, 6, 'm']); a.push([22, 6, 'M']); a.push([23, 7, 'M']); }
+      else { line(a, 12, 16, 21, 15, 'w'); a.push([22, 15, 'm']); a.push([23, 15, 'm']); a.push([22, 14, 'M']); a.push([22, 16, 'M']); }
+    } else if (kind === 'guandao') {    // 青龍偃月刀
+      if (!atk) { for (i = 8; i <= 23; i++) a.push([20, i, 'w']); [[19, 1], [20, 1], [21, 1], [22, 1], [19, 2], [20, 2], [21, 2], [22, 2], [23, 2], [21, 3], [22, 3], [23, 3], [22, 4], [23, 4], [23, 5]].forEach(function (p) { a.push([p[0], p[1], 'm']); });
+        [[19, 3], [20, 3], [21, 4], [22, 5], [22, 6]].forEach(function (p) { a.push([p[0], p[1], 'M']); }); a.push([19, 7, 'g']); a.push([20, 7, 'g']); a.push([21, 7, 'g']); a.push([19, 8, 'G']); a.push([19, 9, 'G']); }
+      else { line(a, 12, 16, 22, 14, 'w'); [[20, 11], [21, 11], [22, 11], [23, 11], [20, 12], [21, 12], [22, 12], [23, 12], [21, 13], [22, 13], [23, 13]].forEach(function (p) { a.push([p[0], p[1], 'm']); }); a.push([20, 13, 'M']); a.push([19, 13, 'g']); }
+    } else if (kind === 'halberd') {    // 戟
+      if (!atk) { for (i = 6; i <= 23; i++) a.push([20, i, 'w']); a.push([20, 5, 'm']); a.push([20, 4, 'm']); a.push([19, 7, 'm']); a.push([19, 8, 'M']); a.push([21, 7, 'm']); a.push([21, 8, 'M']); a.push([20, 3, 'M']); }
+      else { line(a, 12, 16, 21, 14, 'w'); a.push([22, 14, 'm']); a.push([23, 14, 'm']); a.push([21, 13, 'm']); a.push([21, 15, 'm']); }
+    } else if (kind === 'fan') {        // 羽扇（謀士）
+      if (!atk) { a.push([18, 11, 'g']); a.push([19, 10, 'p']); a.push([20, 9, 'p']); a.push([19, 9, 'p']); a.push([21, 10, 'p']); a.push([20, 10, 'p']); a.push([19, 11, 'p']); a.push([20, 11, 'p']); }
+      else { a.push([17, 13, 'g']); a.push([18, 12, 'p']); a.push([19, 11, 'p']); a.push([20, 12, 'p']); a.push([19, 12, 'p']); a.push([21, 11, 'p']); a.push([20, 11, 'p']); a.push([19, 13, 'p']); }
     }
-  });
-  return '<svg viewBox="0 0 13 13" shape-rendering="crispEdges" aria-hidden="true">' + rc + '</svg>';
-}
-/** 依人名、其次依軍名挑配色 */
-function palFor(unit, side) {
-  if (APAL[unit]) return APAL[unit];
+    return a;
+  }
+  function hex(c) { return c; }
+  function palOf(p) {
+    return {
+      o: '#17101f', h: p.h, H: p.H || lighten(p.h), p: p.p || '#d8412f', k: p.s || '#f0c29a', s: shade(p.s || '#f0c29a'), e: '#17101f',
+      d: p.d || '#1b1620', D: p.D || '#2e2536', a: p.a, A: shade(p.a), B: lighten(p.a), c: p.c || shade(p.a), C: shade(p.c || shade(p.a)),
+      g: '#f3cf4a', G: '#b98f1f', b: p.b || '#4a3424', m: '#e6ebf5', M: '#8d97b0', w: '#8a5a2b'
+    };
+  }
+  function parse(c) { c = c.replace('#', ''); if (c.length === 3) c = c.replace(/./g, '$&$&'); return [parseInt(c.substr(0, 2), 16), parseInt(c.substr(2, 2), 16), parseInt(c.substr(4, 2), 16)]; }
+  function toHex(r) { return '#' + r.map(function (v) { v = Math.max(0, Math.min(255, Math.round(v))); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
+  function shade(c) { return toHex(parse(c).map(function (v) { return v * .66; })); }
+  function lighten(c) { return toHex(parse(c).map(function (v) { return v + (255 - v) * .34; })); }
+  var cache = {};
+  /** 畫一個人物到 24×24 畫布。frame：0/1 待機、'atk' 出招、'hurt' 受創（白閃） */
+  function drawUnit(cv, spec, frame) {
+    var ctx = cv.getContext('2d'); cv.width = W; cv.height = H; ctx.clearRect(0, 0, W, H);
+    var key = JSON.stringify(spec) + '|' + frame, grid = cache[key];
+    if (!grid) {
+      var P = palOf(spec.pal), atk = frame === 'atk', hd = HEAD[spec.head] || HEAD.helm, body = BODY.slice();
+      for (var r = 0; r < 7; r++) body[r] = hd[r];
+      var g = []; for (var y = 0; y < H; y++) { g.push([]); for (var x = 0; x < W; x++) g[y].push(null); }
+      body.forEach(function (row, y) { for (var x = 0; x < 16; x++) { var ch = row.charAt(x); if (ch !== '.' && ch !== ' ') g[y][x + 4 - (atk ? 0 : 0)] = P[ch]; } });
+      (BEARD[spec.beard || 'none'] || []).forEach(function (b) { if (b[0] + 4 < W) g[b[1]][b[0] + 4] = P[b[2]]; });
+      // 注意：鬍鬚座標以 16 欄計，因此 x+4 已對位
+      weapon(spec.weapon || 'sword', atk).forEach(function (w) { if (w[0] >= 0 && w[0] < W && w[1] >= 0 && w[1] < H) g[w[1]][w[0]] = P[w[2]]; });
+      grid = cache[key] = g;
+    }
+    var dy = frame === 1 ? -1 : 0, dx = frame === 'atk' ? 2 : 0;
+    for (var yy = 0; yy < H; yy++) for (var xx = 0; xx < W; xx++) { var c = grid[yy][xx]; if (!c) continue; ctx.fillStyle = frame === 'hurt' ? '#ffffff' : c; ctx.fillRect(xx + dx, yy + (yy < 21 ? dy : 0), 1, 1); }
+  }
+  /* 小兵（8×11，面向右） */
+  var SOL = ['..hhh...', '.hhhhh..', '.hkkkk..', '..kkek..', '..aaaa.m', '.aaaaaam', '.kaaaakm', '..aaaa.m', '..cccc.m', '..b..b..', '.bb..bb.'];
+  function drawSoldier(ctx, x, y, P, flip, step) {
+    for (var r = 0; r < SOL.length; r++) for (var c = 0; c < 8; c++) {
+      var ch = SOL.charAt ? '' : ''; ch = SOL[r].charAt(c); if (ch === '.') continue;
+      var col = ch === 'h' ? P.h : ch === 'k' ? '#f0c29a' : ch === 'e' ? '#17101f' : ch === 'a' ? P.a : ch === 'c' ? P.c || shade(P.a) : ch === 'b' ? '#4a3424' : ch === 'm' ? '#d8dde8' : '#fff';
+      var px = flip ? x + (7 - c) : x + c, py = y + r + ((step && r >= 9) ? 0 : 0);
+      ctx.fillStyle = col; ctx.fillRect(px, py, 1, 1);
+    }
+  }
+  /* ---------- 場景背景 ---------- */
+  var SW = 192, SH = 84;
+  function rnd(seed) { var s = seed >>> 0; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function rect(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x | 0, y | 0, w | 0, h | 0); }
+  function sky(ctx, bands, h) {   // 色階＋抖動過渡
+    var n = bands.length, bh = h / n;
+    for (var i = 0; i < n; i++) {
+      rect(ctx, 0, i * bh, SW, bh + 1, bands[i]);
+      if (i < n - 1) { for (var y = 0; y < 2; y++) for (var x = 0; x < SW; x += 2) { ctx.fillStyle = bands[i + 1]; ctx.fillRect(x + ((y + (i % 2)) % 2), Math.floor((i + 1) * bh) - 2 + y, 1, 1); } }
+    }
+  }
+  function mountains(ctx, base, col, col2, amp, seed, step) {
+    var r = rnd(seed), x = 0, y = base - amp * .5, pts = [];
+    while (x <= SW + step * 2) { pts.push([x, y]); x += step * (.6 + r() * .8); y = base - amp * (.25 + r() * .75); }
+    pts.forEach(function (p, i) {
+      var nx = pts[i + 1]; if (!nx) return;
+      for (var x2 = Math.floor(p[0]); x2 < nx[0] && x2 < SW; x2++) {
+        var t = (x2 - p[0]) / (nx[0] - p[0]), yy = Math.round(p[1] + (nx[1] - p[1]) * (0.5 - Math.cos(t * Math.PI) / 2));
+        rect(ctx, x2, yy, 1, base - yy + 1, col);
+        if ((x2 + yy) % 2 === 0) rect(ctx, x2, yy + 1, 1, 1, col2);
+        rect(ctx, x2, yy, 1, 1, col2);
+      }
+    });
+  }
+  function cloud(ctx, x, y, c1, c2) { rect(ctx, x + 3, y, 10, 2, c1); rect(ctx, x, y + 2, 18, 2, c1); rect(ctx, x + 2, y + 4, 14, 1, c2); }
+  function ground(ctx, top, c1, c2, c3, seed) {
+    var r = rnd(seed); rect(ctx, 0, top, SW, SH - top, c1);
+    for (var y = top; y < SH; y++) for (var x = 0; x < SW; x++) { if ((x + y * 2) % 7 === 0 && r() < .5) rect(ctx, x, y, 1, 1, c2); }
+    rect(ctx, 0, top, SW, 1, c3);
+    for (var i = 0; i < 38; i++) { var gx = Math.floor(r() * SW), gy = top + 3 + Math.floor(r() * (SH - top - 4)); rect(ctx, gx, gy, 1, 2, c3); rect(ctx, gx + 2, gy + 1, 1, 1, c3); }
+  }
+  function banner(ctx, x, y, c) { rect(ctx, x, y, 1, 22, '#4a3424'); rect(ctx, x + 1, y + 1, 8, 6, c); rect(ctx, x + 1, y + 7, 6, 1, c); rect(ctx, x + 3, y + 3, 3, 2, '#fff2c0'); }
+  function tree(ctx, x, y, leaf, leaf2, pink) {
+    rect(ctx, x + 3, y + 8, 3, 12, '#5a3a22'); rect(ctx, x + 4, y + 8, 1, 12, '#7a4f2e');
+    [[0, 4, 10, 5], [2, 1, 6, 4], [-1, 6, 12, 4]].forEach(function (b) { rect(ctx, x + b[0], y + b[1], b[2], b[3], leaf); rect(ctx, x + b[0] + 1, y + b[1], b[2] - 3, 1, leaf2); });
+    if (pink) { [[1, 5], [5, 3], [8, 7], [3, 8], [10, 5]].forEach(function (p) { rect(ctx, x + p[0], y + p[1], 1, 1, '#fff0f4'); }); }
+  }
+  function drawScene(cv, kind, sa, sb, seed) {
+    cv.width = SW; cv.height = SH; var ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    var night = kind === '謀略', calm = kind === '平時', top = 52;
+    if (night) {
+      sky(ctx, ['#0c0f2e', '#141a48', '#1f2a66', '#33407f', '#5a4a7a'], top);
+      var r = rnd(seed || 7); for (var i = 0; i < 40; i++) rect(ctx, r() * SW, r() * 30, 1, 1, r() < .3 ? '#ffffff' : '#9fb0e8');
+      rect(ctx, 150, 8, 9, 9, '#fff3c0'); rect(ctx, 152, 8, 7, 9, '#fff3c0'); rect(ctx, 153, 9, 5, 7, '#ffe48a'); rect(ctx, 154, 10, 3, 2, '#f2d06a');
+      mountains(ctx, top, '#1a2050', '#26306a', 24, 11, 18); mountains(ctx, top, '#10143a', '#1a2050', 14, 5, 14);
+      ground(ctx, top, '#2a3a24', '#34482c', '#3f5a34', 3);
+      [[8, 36], [176, 38]].forEach(function (t) { rect(ctx, t[0], t[1], 2, 16, '#4a3424'); rect(ctx, t[0] - 1, t[1] - 4, 4, 4, '#ff9a2a'); rect(ctx, t[0], t[1] - 6, 2, 2, '#ffd24a'); });
+    } else if (calm) {
+      sky(ctx, ['#7ec8f0', '#98d4f4', '#b4e0f6', '#d2ecf8', '#f6efd0'], top);
+      cloud(ctx, 20, 8, '#ffffff', '#dcecf6'); cloud(ctx, 110, 14, '#ffffff', '#dcecf6'); cloud(ctx, 160, 5, '#ffffff', '#dcecf6');
+      mountains(ctx, top, '#7ea8c8', '#9cc0d8', 22, 21, 20); mountains(ctx, top, '#5f9a6a', '#78b080', 12, 9, 14);
+      ground(ctx, top, '#5fb04a', '#6fc258', '#8fd870', 4);
+      tree(ctx, 10, 30, '#e8789a', '#f6a4bc', true); tree(ctx, 162, 28, '#e8789a', '#f6a4bc', true); tree(ctx, 36, 34, '#4f9a45', '#6cb85c');
+    } else {
+      sky(ctx, ['#5a78c8', '#7a94d8', '#e0a070', '#f2b878', '#f8d890'], top);
+      cloud(ctx, 28, 10, '#f6d0a8', '#d89a78'); cloud(ctx, 120, 6, '#f6d0a8', '#d89a78');
+      rect(ctx, 86, 30, 20, 10, '#ffe9a8'); rect(ctx, 89, 28, 14, 14, '#ffe9a8'); rect(ctx, 91, 32, 10, 6, '#fff6d0');
+      mountains(ctx, top, '#8a6a98', '#a08ab0', 24, 31, 22); mountains(ctx, top, '#5e4a74', '#7a6490', 14, 17, 15);
+      ground(ctx, top, '#8a7a3c', '#9a8a48', '#b0a05a', 6);
+      banner(ctx, 6, 28, '#c0392b'); banner(ctx, 178, 28, '#2f5fc8');
+    }
+    var pairs = [[sa, 0], [sb, 1]];
+    if (kind === '軍陣') pairs.forEach(function (pr) { crowd(ctx, pr[0], pr[1], seed || 1); });
+    if (kind === '單挑') { for (var d = 0; d < 26; d++) { var rr = rnd(d + 5); rect(ctx, 60 + rr() * 72, 70 + rr() * 8, 3, 1, 'rgba(255,240,200,.35)'); } }
+  }
+  function crowd(ctx, side, flip, seed) {
+    if (!side) return; var n = { '佔優': 24, '相持': 15, '潰敗': 6 }[side.state] || 14, P = soldierPal(side), r = rnd(seed * 7 + flip * 13), flee = side.state === '潰敗';
+    for (var i = 0; i < n; i++) {
+      var col = i % 6, row = Math.floor(i / 6), x = flee ? 44 + r() * 34 : 48 + col * 5 + (row % 2) * 2, y = 51 + row * 7 + r() * 2;
+      if (flip) x = SW - 8 - x;
+      drawSoldier(ctx, x | 0, y | 0, P, flip, 0);
+    }
+  }
+  function soldierPal(side) {
+    var k = (side.name || '') + '|' + (side.units || []).join('');
+    if (/黃巾|賊|張角|張寶|張梁|程遠志|鄧茂/.test(k)) return { h: '#e0b030', a: '#b89228', c: '#8a6e1c' };
+    if (/義軍|義士|涿郡/.test(k)) return { h: '#3f8f57', a: '#3f8f57', c: '#2a6a3c' };
+    if (/曹/.test(k)) return { h: '#c0392b', a: '#4a4a62', c: '#303048' };
+    return { h: '#8aa6e8', a: '#4a6ac8', c: '#324a98' };
+  }
+  return { drawUnit: drawUnit, drawScene: drawScene, soldierPal: soldierPal, W: W, H: H };
+})();
+
+/** 依人名、其次依軍名，挑 16-bit 人物造型 */
+function specFor(unit, side) {
   var k = unit + '|' + side;
-  if (/黃巾|太平道|張角|張寶|張梁|程遠志|鄧茂/.test(k)) return { h: '#c79a1e', a: '#e8c04a', s: '#f0c8a0' };
-  if (/曹操/.test(k)) return APAL['曹操'];
-  if (/董卓/.test(k)) return APAL['董卓'];
-  if (/涿郡|義軍|義士|結義|玄德|劉關張/.test(k)) return { h: '#2a6e3a', a: '#3f9d57', s: '#f0c8a0' };
-  if (/官軍|漢軍|守軍|朝廷|幽州|盧植|皇甫嵩|朱儁|騎都尉|劉焉|鄒靖/.test(k)) return { h: '#3a5fd0', a: '#8aa8e8', s: '#f0c8a0' };
-  return { h: '#6a5a4a', a: '#b0a090', s: '#e0b890' };
+  if (unit === '劉備') return { pal: { h: '#2a2f6a', a: '#3a5fd0', c: '#2a3f98' }, head: 'crown', weapon: 'sword' };
+  if (unit === '關羽') return { pal: { h: '#1f7a40', a: '#2f9e5c', c: '#1f7a40' }, head: 'cap', beard: 'long', weapon: 'guandao' };
+  if (unit === '張飛') return { pal: { h: '#1b1b22', a: '#4a5bd0', c: '#2a2f70' }, head: 'wild', beard: 'bushy', weapon: 'spear' };
+  if (unit === '曹操') return { pal: { h: '#222', a: '#c0392b', c: '#7a2018' }, head: 'crown', beard: 'must', weapon: 'sword' };
+  if (unit === '董卓') return { pal: { h: '#3b3a46', a: '#6a58a8', c: '#44366e' }, head: 'crown', beard: 'bushy', weapon: 'halberd' };
+  if (/張角/.test(unit)) return { pal: { h: '#e0b030', a: '#b89228', c: '#8a6e1c' }, head: 'band', beard: 'must', weapon: 'fan' };
+  if (/黃巾|太平道|張寶|張梁|程遠志|鄧茂|賊/.test(k)) return { pal: { h: '#e0b030', a: '#b89228', c: '#8a6e1c' }, head: 'band', weapon: /鄧茂|程遠志/.test(unit) ? 'halberd' : 'sword' };
+  if (/涿郡|義軍|義士|結義|玄德|劉關張/.test(k)) return { pal: { h: '#3f8f57', a: '#3f9d57', c: '#2a6a3c' }, head: 'cap', weapon: 'sword' };
+  if (/盧植|皇甫嵩|朱儁|劉焉|鄒靖/.test(unit)) return { pal: { h: '#9aa8c8', p: '#d8412f', a: '#4a6ac8', c: '#324a98' }, head: 'helm', beard: 'must', weapon: 'halberd' };
+  if (/官軍|漢軍|守軍|朝廷|幽州|騎都尉/.test(k)) return { pal: { h: '#9aa8c8', p: '#d8412f', a: '#4a6ac8', c: '#324a98' }, head: 'helm', weapon: 'halberd' };
+  return { pal: { h: '#8a7a6a', a: '#8a7a6a', c: '#5a4a3a' }, head: 'helm', weapon: 'sword' };
 }
 var BF_PCT = { '佔優': 92, '相持': 58, '潰敗': 16 }, BF_CLS = { '佔優': 'st-勝', '相持': 'st-平', '潰敗': 'st-敗' };
 /** 依段落與段內位置，排出整回的戰況時間軸 */
@@ -1619,68 +1838,147 @@ function bfPrepare(d) {
   rows.sort(function (x, y) { return x.para - y.para || x.at - y.at || x.o - y.o; });
   return rows;
 }
-function bfSide(sd, role, prev) {
-  var units = sd.units && sd.units.length ? sd.units.slice(0, 4) : [sd.name || '—'], pct = BF_PCT[sd.state] || 58, foe = role === 'foe';
-  var same = units.length === 1 && units[0] === sd.name, head = same && !sd.troops ? '<div class="bf-sh">&nbsp;</div>' : '<div class="bf-sh">' + esc(same ? '' : sd.name) + (sd.troops ? (same ? '' : '・') + '兵力 ' + esc(sd.troops) : '') + '</div>';
-  return '<div class="bf-side">' + head + units.map(function (u, i) {
-    var p0 = prev && prev.units && prev.units.indexOf(u) >= 0 ? (BF_PCT[prev.state] || pct) : pct;
-    var info = '<div class="nm">' + esc(u) + '<small class="' + (BF_CLS[sd.state] || '') + '">' + esc(sd.state || '') + '</small></div>', bar = '<div class="ub"><i data-w="' + pct + '" style="width:' + p0 + '%"></i></div>',
-      sp = '<div class="sp">' + spr(palFor(u, sd.name), true) + '</div>';
-    return '<div class="bu ' + (foe ? 'foe' : 'me') + (sd.state === '潰敗' ? ' lose' : '') + '" data-u="' + esc(u) + '">' + (foe ? sp + bar + info : info + bar + sp) + '</div>';
-  }).join('') + '</div>';
+var BF_ST = { '佔優': 'win', '相持': 'even', '潰敗': 'lose' };
+function bfHdr(sd) {
+  var units = sd.units || [], parts = [];
+  if (!(units.length === 1 && units[0] === sd.name) && sd.name) parts.push(sd.name);
+  if (sd.troops) parts.push('兵力 ' + sd.troops);
+  return parts.join('・');
+}
+function bfInfo(u, sd, role, prev) {
+  var pct = BF_PCT[sd.state] || 58, p0 = prev && prev.units && prev.units.indexOf(u) >= 0 ? (BF_PCT[prev.state] || pct) : pct;
+  return '<div class="inf ' + role + ' ' + (BF_ST[sd.state] || 'even') + '"><div class="nm"><b>' + esc(u) + '</b><small>' + esc(sd.state || '') + '</small></div><div class="ub"><i data-w="' + pct + '" style="width:' + p0 + '%"></i></div></div>';
+}
+function bfSprite(u, sd, role) {
+  return '<div class="sp ' + role + (sd.state === '潰敗' ? ' lose' : '') + '"><canvas class="spx" width="24" height="24" data-u="' + esc(u) + '" data-s="' + esc(sd.name || '') + '"></canvas></div>';
+}
+function bfPose(c, fr, ms) {
+  c._ov = { fr: fr, until: Date.now() + ms }; c._fr = fr; PX.drawUnit(c, c._spec, fr);
+  setTimeout(function () { if (c.isConnected) { c._fr = S.bfFr || 0; PX.drawUnit(c, c._spec, c._fr); } }, ms);
+}
+function bfAnimStart() {
+  if (S.bfAnim) return; S.bfFr = 0;
+  S.bfAnim = setInterval(function () {
+    var box = $('#bf'); if (!box) { clearInterval(S.bfAnim); S.bfAnim = 0; return; }
+    if (document.hidden || box.offsetParent === null) return;
+    S.bfFr ^= 1; var now = Date.now();
+    $$('canvas.spx', box).forEach(function (c) {
+      var fr = c._ov && c._ov.until > now ? c._ov.fr : (c.parentNode.classList.contains('lose') ? 1 : S.bfFr);
+      if (c._fr !== fr) { c._fr = fr; PX.drawUnit(c, c._spec, fr); }
+    });
+  }, 450);
 }
 function bfRender(row, prev, box) {
-  var duel = row.scene === '單挑', calm = row.scene === '平時', f;
+  var duel = row.scene === '單挑', calm = row.scene === '平時', B = S.bfs, ix = B.rows.indexOf(row), manual = B.manual, f, n = 1;
+  var A = (row.a.units && row.a.units.length ? row.a.units : [row.a.name || '—']).slice(0, 4), Z = (row.b.units && row.b.units.length ? row.b.units : [row.b.name || '—']).slice(0, 4);
   if (calm) {
-    var ps = (row.a.units || []).slice(0, 5);
-    f = '<div class="bf-calm">' + (ps.length ? ps.map(function (u) { return '<div class="pc">' + spr(palFor(u, row.a.name), true) + '<span>' + esc(u) + '</span></div>'; }).join('') : '<div class="none">此段無戰事</div>') + '</div>';
-  } else f = '<div class="bf-war">' + bfSide(row.a, 'me', prev && prev.scene !== '平時' ? prev.a : null) + bfSide(row.b, 'foe', prev && prev.scene !== '平時' ? prev.b : null) + '</div>';
-  box.className = 'bf pane' + (S.mobTab === 'quiz' ? '' : ' on') + (duel ? ' duel' : '');
-  box.innerHTML = '<div class="bf-top"><span class="bf-tag">' + esc(row.scene) + '</span><b class="bf-title">' + esc(row.title) + '</b><small>依文意示意</small></div>' +
-    '<div class="bf-field">' + f + '</div>' +
-    '<div class="bf-note"><span>' + esc(row.note) + '</span>' + (row.basis ? '<button data-para="' + row.basis + '">看原文第 ' + row.basis + ' 段</button>' : '') + '</div>';
+    var ps = (row.a.units || []).slice(0, 5); n = ps.length > 3 ? 3 : 2;
+    f = '<div class="bf-war calm" data-n="' + n + '">' + (ps.length ? '<div class="bf-calm">' + ps.map(function (u) { return '<div class="pc"><div class="sp a"><canvas class="spx" width="24" height="24" data-u="' + esc(u) + '" data-s="' + esc(row.a.name || '') + '"></canvas></div><span>' + esc(u) + '</span></div>'; }).join('') + '</div>' : '<div class="bf-none">此段無戰事</div>') + '</div>';
+  } else {
+    n = Math.max(A.length, Z.length); var rows = '', pa = prev && prev.scene !== '平時' ? prev.a : null, pb = prev && prev.scene !== '平時' ? prev.b : null;
+    for (var i = 0; i < n; i++) {
+      rows += '<div class="bf-row">' + (A[i] ? bfInfo(A[i], row.a, 'a', pa) : '<div></div>') +
+        '<div class="stage">' + (A[i] ? bfSprite(A[i], row.a, 'a') : '<div class="sp none"></div>') + (Z[i] ? bfSprite(Z[i], row.b, 'b') : '<div class="sp none"></div>') + '</div>' +
+        (Z[i] ? bfInfo(Z[i], row.b, 'b', pb) : '<div></div>') + '</div>';
+    }
+    f = '<div class="bf-war" data-n="' + n + '"><div class="bf-hd"><span>' + esc(bfHdr(row.a)) + '</span><span>' + esc(bfHdr(row.b)) + '</span></div>' + rows + '</div>';
+  }
+  var on = box.classList.contains('on');
+  box.className = 'bf pane' + (on ? ' on' : '') + (duel ? ' duel' : '') + ' sc-' + row.scene;
+  box.innerHTML = '<div class="bf-top"><span class="bf-tag">' + esc(row.scene) + '</span><b class="bf-title">' + esc(row.title) + '</b>' +
+    (manual ? '<span class="bf-step"><button data-d="-1" aria-label="上一幕">◀</button><em>' + (ix + 1) + '／' + B.rows.length + '</em><button data-d="1" aria-label="下一幕">▶</button></span>' : '<small>依文意示意</small>') + '</div>' +
+    '<div class="bf-field"><canvas class="bf-bg" aria-hidden="true"></canvas>' + f + '</div>' +
+    '<div class="bf-note"><span>' + esc(row.note) + '</span>' + (row.basis && !manual ? '<button data-para="' + row.basis + '">看原文第 ' + row.basis + ' 段</button>' : '') + '</div>' +
+    (manual && row.anchor ? '<div class="bf-q">依據：原文第 ' + row.para + ' 段「' + esc(row.anchor) + '…」　（戰況為依文意示意，非實際兵力）</div>' : '');
+  PX.drawScene($('.bf-bg', box), row.scene, calm ? null : row.a, calm ? null : row.b, row.para + 1);
+  $$('canvas.spx', box).forEach(function (c) { c._spec = specFor(c.dataset.u, c.dataset.s); c._fr = 0; PX.drawUnit(c, c._spec, 0); });
   var bt = $('.bf-note button', box); if (bt) bt.onclick = function () { jumpPara(+bt.dataset.para); };
+  $$('.bf-step button', box).forEach(function (b) {
+    b.onclick = function () { var L = B.rows.length; B.idx = (((B.idx || 0) + (+b.dataset.d)) % L + L) % L; Qin.sfx('wood'); bfUpdate(); };
+  });
+  bfAnimStart();
   requestAnimationFrame(function () { requestAnimationFrame(function () {
     $$('.ub i', box).forEach(function (i) { i.style.width = i.dataset.w + '%'; });
     if (prev && !calm && prev.scene !== '平時') {
-      [['a', 'me'], ['b', 'foe']].forEach(function (k) {
+      [['a', 'a'], ['b', 'b']].forEach(function (k) {
         if (prev[k[0]].state === row[k[0]].state) return;
-        var cls = row[k[0]].state === '潰敗' ? 'bf-shake' : row[k[0]].state === '佔優' ? 'bf-lunge' : '';
-        if (cls) $$('.bu.' + k[1] + ' .sp', box).forEach(function (e) { e.classList.add(cls); });
+        var st = row[k[0]].state;
+        $$('.sp.' + k[1] + ' canvas.spx', box).forEach(function (c) {
+          if (st === '佔優') { c.parentNode.classList.add('bf-lunge-' + k[1]); bfPose(c, 'atk', 700); }
+          else if (st === '潰敗') { c.parentNode.classList.add('bf-shake'); bfPose(c, 'hurt', 220); }
+        });
       });
     }
   }); });
 }
-/** 依閱讀位置決定目前戰況（往回捲會跟著倒退） */
+/** 依閱讀位置決定目前戰況（往回捲會跟著倒退）；沒有顯示原文時改由「上一幕／下一幕」手動切換 */
 function bfUpdate() {
   var B = S.bfs; if (!B || !B.rows.length) return;
-  var tx = $('#txt'); if (!tx) return;
-  var mobile = window.innerWidth <= 900, vert = tx.classList.contains('vert'), ps = B.ps, cur = 0, frac = 0, line;
-  if (!ps.length) return;
-  if (vert) {
-    var r0 = tx.getBoundingClientRect(); line = r0.right - r0.width * .2;
-    for (var k = 0; k < ps.length; k++) { var q = ps[k].getBoundingClientRect(); if (q.right >= line) { cur = k; frac = Math.min(1, Math.max(0, (q.right - line) / Math.max(1, q.width))); } else break; }
-  } else {
-    var rr = mobile ? { top: 0, height: innerHeight } : tx.getBoundingClientRect(); line = rr.top + (mobile ? (($('#bf') ? $('#bf').offsetHeight : 0) + innerHeight * .25) : rr.height * .3);
-    for (var k2 = 0; k2 < ps.length; k2++) { var q2 = ps[k2].getBoundingClientRect(); if (q2.top <= line) { cur = k2; frac = Math.min(1, Math.max(0, (line - q2.top) / Math.max(1, q2.height))); } else break; }
+  var tx = $('#txt'), pick = null;
+  if (B.manual) pick = B.rows[Math.max(0, Math.min(B.rows.length - 1, B.idx || 0))];
+  else {
+    if (!tx || tx.offsetParent === null) return;
+    var mobile = window.innerWidth <= 900, vert = tx.classList.contains('vert'), ps = B.ps, cur = 0, frac = 0, line;
+    if (!ps.length) return;
+    if (vert) {
+      var r0 = tx.getBoundingClientRect(); line = r0.right - r0.width * .2;
+      for (var k = 0; k < ps.length; k++) { var q = ps[k].getBoundingClientRect(); if (q.right >= line) { cur = k; frac = Math.min(1, Math.max(0, (q.right - line) / Math.max(1, q.width))); } else break; }
+    } else {
+      var rr = mobile ? { top: 0, height: innerHeight } : tx.getBoundingClientRect(); line = rr.top + (mobile ? (topH() + ($('#bf') ? $('#bf').offsetHeight : 0) + innerHeight * .25) : rr.height * .3);
+      for (var k2 = 0; k2 < ps.length; k2++) { var q2 = ps[k2].getBoundingClientRect(); if (q2.top <= line) { cur = k2; frac = Math.min(1, Math.max(0, (line - q2.top) / Math.max(1, q2.height))); } else break; }
+    }
+    var idx = +ps[cur].dataset.i;
+    B.rows.forEach(function (r) { if (r.para < idx || (r.para === idx && r.at <= frac + 1e-6)) pick = r; });
+    if (S.demoPos != null) pick = B.rows[S.demoPos] || pick;
   }
-  var idx = +ps[cur].dataset.i, pick = null;
-  B.rows.forEach(function (r) { if (r.para < idx || (r.para === idx && r.at <= frac + 1e-6)) pick = r; });
-  if (S.demoPos != null) pick = B.rows[S.demoPos] || pick;
   if (pick === B.cur) return;
   var prev = B.cur; B.cur = pick; var box = $('#bf'); if (!box) return;
   if (!pick) { box.innerHTML = ''; box.style.display = 'none'; return; }
   box.style.display = ''; bfRender(pick, prev, box);
 }
 function bfInit(d) {
-  var box = $('#bf'), cols = $('.cols'); S.bfs = null; S.demoPos = null;
+  var box = $('#bf'); S.bfs = null; S.demoPos = null;
   if (!box) return;
   var rows = bfPrepare(d); if (!rows.length) { box.style.display = 'none'; return; }
-  cols.classList.add('hasbf');
-  S.bfs = { rows: rows, cur: undefined, ps: $$('#txt p[data-i]') };
+  S.bfs = { rows: rows, cur: undefined, ps: $$('#txt p[data-i]'), manual: false, idx: 0 };
   var tick = function () { if (S.bfTick) return; S.bfTick = requestAnimationFrame(function () { S.bfTick = 0; bfUpdate(); }); };
-  $('#txt').addEventListener('scroll', tick); window.addEventListener('scroll', tick, { passive: true }); window.addEventListener('resize', tick);
-  bfUpdate();
+  $('#txt').addEventListener('scroll', tick); window.addEventListener('scroll', tick, { passive: true }); window.addEventListener('resize', function () { document.documentElement.style.setProperty('--topH', topH() + 'px'); tick(); });
+}
+/* ================= 閱讀版面：原文／戰況畫面／閱讀檢測，三項自由選搭 ================= */
+function viewState() {
+  var V = PREF.view, v = { txt: !!V.txt, bf: !!(V.bf && S.bfs), quiz: !!V.quiz };
+  if (!v.txt && !v.bf && !v.quiz) v.txt = true;
+  return v;
+}
+function topH() { var t = $('.top'); return t ? t.offsetHeight : 0; }
+function applyView() {
+  var cols = $('.cols'); if (!cols) return;
+  document.documentElement.style.setProperty('--topH', topH() + 'px');
+  var v = viewState(), tab = v.txt && v.quiz;
+  ['txt', 'bf', 'quiz'].forEach(function (k) { cols.classList.toggle('no-' + k, !v[k]); });
+  cols.classList.toggle('hasbf', v.bf);
+  $$('.vgrp [data-v]').forEach(function (b) { b.classList.toggle('on', !!v[b.dataset.v]); b.classList.toggle('hidden', b.dataset.v === 'bf' && !S.bfs); });
+  var mt = $('.mtabs'); if (mt) mt.style.display = tab ? '' : 'none';
+  if (!tab) S.mobTab = v.quiz ? 'quiz' : 'txt';
+  $$('.mtabs .chip').forEach(function (x) { x.classList.toggle('on', x.dataset.p === S.mobTab); });
+  var set = function (id, on) { var e = $('#' + id); if (e) e.classList.toggle('on', on); };
+  set('txt', v.txt && (!tab || S.mobTab === 'txt')); set('quiz', v.quiz && (!tab || S.mobTab === 'quiz')); set('bf', v.bf && (!tab || S.mobTab === 'txt'));
+  ['tgVert', 'btnPref'].forEach(function (id) { var e = $('#' + id); if (e) e.classList.toggle('hidden', !v.txt); });
+  if (S.bfs) {
+    var man = v.bf && !v.txt;
+    if (S.bfs.manual !== man) { S.bfs.manual = man; S.bfs.cur = undefined; }
+    bfUpdate();
+  }
+  if (v.txt) { layoutBubbles($('#txt')); setTimeout(function () { if (S.bfs) bfUpdate(); }, 80); }
+}
+function viewBind() {
+  $$('.vgrp [data-v]').forEach(function (b) {
+    b.onclick = function () {
+      var k = b.dataset.v, V = PREF.view, v = viewState(), cnt = (v.txt ? 1 : 0) + (v.bf ? 1 : 0) + (v.quiz ? 1 : 0);
+      if (v[k] && cnt <= 1) { toast('至少要留一項'); return; }
+      V[k] = !v[k]; applyPref(); applyView(); Qin.sfx('wood');
+    };
+  });
 }
 
 /* ================= 作答：每次從題庫抽 N 題，一題一題作答 ================= */
@@ -1791,6 +2089,7 @@ function startDemo() {
   if (S.demo) return;
   var D = S.demo = { abort: false, speed: window.__demoSpeed || 1 };
   S.guest = true; setTop();
+  S.viewSaved = JSON.stringify(PREF.view); PREF.view = { txt: true, bf: true, quiz: true }; applyView();
   if (!Qin.isOn()) { Qin.toggle(); $('#btnMusic').classList.add('on'); }
   document.body.insertAdjacentHTML('beforeend', '<div class="demo-tag" id="dTag">展示模式</div><button class="demo-x" id="dX">✕ 結束展示</button><div class="demo-bar hide" id="dBar"></div>' +
     '<div class="dcur" id="dCur" style="left:60%;top:70%"><svg viewBox="0 0 22 22"><path d="M2 1l16 9-7 2 4 8-3 1-4-8-6 5z" fill="#fff" stroke="#222" stroke-width="1.4" stroke-linejoin="round"/></svg></div>');
@@ -1810,7 +2109,7 @@ function startDemo() {
     var tx = $('#txt'), p = $('#txt p[data-i="' + r.para + '"]'); if (!p) return sleep(300);
     var t = (S.chap.paras[r.para - 1] || {}).t || '', j = r.anchor ? t.indexOf(r.anchor) : 0, at = j < 0 ? 0 : j / Math.max(1, t.length) + .003;
     if (window.innerWidth <= 900) {
-      var line = innerHeight * .25 + ($('#bf') ? $('#bf').offsetHeight : 0), y = p.getBoundingClientRect().top + scrollY + p.offsetHeight * at - line + 2; window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+      var line = topH() + innerHeight * .25 + ($('#bf') ? $('#bf').offsetHeight : 0), y = p.getBoundingClientRect().top + scrollY + p.offsetHeight * at - line + 2; window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
     } else tx.scrollTo({ top: Math.max(0, p.offsetTop + p.offsetHeight * at - tx.clientHeight * .3 + 2), behavior: 'smooth' });
     return sleep(1500);
   };
@@ -1865,6 +2164,7 @@ function startDemo() {
 }
 function endDemo(quit) {
   var D = S.demo; if (!D) return; D.abort = true; S.demo = null; S.demoPos = null;
+  if (S.viewSaved) { try { PREF.view = JSON.parse(S.viewSaved); } catch (e) { } S.viewSaved = null; applyView(); }
   ['dTag', 'dX', 'dBar', 'dCur'].forEach(function (id) { var e = $('#' + id); if (e) e.remove(); });
   if (quit) { S.guest = false; S.token ? goHome() : renderLogin(); return; }
   document.body.insertAdjacentHTML('beforeend', '<div class="demo-end" id="dEnd"><div><h3>展示結束</h3><p>這是電腦自動示範的流程，沒有記錄任何成績。<br>戰況面板會隨閱讀位置變化，答題對錯只計成績。</p><div class="bt-act"><button class="btn" id="dAgain">重新展示</button><button class="btn ghost" id="dHome">回首頁</button></div></div></div>');
