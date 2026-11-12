@@ -14,7 +14,7 @@ var HEAD = {
   '設定': ['項目', '值', '說明'],
   '學生名單': ['帳號', '密碼', '姓名', '班級', '座號', 'Email', '身分', '學校', '建立時間', '最近登入'],
   '原文': ['回', '回次', '回目', '段落序', '內文'],
-  '題庫': ['回', '題號', '類型', '題幹', 'A', 'B', 'C', 'D', '答案', '解析', '對應段落'],
+  '題庫': ['回', '題號', '類型', '題幹', 'A', 'B', 'C', 'D', '答案', '解析', '對應段落', '人物'],
   '插圖': ['回', '序', '標題', '插在第幾段之後', '圖說', '生圖提示詞', '圖片網址或雲端檔案ID', '對話氣泡'],
   '存檔': ['帳號', '回', '草稿', '已交卷', '首次得分', '最高得分', '最近得分', '作答次數', '最近作答', '首次交卷時間', '最近交卷時間', '更新時間', '累計閱讀作答秒數', '首次開啟時間'],
   '作答紀錄': ['時間', '帳號', '姓名', '班級', '座號', '回', '作答', '得分', '第幾次', '累計閱讀作答秒數'],
@@ -33,6 +33,7 @@ var DEFAULT_SET = [
   ['網站標題', '三國演義・閱讀試煉', '顯示在網站最上方'],
   ['副標題', '古典小說閱讀檢測', ''],
   ['教師密碼', 'nanshan', '進入教師後台的密碼，請務必修改'],
+  ['每次抽題數', '10', '每次出征從題庫隨機抽幾題（題庫題數不足時全出）；改完請按「清除網站快取」'],
   ['允許重作', '是', '是／否：交卷後可否再作答（成績記首次、最高、最近）'],
   ['交卷後顯示解析', '是', '是／否'],
   ['開放回數', '全部', '「全部」或以逗號列出，例如 1,2,3'],
@@ -62,6 +63,7 @@ function doGet() {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('三國演義閱讀檢測')
     .addItem('初始化／補建工作表', 'setupSheets')
+    .addItem('第一回題庫更新為 20 題（出征模式）', 'applyQuestionBank1')
     .addItem('清除網站快取（改完原文或題庫後按）', 'clearContentCache')
     .addToUi();
 }
@@ -100,9 +102,9 @@ function setupSheets() {
   var qb = ss.getSheetByName(SHEET.QB);
   if (qb.getLastRow() < 2) {
     var qr = SEED.questions.map(function (q) {
-      return [q.ch, q.no, q.type, q.stem, q.opts[0], q.opts[1], q.opts[2], q.opts[3], q.ans, q.exp, q.para];
+      return [q.ch, q.no, q.type, q.stem, q.opts[0], q.opts[1], q.opts[2], q.opts[3], q.ans, q.exp, q.para, q.who || ''];
     });
-    qb.getRange(2, 1, qr.length, 11).setValues(qr);
+    qb.getRange(2, 1, qr.length, 12).setValues(qr);
   }
   var il = ss.getSheetByName(SHEET.ILL);
   if (il.getLastRow() < 2) {
@@ -239,7 +241,8 @@ function catalog_() {
   });
   var qn = {};
   rows_(SHEET.QB).forEach(function (r) { var ch = Number(r[0]); if (ch) qn[ch] = (qn[ch] || 0) + 1; });
-  list.forEach(function (x) { x.qn = qn[x.ch] || 0; });
+  var dn = drawN_(getSettings_());
+  list.forEach(function (x) { x.qn = Math.min(qn[x.ch] || 0, dn); });
   list.sort(function (a, b) { return a.ch - b.ch; });
   c.put('catalog', JSON.stringify(list), 600);
   return list;
@@ -263,7 +266,7 @@ function chapterFull_(ch) {
   paras.sort(function (a, b) { return a.i - b.i; });
   var qs = rows_(SHEET.QB).filter(function (r) { return Number(r[0]) === ch; }).map(function (r) {
     return { no: Number(r[1]), type: str_(r[2]), stem: str_(r[3]), opts: [str_(r[4]), str_(r[5]), str_(r[6]), str_(r[7])],
-      ans: str_(r[8]).toUpperCase(), exp: str_(r[9]), para: Number(r[10]) || 0 };
+      ans: str_(r[8]).toUpperCase(), exp: str_(r[9]), para: Number(r[10]) || 0, who: str_(r[11]) };
   }).sort(function (a, b) { return a.no - b.no; });
   var ill = rows_(SHEET.ILL).filter(function (r) { return Number(r[0]) === ch; }).map(function (r) {
     return { no: Number(r[1]), title: str_(r[2]), after: Number(r[3]) || 0, caption: str_(r[4]), url: imgUrl_(r[6]), talk: parseTalk_(r[7]) };
@@ -352,7 +355,7 @@ function progress_(account) {
   rows_(SHEET.SAVE).forEach(function (r) {
     if (str_(r[0]).toLowerCase() === a) {
       var s = saveObj_(r);
-      o[s.ch] = { submitted: s.submitted, best: s.best, last: s.last, tries: s.tries, hasDraft: !!(s.draft && s.draft.ans && Object.keys(s.draft.ans).length) };
+      o[s.ch] = { submitted: s.submitted, best: s.best, last: s.last, tries: s.tries, hasDraft: !!(s.draft && ((s.draft.ans && Object.keys(s.draft.ans).length) || (s.draft.bt && !s.draft.bt.fin && Object.keys(s.draft.bt.ans || {}).length))) };
     }
   });
   return o;
@@ -512,16 +515,8 @@ function apiGuestChapter(ch) {
   var full = chapterFull_(ch);
   return { ch: ch, num: full.num, title: full.title, paras: full.paras, guest: true,
     ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
-    qs: full.qs.map(function (q) { return { no: q.no, type: q.type, stem: q.stem, opts: q.opts }; }),
+    qn: Math.min(full.qs.length, drawN_(set)), bt: { state: 'none' },
     allowRetry: true, save: null, source: sourceOf_(set, ch, full.num), notes: full.notes || [], names: full.names || [], people: peopleFor_(ch) };
-}
-function apiGuestSubmit(ch, ans) {
-  ch = Number(ch); var set = getSettings_();
-  if (!guestChapters_(set)[ch]) throw new Error('本回需登入才能作答');
-  var full = chapterFull_(ch); ans = ans || {};
-  var missing = full.qs.filter(function (q) { return !str_(ans[q.no]); });
-  if (missing.length) throw new Error('還有 ' + missing.length + ' 題未作答');
-  var g = grade_(full, ans, yes_(set['交卷後顯示解析'] || '是')); g.summary = full.summary; return g;
 }
 
 function apiChapter(token, ch) {
@@ -531,12 +526,19 @@ function apiChapter(token, ch) {
   var full = chapterFull_(ch), set = getSettings_();
   var hit = findSave_(p.a, ch), save = hit ? saveObj_(hit.r) : null;
   var showExp = yes_(set['交卷後顯示解析'] || '是');
+  var bt = save && save.draft && save.draft.bt ? save.draft.bt : null;
+  if (save && save.draft) delete save.draft.bt;
   var out = { ch: ch, num: full.num, title: full.title, paras: full.paras,
     ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
-    qs: full.qs.map(function (q) { return { no: q.no, type: q.type, stem: q.stem, opts: q.opts }; }),
+    qn: Math.min(full.qs.length, drawN_(set)), bt: { state: 'none' },
     allowRetry: yes_(set['允許重作'] || '是'), save: save, source: sourceOf_(set, ch, full.num),
     notes: full.notes || [], names: full.names || [], people: peopleFor_(ch) };
-  if (save && save.submitted) { out.result = grade_(full, save.lastAns || {}, showExp); out.result.summary = full.summary; }
+  if (bt && !bt.fin) out.bt = btView_(full, bt, showExp);
+  else if (save && save.submitted) {
+    out.result = grade_(full, save.lastAns || {}, showExp); out.result.summary = full.summary;
+    if (bt && bt.fin) out.result.review = btReview_(full, bt, showExp);
+    out.bt = { state: 'done' };
+  }
   return out;
 }
 
@@ -550,13 +552,13 @@ function sourceOf_(set, ch, num) {
 }
 
 function grade_(full, ans, showExp) {
-  var score = 0;
-  var items = full.qs.map(function (q) {
-    var mine = str_(ans[q.no]).toUpperCase(), ok = mine === q.ans;
-    if (ok) score++;
-    return { no: q.no, mine: mine, ans: q.ans, ok: ok, exp: showExp ? q.exp : '', para: q.para };
+  var score = 0, items = [];
+  full.qs.forEach(function (q) {
+    var mine = str_(ans[q.no]).toUpperCase(); if (!mine) return;   // 只計實際作答（被抽中）的題目
+    var ok = mine === q.ans; if (ok) score++;
+    items.push({ no: q.no, mine: mine, ans: q.ans, ok: ok, exp: showExp ? q.exp : '', para: q.para });
   });
-  return { score: score, total: full.qs.length, items: items };
+  return { score: score, total: items.length, items: items };
 }
 
 function cleanBm_(bm) {
@@ -576,7 +578,7 @@ function apiSaveDraft(token, ch, ans, pos, bm, spent) {
   try {
     var hit = findSave_(p.a, ch), t = now_();
     var prevObj = hit ? saveObj_(hit.r) : null, old = prevObj ? prevObj.draft : null;
-    var draft = JSON.stringify({ ans: ans || {}, pos: Number(pos) || 0, bm: bm ? cleanBm_(bm) : ((old && old.bm) || []) });
+    var draft = JSON.stringify({ ans: ans || {}, pos: Number(pos) || 0, bm: bm ? cleanBm_(bm) : ((old && old.bm) || []), bt: (old && old.bt) || undefined });
     var sp = cleanSpent_(spent, prevObj ? prevObj.spent : 0);
     if (hit) {
       var s = sh_(SHEET.SAVE);
@@ -607,30 +609,194 @@ function apiSaveBookmarks(token, ch, bm, pos) {
   } finally { lock.releaseLock(); }
 }
 
-function apiSubmit(token, ch, ans, pos, spent) {
+/* ================= 出征（分層抽題＋選項洗牌＋伺服器端批改） =================
+ * 抽到的題組與每題的選項排列存在「存檔」草稿的 bt 裡：重新整理頁面不會重抽，
+ * 前端只拿得到亂序後的選項，正解在作答後才由伺服器告知。 */
+function drawN_(set) { var n = Math.round(Number(set['每次抽題數'])); return n >= 1 && n <= 50 ? n : 10; }
+function shuffled_(a) {
+  var b = a.slice(), i, j, t;
+  for (i = b.length - 1; i > 0; i--) { j = Math.floor(Math.random() * (i + 1)); t = b[i]; b[i] = b[j]; b[j] = t; }
+  return b;
+}
+function btGroup_(type) {
+  type = str_(type);
+  if (/人物/.test(type)) return 'p';
+  if (/概念|意象|典故|修辭|字詞|章法|體裁/.test(type)) return 'c';
+  return 't';
+}
+/** 分層抽題：文意 4：人物 4：概念 2（依總題數等比例）；沒看過的題優先 */
+function btDraw_(full, seen, n) {
+  var seenSet = {}; (seen || []).forEach(function (x) { seenSet[x] = 1; });
+  var all = full.qs.map(function (q) { return q.no; });
+  if (all.length <= n) return shuffled_(all);
+  var g = { t: [], p: [], c: [] };
+  full.qs.forEach(function (q) { g[btGroup_(q.type)].push(q.no); });
+  var order = function (arr) {
+    var u = [], o = [];
+    arr.forEach(function (no) { (seenSet[no] ? o : u).push(no); });
+    return shuffled_(u).concat(shuffled_(o));
+  };
+  var nt = Math.round(n * 0.4), np = Math.round(n * 0.4), quota = { t: nt, p: np, c: n - nt - np };
+  var pick = [], rest = [];
+  ['t', 'p', 'c'].forEach(function (k) {
+    var pool = order(g[k]);
+    pick = pick.concat(pool.slice(0, quota[k])); rest = rest.concat(pool.slice(quota[k]));
+  });
+  if (pick.length < n) {
+    var fresh = rest.filter(function (no) { return !seenSet[no]; }), old = rest.filter(function (no) { return seenSet[no]; });
+    pick = pick.concat(shuffled_(fresh).concat(shuffled_(old)).slice(0, n - pick.length));
+  }
+  return shuffled_(pick);
+}
+function btNew_(full, set, prevSeen) {
+  var nos = btDraw_(full, prevSeen, drawN_(set)), perm = {};
+  nos.forEach(function (no) { perm[no] = shuffled_([0, 1, 2, 3]).join(''); });
+  var seen = (prevSeen || []).concat(nos);
+  if (seen.length >= full.qs.length) seen = nos.slice();   // 全題庫都出過一輪，重新計
+  return { id: Utilities.getUuid().slice(0, 8), nos: nos, perm: perm, ans: {}, seen: seen, fin: false };
+}
+function btQ_(full, no) { for (var i = 0; i < full.qs.length; i++) if (full.qs[i].no === no) return full.qs[i]; return null; }
+function btToOrig_(bt, no, d) { var i = 'ABCD'.indexOf(d); return i < 0 ? '' : 'ABCD'.charAt(Number(bt.perm[no].charAt(i))); }
+function btToDisp_(bt, no, o) { return 'ABCD'.charAt(bt.perm[no].indexOf(String('ABCD'.indexOf(o)))); }
+function btOpts_(q, perm) { return perm.split('').map(function (i) { return q.opts[Number(i)]; }); }
+function btResult_(full, bt, no, showExp) {
+  var q = btQ_(full, no), mine = bt.ans[no], ok = btToOrig_(bt, no, mine) === q.ans;
+  return { no: no, mine: mine, ans: btToDisp_(bt, no, q.ans), ok: ok, exp: showExp ? q.exp : '', para: q.para, who: ok ? q.who : '' };
+}
+function btView_(full, bt, showExp) {
+  var done = {};
+  bt.nos.forEach(function (no) { if (bt.ans[no]) done[no] = btResult_(full, bt, no, showExp); });
+  return { state: 'ongoing', id: bt.id, done: done,
+    qs: bt.nos.map(function (no) { var q = btQ_(full, no); return { no: no, type: q.type, stem: q.stem, opts: btOpts_(q, bt.perm[no]) }; }) };
+}
+function btReview_(full, bt, showExp) {
+  return bt.nos.map(function (no) {
+    var q = btQ_(full, no), r = btResult_(full, bt, no, showExp);
+    r.type = q.type; r.stem = q.stem; r.opts = btOpts_(q, bt.perm[no]); return r;
+  });
+}
+function btAnsOrig_(bt) {
+  var o = {}; bt.nos.forEach(function (no) { o[no] = btToOrig_(bt, no, bt.ans[no]); }); return o;
+}
+function btWriteDraft_(p, ch, bt, t) {
+  var hit = findSave_(p.a, ch), s = sh_(SHEET.SAVE);
+  if (hit) {
+    var o = saveObj_(hit.r), d = o.draft || { ans: {}, pos: 0, bm: [] };
+    d.bt = bt; s.getRange(hit.row, 3).setValue(JSON.stringify(d)); s.getRange(hit.row, 12).setValue(t);
+    if (!o.opened) s.getRange(hit.row, 14).setValue(t);
+  } else {
+    s.appendRow([p.a, ch, JSON.stringify({ ans: {}, pos: 0, bm: [], bt: bt }), '否', '', '', '', 0, '', '', '', t, 0, t]);
+  }
+}
+function btLoad_(p, ch) {
+  var hit = findSave_(p.a, ch), o = hit ? saveObj_(hit.r) : null;
+  return { save: o, bt: o && o.draft && o.draft.bt ? o.draft.bt : null };
+}
+
+/** 出征：有未完成的戰役就接著打；否則抽新題組 */
+function apiBattleStart(token, ch) {
   var p = verify_(token, 's'); ch = Number(ch);
+  var open = openChapters_(); if (open && !open[ch]) throw new Error('本回尚未開放');
   var full = chapterFull_(ch), set = getSettings_();
-  ans = ans || {};
-  var missing = full.qs.filter(function (q) { return !str_(ans[q.no]); });
-  if (missing.length) throw new Error('還有 ' + missing.length + ' 題未作答');
+  if (!full.qs.length) throw new Error('本回尚未建立題目');
+  var lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    var L = btLoad_(p, ch), bt = L.bt;
+    if (bt && !bt.fin) return btView_(full, bt, yes_(set['交卷後顯示解析'] || '是'));
+    if (L.save && L.save.submitted && !yes_(set['允許重作'] || '是')) throw new Error('本回已交卷，老師未開放重作');
+    var seen = bt ? bt.seen : (L.save && L.save.lastAns ? Object.keys(L.save.lastAns).map(Number) : []);
+    bt = btNew_(full, set, seen);
+    btWriteDraft_(p, ch, bt, now_());
+    return btView_(full, bt, yes_(set['交卷後顯示解析'] || '是'));
+  } finally { lock.releaseLock(); }
+}
+/** 答一題：伺服器記錄、批改，並回報正解（顯示用字母） */
+function apiBattleAnswer(token, ch, no, letter) {
+  var p = verify_(token, 's'); ch = Number(ch); no = Number(no); letter = str_(letter).toUpperCase();
+  if ('ABCD'.indexOf(letter) < 0 || letter.length !== 1) throw new Error('請選 A～D');
+  var full = chapterFull_(ch), set = getSettings_();
+  var lock = LockService.getScriptLock(); lock.waitLock(15000);
+  try {
+    var bt = btLoad_(p, ch).bt;
+    if (!bt || bt.fin) throw new Error('請先出征');
+    if (bt.nos.indexOf(no) < 0) throw new Error('這題不在本次出征內');
+    if (bt.ans[no]) throw new Error('這題已經作答');
+    bt.ans[no] = letter;
+    btWriteDraft_(p, ch, bt, now_());
+    var r = btResult_(full, bt, no, yes_(set['交卷後顯示解析'] || '是'));
+    r.n = Object.keys(bt.ans).length; r.total = bt.nos.length;
+    return r;
+  } finally { lock.releaseLock(); }
+}
+/** 收兵：十題都答完後記成績 */
+function apiBattleFinish(token, ch, pos, spent) {
+  var p = verify_(token, 's'); ch = Number(ch);
+  var full = chapterFull_(ch), set = getSettings_(), showExp = yes_(set['交卷後顯示解析'] || '是');
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
-    var hit = findSave_(p.a, ch), s = sh_(SHEET.SAVE), t = now_();
-    var prev = hit ? saveObj_(hit.r) : null;
+    var L = btLoad_(p, ch), bt = L.bt;
+    if (!bt || bt.fin) throw new Error('沒有進行中的出征');
+    var left = bt.nos.filter(function (no) { return !bt.ans[no]; });
+    if (left.length) throw new Error('還有 ' + left.length + ' 題未作答');
+    var prev = L.save, s = sh_(SHEET.SAVE), t = now_(), hit = findSave_(p.a, ch);
     if (prev && prev.submitted && !yes_(set['允許重作'] || '是')) throw new Error('本回已交卷，老師未開放重作');
-    var res = grade_(full, ans, yes_(set['交卷後顯示解析'] || '是'));
+    var ans = btAnsOrig_(bt), res = grade_(full, ans, showExp);
+    bt.fin = true;
     var tries = (prev ? prev.tries : 0) + 1;
     var first = prev && prev.first !== null ? prev.first : res.score;
     var best = prev && prev.best !== null ? Math.max(prev.best, res.score) : res.score;
-    var row = [p.a, ch, JSON.stringify({ ans: ans, pos: Number(pos) || 0, bm: (prev && prev.draft && prev.draft.bm) || [] }), '是', first, best, res.score, tries,
+    var row = [p.a, ch, JSON.stringify({ ans: {}, pos: Number(pos) || 0, bm: (prev && prev.draft && prev.draft.bm) || [], bt: bt }), '是', first, best, res.score, tries,
       JSON.stringify(ans), prev && prev.firstTime ? prev.firstTime : t, t, t,
       cleanSpent_(spent, prev ? prev.spent : 0), prev && prev.opened ? prev.opened : t];
     if (hit) s.getRange(hit.row, 1, 1, row.length).setValues([row]); else s.appendRow(row);
     var st = findStudent_(p.a), u = st ? userObj_(st.r) : { name: '', cls: '', seat: '' };
     sh_(SHEET.LOG).appendRow([t, p.a, u.name, u.cls, u.seat, ch, JSON.stringify(ans), res.score, tries, row[12]]);
-    res.tries = tries; res.best = best; res.summary = full.summary;
+    res.tries = tries; res.best = best; res.summary = full.summary; res.review = btReview_(full, bt, showExp);
     return res;
   } finally { lock.releaseLock(); }
+}
+
+/* ----- 訪客：不存檔，用簽章票證帶著題組 ----- */
+function apiGuestBattleStart(ch) {
+  ch = Number(ch); var set = getSettings_();
+  if (!guestChapters_(set)[ch]) throw new Error('本回需登入才能作答');
+  var full = chapterFull_(ch);
+  if (!full.qs.length) throw new Error('本回尚未建立題目');
+  var bt = btNew_(full, set, []); bt.seen = [];
+  var v = btView_(full, bt, yes_(set['交卷後顯示解析'] || '是'));
+  v.ticket = sign_({ r: 'g', ch: ch, nos: bt.nos, perm: bt.perm, e: Date.now() + 6 * 3600 * 1000 });
+  return v;
+}
+function guestBt_(ticket) {
+  var p = verify_(ticket, 'g');
+  return { ch: p.ch, bt: { nos: p.nos, perm: p.perm, ans: {} } };
+}
+function apiGuestBattleAnswer(ticket, no, letter) {
+  var g = guestBt_(ticket), full = chapterFull_(g.ch), set = getSettings_(); no = Number(no); letter = str_(letter).toUpperCase();
+  if ('ABCD'.indexOf(letter) < 0 || letter.length !== 1 || g.bt.nos.indexOf(no) < 0) throw new Error('作答有誤');
+  g.bt.ans[no] = letter;
+  return btResult_(full, g.bt, no, yes_(set['交卷後顯示解析'] || '是'));
+}
+function apiGuestBattleFinish(ticket, ans) {
+  var g = guestBt_(ticket), full = chapterFull_(g.ch), set = getSettings_(); ans = ans || {};
+  g.bt.nos.forEach(function (no) { g.bt.ans[no] = str_(ans[no]).toUpperCase(); });
+  var left = g.bt.nos.filter(function (no) { return 'ABCD'.indexOf(g.bt.ans[no]) < 0 || g.bt.ans[no].length !== 1; });
+  if (left.length) throw new Error('還有 ' + left.length + ' 題未作答');
+  var showExp = yes_(set['交卷後顯示解析'] || '是'), res = grade_(full, btAnsOrig_(g.bt), showExp);
+  res.summary = full.summary; res.review = btReview_(full, g.bt, showExp); return res;
+}
+
+/** 已部署的專案：把第一回 20 題題庫寫進「題庫」工作表（只動第一回；請先執行 setupSheets） */
+function applyQuestionBank1() {
+  var s = sh_(SHEET.QB), data = rows_(SHEET.QB), idx = {}, add = [], upd = 0;
+  data.forEach(function (r, i) { idx[Number(r[0]) + '|' + Number(r[1])] = i + 2; });
+  SEED.questions.filter(function (q) { return q.ch === 1; }).forEach(function (q) {
+    var row = [q.ch, q.no, q.type, q.stem, q.opts[0], q.opts[1], q.opts[2], q.opts[3], q.ans, q.exp, q.para, q.who || ''], at = idx[q.ch + '|' + q.no];
+    if (at) { s.getRange(at, 1, 1, 12).setValues([row]); upd++; } else add.push(row);
+  });
+  if (add.length) s.getRange(s.getLastRow() + 1, 1, add.length, 12).setValues(add);
+  clearContentCache();
+  return '第一回題庫：更新 ' + upd + ' 題、新增 ' + add.length + ' 題';
 }
 
 /* ---------- 錯題本 ---------- */
@@ -642,7 +808,7 @@ function apiMistakes(token) {
     var full = chapterFull_(s.ch);
     full.qs.forEach(function (q) {
       var mine = str_(s.lastAns[q.no]).toUpperCase();
-      if (mine !== q.ans) out.push({ ch: s.ch, num: full.num, title: full.title, no: q.no, type: q.type, stem: q.stem, opts: q.opts,
+      if (mine && mine !== q.ans) out.push({ ch: s.ch, num: full.num, title: full.title, no: q.no, type: q.type, stem: q.stem, opts: q.opts,
         ans: q.ans, mine: mine, exp: showExp ? q.exp : '', para: q.para });
     });
   });
@@ -682,7 +848,7 @@ function apiTeacherData(token) {
   });
   var chapters = catalog_().map(function (c) {
     var f = chapterFull_(c.ch);
-    return { ch: c.ch, num: c.num, title: c.title,
+    return { ch: c.ch, num: c.num, title: c.title, qn: c.qn,
       qs: f.qs.map(function (q) {
         var pr = f.paras.filter(function (x) { return x.i === q.para; })[0];
         return { no: q.no, type: q.type, stem: q.stem, ans: q.ans, para: q.para, paraText: pr ? pr.t.replace(/^〔詩〕/, '') : '' };
@@ -720,7 +886,7 @@ function apiTeacherQs(token, ch) {
   var f = chapterFull_(ch);
   return { ch: ch, num: f.num, title: f.title, nParas: f.paras.length,
     qs: rows_(SHEET.QB).filter(function (r) { return Number(r[0]) === ch; }).map(function (r) {
-      return { no: Number(r[1]), type: str_(r[2]), stem: str_(r[3]), opts: [str_(r[4]), str_(r[5]), str_(r[6]), str_(r[7])], ans: str_(r[8]).toUpperCase(), exp: str_(r[9]), para: Number(r[10]) || 0 };
+      return { no: Number(r[1]), type: str_(r[2]), stem: str_(r[3]), opts: [str_(r[4]), str_(r[5]), str_(r[6]), str_(r[7])], ans: str_(r[8]).toUpperCase(), exp: str_(r[9]), para: Number(r[10]) || 0, who: str_(r[11]) };
     }).sort(function (a, b) { return a.no - b.no; }) };
 }
 function apiTeacherSaveQ(token, q) {
@@ -730,15 +896,15 @@ function apiTeacherSaveQ(token, q) {
   if (!stem) throw new Error('請填題幹');
   if (opts.length !== 4 || opts.some(function (o) { return !o; })) throw new Error('四個選項都要填');
   if ('ABCD'.indexOf(ans) < 0 || ans.length !== 1) throw new Error('答案請選 A～D');
-  var type = ['劇情', '人物', '意象', '修辭'].indexOf(str_(q.type)) >= 0 ? str_(q.type) : '劇情';
+  var type = ['文意理解', '人物', '概念', '劇情', '意象', '修辭'].indexOf(str_(q.type)) >= 0 ? str_(q.type) : '文意理解';
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     var s = sh_(SHEET.QB), data = rows_(SHEET.QB), no = Number(q.no) || 0, max = 0;
-    var row = [ch, no, type, stem, opts[0], opts[1], opts[2], opts[3], ans, str_(q.exp), Number(q.para) || ''];
+    var row = [ch, no, type, stem, opts[0], opts[1], opts[2], opts[3], ans, str_(q.exp), Number(q.para) || '', str_(q.who)];
     for (var i = 0; i < data.length; i++) {
       if (Number(data[i][0]) !== ch) continue;
       max = Math.max(max, Number(data[i][1]) || 0);
-      if (no && Number(data[i][1]) === no) { s.getRange(i + 2, 1, 1, 11).setValues([row]); clearContentCache(); return apiTeacherQs(token, ch); }
+      if (no && Number(data[i][1]) === no) { if (q.who === undefined) row[11] = str_(data[i][11]); s.getRange(i + 2, 1, 1, 12).setValues([row]); clearContentCache(); return apiTeacherQs(token, ch); }
     }
     row[1] = max + 1; s.appendRow(row);
     clearContentCache();

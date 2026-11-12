@@ -351,6 +351,61 @@ main:has(.reader){padding-bottom:14px}
 .fb .verdict.ok{color:var(--jade)}.fb .verdict.no{color:var(--red)}
 .link{background:none;border:none;color:var(--red);text-decoration:underline;font:14px var(--f-body);padding:0;margin-left:6px}
 .qbar{position:sticky;bottom:-26px;background:linear-gradient(transparent,#f8f1df 30%);padding:18px 0 4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* ---- 出征（戰鬥外皮） ---- */
+.bt{display:flex;flex-direction:column;gap:10px}
+.bt h3{margin:0}
+.bt-intro p{margin:6px 0;line-height:1.8}
+.bt-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.bt-hd b{font:700 17px var(--f-title);letter-spacing:2px}
+.bt-hd span{font:14px var(--f-title);color:var(--ink2)}
+.bt-field{position:relative;border:1px solid var(--line);background:linear-gradient(#f2e7c8,#e6d6b0);padding:10px 12px;overflow:hidden}
+.bt-field:after{content:'';position:absolute;left:0;right:0;bottom:0;height:46%;background:linear-gradient(transparent,rgba(78,50,32,.18));pointer-events:none;
+  clip-path:polygon(0 60%,12% 35%,24% 55%,38% 20%,52% 50%,66% 28%,80% 52%,92% 34%,100% 50%,100% 100%,0 100%)}
+@media (min-width:901px){.bt-field{position:sticky;top:-1px;z-index:5}}
+.bt-row{display:flex;align-items:center;gap:10px;position:relative;z-index:1}
+.bt-row+.bt-row{margin-top:8px}
+.bt-flag{flex:none;width:42px;height:54px;display:grid;place-items:start center;padding-top:7px;box-sizing:border-box;font:700 22px var(--f-title);color:#fbeee0;
+  clip-path:polygon(0 0,100% 0,100% 100%,50% 84%,0 100%);transition:transform .2s}
+.bt-flag.me{background:var(--red)}.bt-flag.foe{background:#b8921f;color:#3a2a10}.bt-flag.foe.d{background:#3b3a46;color:#e9dfc8}
+.bt-info{flex:1;min-width:0}
+.bt-nm{display:flex;justify-content:space-between;gap:6px;font:700 14px var(--f-title)}
+.bt-nm small{font:13px var(--f-title);color:var(--ink2)}
+.hp{height:13px;margin-top:3px;border:1.5px solid var(--wood);background:#dccba4;overflow:hidden}
+.hp i{display:block;height:100%;width:100%;background:linear-gradient(#c2493c,#a8322a);transition:width .7s cubic-bezier(.3,.7,.3,1)}
+.hp.me i{background:linear-gradient(#52806e,#3e6a5a)}
+.hp.low i{background:linear-gradient(#d28a30,#b8661f)}
+.bt-vs{position:relative;z-index:1;text-align:center;font:700 12px var(--f-title);letter-spacing:8px;color:var(--ink2);margin:3px 0 0}
+.bt-fx{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+.fx-n{position:absolute;font:700 24px var(--f-title);text-shadow:0 1px 0 #fff8;animation:fxUp 1.2s ease-out forwards}
+.fx-n.hit{color:var(--red)}.fx-n.hurt{color:#7a3d00}.fx-n.heal{color:var(--jade)}
+@keyframes fxUp{0%{opacity:0;transform:translateY(6px) scale(.8)}15%{opacity:1;transform:translateY(0) scale(1.15)}100%{opacity:0;transform:translateY(-30px)}}
+.shake{animation:btShake .42s}
+@keyframes btShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.lunge{animation:btLunge .45s}
+@keyframes btLunge{0%{transform:translateX(0)}40%{transform:translateX(14px) scale(1.12)}100%{transform:translateX(0)}}
+.ploy{position:absolute;left:0;right:0;top:50%;z-index:4;transform:translateY(-50%);text-align:center;pointer-events:none;
+  font:700 40px var(--f-title);letter-spacing:12px;color:#fff3dc;text-shadow:0 0 14px #e8742a,0 0 4px #a8322a,0 2px 0 #7a1f18;
+  background:linear-gradient(90deg,transparent,rgba(168,50,42,.78) 20%,rgba(168,50,42,.78) 80%,transparent);padding:6px 0;animation:ployIn 1.7s ease-out forwards}
+.ploy small{display:block;font:14px var(--f-title);letter-spacing:3px;color:#fbe9cf;text-shadow:none;margin-top:2px}
+@keyframes ployIn{0%{opacity:0;transform:translateY(-50%) scaleY(.3)}12%{opacity:1;transform:translateY(-50%) scaleY(1)}80%{opacity:1}100%{opacity:0}}
+.bt-dots{display:flex;gap:5px;justify-content:center;flex-wrap:wrap}
+.bt-dots span{width:22px;height:22px;border:1.5px solid var(--ink2);border-radius:50%;display:grid;place-items:center;font:700 12px var(--f-title);color:var(--ink2)}
+.bt-dots span.ok{background:var(--jade);border-color:var(--jade);color:#fff}
+.bt-dots span.no{background:var(--red);border-color:var(--red);color:#fff}
+.bt-dots span.now{box-shadow:0 0 0 3px rgba(160,122,60,.45)}
+.bt .q{margin:0}
+.bt .opt{cursor:pointer;background:#fbf5e4;border:1px solid var(--line)}
+.bt .opt.dim{opacity:.5;cursor:default}
+.bt .opt.busy{opacity:.75}
+.bt.shown .opt{cursor:default}
+.bt-act{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.gen{display:flex;gap:10px;align-items:center;margin:8px 0 0;padding:8px 10px;background:#fbf5e4;border:1.5px solid var(--gold);animation:genIn .5s}
+.gen .nm{flex:none;width:44px;height:44px;border-radius:50%;background:var(--wood);color:#f3dfb2;display:grid;place-items:center;font:700 15px var(--f-title);letter-spacing:0}
+.gen b{font:700 15px var(--f-title)}.gen small{display:block;font-size:13.5px;line-height:1.6;color:var(--ink2)}
+@keyframes genIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.bt-end{padding:12px;border:1px solid var(--line);background:#f3e9d2;margin-bottom:8px}
+.bt-end h3{font-size:24px;letter-spacing:6px;margin:0 0 4px;color:var(--red)}
+@media (prefers-reduced-motion:reduce){.shake,.lunge,.fx-n,.ploy{animation-duration:.01s}.hp i{transition:none}}
 .savest{font-size:14px;color:var(--mute);margin-right:auto}
 .result{display:flex;align-items:center;gap:18px;padding:14px;margin:6px 0 4px;background:#f3e9d2;border:1px solid var(--line)}
 .bigseal{width:86px;height:86px;flex:none;border:3px double var(--red);color:var(--red);border-radius:6px;display:grid;place-items:center;
@@ -581,7 +636,7 @@ function fail(e) {
 function modal(html, cls) { var m = $('#modal'); m.innerHTML = '<div class="mbox scrollpanel ' + (cls || '') + '">' + html + '</div>'; m.classList.add('show'); }
 function closeModal() { $('#modal').classList.remove('show'); }
 $('#modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
-function typeCls(t) { return { '劇情': 't1', '人物': 't2', '意象': 't3', '修辭': 't4' }[t] || 't1'; }
+function typeCls(t) { return { '劇情': 't1', '文意理解': 't1', '人物': 't2', '意象': 't3', '概念': 't3', '修辭': 't4' }[t] || 't1'; }
 
 /* ================= 頂欄 ================= */
 $('#btnMusic').onclick = function () { var on = Qin.toggle(); this.classList.toggle('on', on); store('sg_music', on ? '1' : '0'); };
@@ -718,6 +773,7 @@ function renderHome() {
 
 /* ================= 閱讀＋作答 ================= */
 function openChapter(ch) {
+  S.bt = null;
   loading('展開第' + cnum(ch) + '回');
   if (S.guest) return call('apiGuestChapter', ch).then(function (d) {
     S.chap = d; var g = null; try { g = JSON.parse(store('sg_guest_' + ch) || 'null'); } catch (e) { }
@@ -1487,46 +1543,163 @@ function readPos() {
   if (tx.classList.contains('vert')) return 0;
   return Math.max(0, Math.min(1, tx.scrollTop / Math.max(1, tx.scrollHeight - tx.clientHeight)));
 }
+/* ================= 出征：抽 N 題、亂序作答、即時戰況 ================= */
+var FOE = { 1: ['程遠志', '黃', ''], 2: ['張寶', '黃', ''], 3: ['丁原', '丁', 'd'], 4: ['董卓', '董', 'd'], 5: ['華雄', '華', 'd'] };
+var PLOYS = [['火　計', '長社縱火，士氣大振'], ['伏　兵', '鳴金為號，左右齊出'], ['連　環', '計中有計，環環相扣']];
+function foeOf(ch) { var f = FOE[ch] || ['敵軍', '賊', '']; return { name: f[0], ch: f[1], cls: f[2] }; }
+function btOutcome(s, n) { return s === n ? ['全　勝', '殲滅敵軍，無一漏網！'] : s >= n * .8 ? ['大　勝', '大破敵軍，明察秋毫。'] : s >= n * .6 ? ['小　勝', '擊退敵軍，仍有疏漏，回原文補一補。'] : ['敗　退', '兵敗退守，對照解析再戰一回。']; }
+/** 依已作答的結果重播戰況（兵力、連對、計策） */
+function btReplay(st) {
+  var N = st.qs.length; st.max = N * 50; st.foeMax = N * 100; st.me = st.max; st.foe = st.foeMax; st.streak = 0; st.ploys = 0; st.i = N; st.last = null;
+  for (var k = 0; k < N; k++) {
+    var r = st.done[st.qs[k].no]; if (!r) { st.i = k; break; }
+    btApply(st, r);
+  }
+}
+function btApply(st, r) {
+  st.last = { ok: r.ok, ploy: null, heal: 0 };
+  if (r.ok) {
+    st.foe = Math.max(0, st.foe - 100); st.streak++;
+    if (st.streak % 3 === 0) { st.last.ploy = PLOYS[st.ploys % PLOYS.length]; st.ploys++; var h = Math.min(50, st.max - st.me); st.me += h; st.last.heal = h; }
+  } else { st.me = Math.max(0, st.me - 50); st.streak = 0; }
+}
 function renderQuiz() {
-  var d = S.chap, res = d.result, box = $('#quiz');
-  var head = '<h3>試　題</h3><div class="sub">共 ' + d.qs.length + ' 題・以劇情理解為主' + (d.save && d.save.tries ? '・已作答 ' + d.save.tries + ' 次' : '') + '</div>';
-  if (res) head += '<div class="result"><div class="bigseal">' + res.score + '/' + res.total + '<small>' + (res.score === res.total ? '全對' : res.score >= res.total * .6 ? '可也' : '再讀') + '</small></div><div>' +
-    (res.score === res.total ? '通讀全回，明察秋毫！' : '對照解析，回原文找找答案所在之處。') + (d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') + (res.best != null || (d.save && d.save.best != null) ? '<div class="note">本回最高：' + (res.best != null ? res.best : d.save.best) + ' 分</div>' : '') + '</div></div>';
-  if (res) head += summaryHTML(res.summary);
-  var qs = d.qs.map(function (q, qi) {
-    var it = res ? res.items.filter(function (x) { return x.no === q.no; })[0] : null;
-    var mine = it ? it.mine : S.ans[q.no];
-    var opts = q.opts.map(function (o, i) {
-      var L = 'ABCD'[i], cls = 'opt';
-      if (it) { if (L === it.ans) cls += ' right'; else if (L === it.mine) cls += ' wrong'; }
-      else if (mine === L) cls += ' sel';
-      return '<label class="' + cls + '"><input type="radio" name="q' + q.no + '" value="' + L + '"' + (mine === L ? ' checked' : '') + (it ? ' disabled' : '') + '><span class="L">' + L + '</span><span>' + esc(o) + '</span></label>';
-    }).join('');
-    var fb = it ? '<div class="fb show"><span class="verdict ' + (it.ok ? 'ok">✓ 答對了' : 'no">✗ 正解為 ' + it.ans) + '</span>' +
-      (it.exp ? '<div>' + esc(it.exp) + '</div>' : '') + (it.para ? '<button class="link" data-para="' + it.para + '">看原文第 ' + it.para + ' 段</button>' : '') + '</div>' : '';
-    return '<div class="q' + (it ? ' locked' : '') + '" data-no="' + q.no + '"><div class="qh"><span class="qn">第' + cnum(qi + 1) + '題</span><span class="tag ' + typeCls(q.type) + '">' + esc(q.type) + '</span></div>' +
-      '<p class="stem">' + esc(q.stem) + '</p><div class="opts">' + opts + '</div>' + fb + '</div>';
+  var d = S.chap, box = $('#quiz'), st = S.bt;
+  if (!st && d.bt && d.bt.state === 'ongoing') { st = S.bt = { qs: d.bt.qs, done: d.bt.done || {}, ticket: null, gans: {}, phase: 'ask' }; btReplay(st); if (st.i >= st.qs.length) st.phase = 'end'; }
+  if (st) return renderBattle();
+  if (d.result) return renderResult();
+  var fo = foeOf(d.ch), n = d.qn || 5, tries = d.save && d.save.tries;
+  box.innerHTML = '<div class="bt bt-intro"><h3>出　征</h3><div class="sub">對陣 ' + esc(fo.name) + '・共 ' + n + ' 合' + (tries ? '・已出征 ' + tries + ' 次' : '') + '</div>' +
+    '<div class="bt-field"><div class="bt-row"><div class="bt-flag me">劉</div><div class="bt-info"><div class="bt-nm"><span>我軍</span><small>' + (n * 50) + ' 兵</small></div><div class="hp me"><i></i></div></div></div>' +
+    '<div class="bt-vs">對　陣</div>' +
+    '<div class="bt-row"><div class="bt-flag foe ' + fo.cls + '">' + esc(fo.ch) + '</div><div class="bt-info"><div class="bt-nm"><span>' + esc(fo.name) + ' 軍</span><small>' + (n * 100) + ' 兵</small></div><div class="hp"><i></i></div></div></div></div>' +
+    '<p>先讀原文，再領兵出征。每回從題庫抽出 ' + n + ' 題，<b>題目順序與選項排列都是亂的</b>，每一合只作答一題。</p>' +
+    '<p>答對：擊退敵軍；答錯：折損兵力。<b>連對三題</b>可發動計策，回復士氣。作答時可隨時對照左側原文。</p>' +
+    (d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') +
+    '<div class="bt-act"><button class="btn" id="btGo">出　征</button></div></div>';
+  $('#btGo').onclick = function () { btStart(this); };
+}
+function btStart(btn) {
+  if (btn) btn.disabled = true; Qin.sfx('gong');
+  (S.guest ? call('apiGuestBattleStart', S.chap.ch) : call('apiBattleStart', S.token, S.chap.ch)).then(function (v) {
+    S.chap.result = null; S.chap.bt = { state: 'ongoing' };
+    S.bt = { qs: v.qs, done: v.done || {}, ticket: v.ticket || null, gans: {}, phase: 'ask' }; btReplay(S.bt);
+    if (S.bt.i >= S.bt.qs.length) S.bt.phase = 'end';
+    renderQuiz(); $('#quiz').scrollTop = 0;
+    if (window.innerWidth <= 900) $('.mtabs .chip[data-p="quiz"]').click();
+  }).catch(function (e) { if (btn) btn.disabled = false; fail(e); });
+}
+function btDots(st) {
+  return '<div class="bt-dots">' + st.qs.map(function (q, k) {
+    var r = st.done[q.no]; return '<span class="' + (r ? (r.ok ? 'ok' : 'no') : '') + (k === st.i && st.phase !== 'end' ? ' now' : '') + '">' + (k + 1) + '</span>';
+  }).join('') + '</div>';
+}
+function btField(st, ch, anim) {
+  var fo = foeOf(ch), n = st.qs.length, pf = anim ? anim.pf : st.foe, pm = anim ? anim.pm : st.me;
+  var pctF = Math.round(pf / st.foeMax * 100), pctM = Math.round(pm / st.max * 100);
+  return '<div class="bt-field" id="btField"><div class="bt-fx" id="btFx"></div>' +
+    '<div class="bt-row"><div class="bt-flag foe ' + fo.cls + '" id="flagFoe">' + esc(fo.ch) + '</div><div class="bt-info"><div class="bt-nm"><span>' + esc(fo.name) + ' 軍</span><small id="foeN">' + st.foe + ' 兵</small></div><div class="hp"><i id="hpFoe" style="width:' + pctF + '%"></i></div></div></div>' +
+    '<div class="bt-vs">對　陣</div>' +
+    '<div class="bt-row"><div class="bt-flag me" id="flagMe">劉</div><div class="bt-info"><div class="bt-nm"><span>我軍' + (st.streak >= 2 ? '・連對 ' + st.streak : '') + '</span><small id="meN">' + st.me + ' 兵</small></div><div class="hp me' + (st.me <= st.max * .4 ? ' low' : '') + '"><i id="hpMe" style="width:' + pctM + '%"></i></div></div></div></div>';
+}
+function btFloat(side, text, cls) {
+  var fx = $('#btFx'), f = $(side === 'foe' ? '#flagFoe' : '#flagMe'); if (!fx || !f) return;
+  var fr = fx.getBoundingClientRect(), r = f.getBoundingClientRect();
+  fx.insertAdjacentHTML('beforeend', '<span class="fx-n ' + cls + '" style="left:' + (r.left - fr.left + r.width + 8) + 'px;top:' + (r.top - fr.top + 4) + 'px">' + esc(text) + '</span>');
+}
+function renderBattle(anim) {
+  var st = S.bt, d = S.chap, box = $('#quiz'), N = st.qs.length;
+  if (st.phase === 'end') {
+    box.innerHTML = '<div class="bt">' + '<div class="bt-hd"><b>戰事已畢</b><span>' + N + ' 合皆已作答</span></div>' + btField(st, d.ch) + btDots(st) +
+      '<p>十合已畢，收兵結算戰果。</p><div class="bt-act"><button class="btn" id="btFin">收兵・結算</button></div></div>';
+    $('#btFin').onclick = function () { btFinish(this); }; return;
+  }
+  var q = st.qs[st.i], r = st.done[q.no], shown = st.phase === 'shown' && r;
+  var opts = q.opts.map(function (o, i) {
+    var L = 'ABCD'[i], cls = 'opt';
+    if (shown) { if (L === r.ans) cls += ' right'; else if (L === r.mine) cls += ' wrong'; else cls += ' dim'; }
+    else if (st.pick === L) cls += ' sel busy';
+    return '<div class="' + cls + '" data-l="' + L + '"><span class="L">' + L + '</span><span>' + esc(o) + '</span></div>';
   }).join('');
-  var bar = res
-    ? '<div class="qbar"><span class="savest">已交卷' + (d.save && d.save.lastTime ? '・' + esc(d.save.lastTime) : '') + '</span>' + (d.allowRetry ? '<button class="btn ghost" id="retry">再試一次</button>' : '') + '<button class="btn" id="back2">回目錄</button></div>'
-    : '<div class="qbar"><span class="savest" id="savest">' + (d.guest ? '訪客模式：答案暫存在這台裝置' : d.save && d.save.updated ? '上次存檔 ' + esc(d.save.updated.slice(5)) : '作答會自動存檔') + '</span><button class="btn ghost" id="saveNow">存檔</button><button class="btn" id="submit">交卷</button></div>';
-  box.innerHTML = head + qs + bar;
-  if (!res) {
-    $$('input[type=radio]', box).forEach(function (r) {
-      r.onchange = function () {
-        var no = +r.name.slice(1); S.ans[no] = r.value; Qin.sfx('wood');
-        $$('.q[data-no="' + no + '"] .opt', box).forEach(function (l) { l.classList.toggle('sel', $('input', l).value === r.value); });
-        queueDraft();
-      };
-    });
-    $('#saveNow').onclick = function () { saveDraft(true); };
-    $('#submit').onclick = confirmSubmit;
+  var gen = '';
+  if (shown && r.ok && r.who) {
+    var pp = (d.people || []).filter(function (x) { return x.name === r.who; })[0];
+    gen = '<div class="gen"><div class="nm">' + esc(r.who) + '</div><div><b>' + esc(r.who) + ' 出陣！</b>' + (pp ? '<small>' + esc(pp.camp) + '・' + esc(pp.intro) + '</small>' : '') + '</div></div>';
+  }
+  var fb = shown ? '<div class="fb show"><span class="verdict ' + (r.ok ? 'ok">✓ 命中，敵軍折損' : 'no">✗ 失手，正解為 ' + r.ans) + '</span>' +
+    (r.exp ? '<div>' + esc(r.exp) + '</div>' : '') + (q.para || r.para ? '<button class="link" data-para="' + (r.para || q.para) + '">看原文第 ' + (r.para || q.para) + ' 段</button>' : '') + '</div>' + gen : '';
+  var last = st.i + 1 >= N;
+  box.innerHTML = '<div class="bt' + (shown ? ' shown' : '') + '"><div class="bt-hd"><b>第 ' + cnum(st.i + 1) + ' 合</b><span>對陣 ' + esc(foeOf(d.ch).name) + '・' + (st.i + 1) + '／' + N + '</span></div>' +
+    btField(st, d.ch, shown && anim ? anim : null) + btDots(st) +
+    '<div class="q' + (shown ? ' locked' : '') + '"><div class="qh"><span class="tag ' + typeCls(q.type) + '">' + esc(q.type) + '</span></div><p class="stem">' + esc(q.stem) + '</p><div class="opts">' + opts + '</div>' + fb + '</div>' +
+    (shown ? '<div class="bt-act"><button class="btn" id="btNext">' + (last ? '收兵・結算' : '下一合') + '</button></div>' : '<div class="note">點選一個答案出招</div>') + '</div>';
+  if (!shown) {
+    $$('.opt', box).forEach(function (o) { o.onclick = function () { btAnswer(o.dataset.l); }; });
   } else {
     $$('.link', box).forEach(function (b) { b.onclick = function () { jumpPara(+b.dataset.para); }; });
-    if ($('#dlCard')) $('#dlCard').onclick = downloadCard;
-    if ($('#retry')) $('#retry').onclick = function () { S.chap.result = null; S.ans = {}; renderQuiz(); box.scrollTop = 0; };
-    $('#back2').onclick = goHome;
+    $('#btNext').onclick = function () { Qin.sfx('wood'); if (last) { st.phase = 'end'; renderBattle(); } else { st.i++; st.phase = 'ask'; st.pick = null; renderBattle(); box.scrollTop = 0; } };
+    if (anim) btPlay(st, r, anim);
+    setTimeout(function () { var fb = $('.fb', box); if (fb && fb.scrollIntoView) fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 1300);
   }
+}
+function btPlay(st, r, anim) {
+  var L = st.last || {};
+  requestAnimationFrame(function () {
+    var hf = $('#hpFoe'), hm = $('#hpMe'); if (!hf) return;
+    hf.style.width = Math.round(st.foe / st.foeMax * 100) + '%'; hm.style.width = Math.round(st.me / st.max * 100) + '%';
+    if (st.me <= st.max * .4) hm.parentNode.classList.add('low');
+    if (r.ok) { $('#flagMe').classList.add('lunge'); setTimeout(function () { $('#flagFoe').classList.add('shake'); btFloat('foe', '−100', 'hit'); }, 200); Qin.sfx('bell'); }
+    else { $('#flagFoe').classList.add('lunge'); setTimeout(function () { $('#flagMe').classList.add('shake'); btFloat('me', '−50', 'hurt'); }, 200); Qin.sfx('gong'); }
+    if (L.ploy) {
+      setTimeout(function () {
+        var f = $('#btField'); if (!f) return;
+        f.insertAdjacentHTML('beforeend', '<div class="ploy">' + esc(L.ploy[0]) + '<small>' + esc(L.ploy[1]) + (L.heal ? '・兵力 +' + L.heal : '') + '</small></div>');
+        if (L.heal) btFloat('me', '+' + L.heal, 'heal');
+      }, 650);
+    }
+  });
+}
+function btAnswer(letter) {
+  var st = S.bt, q = st.qs[st.i]; if (st.busy || st.done[q.no]) return;
+  st.busy = true; st.pick = letter; Qin.sfx('wood');
+  $$('#quiz .opt').forEach(function (o) { o.classList.toggle('sel', o.dataset.l === letter); o.classList.toggle('busy', o.dataset.l === letter); o.classList.toggle('dim', o.dataset.l !== letter); });
+  (S.guest ? call('apiGuestBattleAnswer', st.ticket, q.no, letter) : call('apiBattleAnswer', S.token, S.chap.ch, q.no, letter)).then(function (r) {
+    st.busy = false; if (S.bt !== st) return;
+    var pf = st.foe, pm = st.me; st.done[q.no] = r; st.gans[q.no] = letter; btApply(st, r); st.phase = 'shown';
+    renderBattle({ pf: pf, pm: pm });
+  }).catch(function (e) { st.busy = false; st.pick = null; renderBattle(); fail(e); });
+}
+function btFinish(btn) {
+  var st = S.bt; if (btn) btn.disabled = true; clearTimeout(S.draftTimer); S.draftTimer = null;
+  (S.guest ? call('apiGuestBattleFinish', st.ticket, st.gans) : call('apiBattleFinish', S.token, S.chap.ch, readPos(), S.spent || 0)).then(function (r) {
+    if (S.guest) { r.tries = null; r.best = null; }
+    S.chap.result = r; S.chap.bt = { state: 'done' }; S.chap.save = S.chap.save || {}; S.chap.save.tries = r.tries; S.chap.save.best = r.best; S.chap.save.submitted = true;
+    S.bt = null; Qin.sfx(r.score === r.total ? 'bell' : 'gong'); renderQuiz(); $('#quiz').scrollTop = 0;
+  }).catch(function (e) { if (btn) btn.disabled = false; fail(e); });
+}
+function renderResult() {
+  var d = S.chap, res = d.result, box = $('#quiz'), oc = btOutcome(res.score, res.total), fo = foeOf(d.ch);
+  var head = '<div class="bt-end"><h3>' + oc[0] + '</h3><div>' + esc(fo.name) + '軍：' + oc[1] + '</div></div>' +
+    '<div class="result"><div class="bigseal">' + res.score + '/' + res.total + '<small>' + (res.score === res.total ? '全對' : res.score >= res.total * .6 ? '可也' : '再讀') + '</small></div><div>' +
+    (res.score === res.total ? '通讀全回，明察秋毫！' : '對照解析，回原文找找答案所在之處。') + (d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') +
+    (res.best != null || (d.save && d.save.best != null) ? '<div class="note">本回最高：' + (res.best != null ? res.best : d.save.best) + ' 分</div>' : '') + '</div></div>';
+  head += summaryHTML(res.summary);
+  var rv = (res.review || []).map(function (it, qi) {
+    var opts = it.opts.map(function (o, i) {
+      var L = 'ABCD'[i], cls = 'opt'; if (L === it.ans) cls += ' right'; else if (L === it.mine) cls += ' wrong';
+      return '<div class="' + cls + '"><span class="L">' + L + '</span><span>' + esc(o) + '</span></div>';
+    }).join('');
+    return '<div class="q locked"><div class="qh"><span class="qn">第' + cnum(qi + 1) + '合</span><span class="tag ' + typeCls(it.type) + '">' + esc(it.type) + '</span></div>' +
+      '<p class="stem">' + esc(it.stem) + '</p><div class="opts">' + opts + '</div><div class="fb show"><span class="verdict ' + (it.ok ? 'ok">✓ 答對了' : 'no">✗ 正解為 ' + it.ans) + '</span>' +
+      (it.exp ? '<div>' + esc(it.exp) + '</div>' : '') + (it.para ? '<button class="link" data-para="' + it.para + '">看原文第 ' + it.para + ' 段</button>' : '') + '</div></div>';
+  }).join('');
+  var bar = '<div class="qbar"><span class="savest">' + (d.guest ? '訪客試玩' : '已收兵' + (d.save && d.save.lastTime ? '・' + esc(d.save.lastTime) : '')) + '</span>' +
+    (d.allowRetry ? '<button class="btn ghost" id="retry">再戰（抽新題）</button>' : '') + '<button class="btn" id="back2">回目錄</button></div>';
+  box.innerHTML = '<div class="bt">' + head + (rv ? '<h3>戰後檢討</h3>' + rv : '<p class="note">這是較早前的作答紀錄，沒有逐題檢討；再戰一次即可看到每題解析。</p>') + bar + '</div>';
+  $$('.link', box).forEach(function (b) { b.onclick = function () { jumpPara(+b.dataset.para); }; });
+  if ($('#dlCard')) $('#dlCard').onclick = downloadCard;
+  if ($('#retry')) $('#retry').onclick = function () { btStart(this); };
+  $('#back2').onclick = goHome;
 }
 function jumpPara(i) {
   var p = $('#txt p[data-i="' + i + '"]'); if (!p) return; if (p.parentNode.classList.contains('poemgrp')) p = p.parentNode;
@@ -1560,24 +1733,6 @@ function flushDraft() {
 }
 window.addEventListener('beforeunload', flushDraft);
 document.addEventListener('visibilitychange', function () { if (document.hidden) flushDraft(); });
-function confirmSubmit() {
-  var left = S.chap.qs.filter(function (q) { return !S.ans[q.no]; });
-  if (left.length) {
-    toast('還有第 ' + left.map(function (q) { return cnum(q.no); }).join('、') + ' 題未作答', 2600);
-    var q = $('.q[data-no="' + left[0].no + '"]'); q && q.scrollIntoView({ behavior: 'smooth', block: 'center' }); return;
-  }
-  modal('<h3>確定交卷？</h3><p>交卷後就會看到答案與解析。</p><div class="mbtns"><button class="btn ghost" onclick="closeModal()">再想想</button><button class="btn" id="okSub">交　卷</button></div>');
-  $('#okSub').onclick = function () {
-    this.disabled = true; clearTimeout(S.draftTimer); S.draftTimer = null;
-    (S.guest ? call('apiGuestSubmit', S.chap.ch, S.ans) : call('apiSubmit', S.token, S.chap.ch, S.ans, readPos(), S.spent || 0)).then(function (r) {
-      if (S.guest) { store('sg_guest_' + S.chap.ch, null); r.tries = null; r.best = null; }
-      closeModal(); S.chap.result = r; S.chap.save = S.chap.save || {}; S.chap.save.tries = r.tries; S.chap.save.best = r.best;
-      Qin.sfx(r.score === r.total ? 'bell' : 'gong'); renderQuiz(); $('#quiz').scrollTop = 0;
-      if (window.innerWidth <= 900) $('.mtabs .chip[data-p="quiz"]').click();
-    }).catch(function (e) { closeModal(); fail(e); });
-  };
-}
-
 /* ================= 教師後台 ================= */
 function renderTeacher() {
   loading('調閱名冊');
@@ -1627,7 +1782,7 @@ function drawTeacher() {
   var chMap = {}; d.chapters.forEach(function (c) { chMap[c.ch] = c; });
   studs.forEach(function (s) {
     var m = idx[s.account.toLowerCase()] || {}, any = false;
-    Object.keys(m).forEach(function (k) { var v = m[k]; if (v.submitted) { subs++; any = true; sumBest += v.best; sumQ += (chMap[k] ? chMap[k].qs.length : 5); } });
+    Object.keys(m).forEach(function (k) { var v = m[k]; if (v.submitted) { subs++; any = true; sumBest += v.best; sumQ += nAns(v, chMap[k]); } });
     if (any) active++; if (m[ch] && m[ch].submitted) cur++;
   });
   var thead = '<tr><th>班級</th><th>座號</th><th>姓名</th><th>帳號</th>' + d.chapters.map(function (c) { return '<th title="' + esc(c.title) + '">' + esc(c.num) + '</th>'; }).join('') + '<th>完成</th><th>總分</th></tr>';
@@ -1639,7 +1794,7 @@ function drawTeacher() {
       if (v && v.submitted) n++, tot += v.best;
       if (mode === 'time') return v && v.submitted ? '<td' + tip + ' class="tm">' + esc(shortTime(v.lastTime)) + '</td>' : v ? '<td class="scd"' + tip + '>未交</td>' : '<td>—</td>';
       if (mode === 'dur') return v && v.spent ? '<td' + tip + ' class="tm">' + fmtDur(v.spent) + '</td>' : v ? '<td class="scd"' + tip + '>—</td>' : '<td>—</td>';
-      if (v && v.submitted) return '<td' + tip + '><span class="sc sc' + Math.round(v.best / c.qs.length * 5) + '">' + v.best + '</span>' + (v.tries > 1 ? '<sup>×' + v.tries + '</sup>' : '') + '</td>';
+      if (v && v.submitted) return '<td' + tip + '><span class="sc sc' + Math.round(v.best / nAns(v, c) * 5) + '">' + v.best + '</span>' + (v.tries > 1 ? '<sup>×' + v.tries + '</sup>' : '') + '</td>';
       if (v) return '<td class="scd"' + tip + '>存</td>';
       return '<td>—</td>';
     }).join('');
@@ -1774,7 +1929,7 @@ function drawQB() {
     view(tTabs() + '<div class="loading">翻閱題庫</div>'); bindTTabs();
     return call('apiTeacherQs', S.teacher, ch).then(function (r) { S.qb = r; S.qEdit = null; drawQB(); }).catch(fail);
   }
-  var Q = S.qb, e = S.qEdit || { type: '劇情', opts: ['', '', '', ''], ans: '' };
+  var Q = S.qb, e = S.qEdit || { type: '文意理解', opts: ['', '', '', ''], ans: '' };
   var chopt = d.chapters.map(function (c) { return '<option value="' + c.ch + '"' + (c.ch === ch ? ' selected' : '') + '>' + esc(c.num) + '　' + esc(c.title) + '</option>'; }).join('');
   var list = Q.qs.map(function (q, i) {
     return '<div class="scrollpanel titem"><div><b>第' + cnum(i + 1) + '題</b>　<span class="tag ' + typeCls(q.type) + '">' + esc(q.type) + '</span><span class="note">　題號 ' + q.no + (q.para ? '・對應第 ' + q.para + ' 段' : '') + '</span>' +
@@ -1784,7 +1939,7 @@ function drawQB() {
   view(tTabs() + '<div class="homehead"><div><h2>題庫管理</h2><p>新增、修改或刪除題目，學生端立即生效。已交卷的學生，舊成績不會重算；修改後重新作答才會依新題目計分。</p></div></div>' +
     '<div class="tctrl"><select id="qbCh">' + chopt + '</select><span class="note">本回共 ' + Q.qs.length + ' 題・原文 ' + Q.nParas + ' 段</span></div>' +
     '<h4 class="sec">' + (e.no ? '編輯題號 ' + e.no : '新增題目') + '</h4><div class="scrollpanel tform">' +
-    '<div class="row"><label>類型<select id="qType">' + ['劇情', '人物', '意象', '修辭'].map(function (t) { return '<option' + (e.type === t ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
+    '<div class="row"><label>類型<select id="qType">' + ['文意理解', '人物', '概念', '劇情', '意象', '修辭'].map(function (t) { return '<option' + (e.type === t ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
     '<label>對應原文段落（1～' + Q.nParas + '，選填）<input type="number" id="qPara" min="1" max="' + Q.nParas + '" value="' + (e.para || '') + '"></label></div>' +
     '<label>題幹<textarea id="qStem">' + esc(e.stem || '') + '</textarea></label>' +
     '<label>選項（點左邊字母設為正確答案）<div class="opt4">' + [0, 1, 2, 3].map(function (k) {
@@ -1814,13 +1969,18 @@ function drawQB() {
   });
 }
 
+function nAns(v, c) {
+  var n = v && v.lastAns ? Object.keys(v.lastAns).filter(function (k) { return String(v.lastAns[k] || '').trim(); }).length : 0;
+  return n || (c && (c.qn || c.qs.length)) || 5;
+}
 function qStats(studs, ch, idx) {
   var o = {};
   studs.forEach(function (s) {
     var v = (idx[s.account.toLowerCase()] || {})[ch]; if (!v || !v.submitted || !v.lastAns) return;
     var chap = S.tdata.chapters.filter(function (c) { return c.ch === ch; })[0]; if (!chap) return;
     chap.qs.forEach(function (q) {
-      var a = String(v.lastAns[q.no] || '').toUpperCase(), st = o[q.no] = o[q.no] || { n: 0, ok: 0, pick: {} };
+      var a = String(v.lastAns[q.no] || '').toUpperCase(); if (!a) return;   // 沒被抽到的題不計
+      var st = o[q.no] = o[q.no] || { n: 0, ok: 0, pick: {} };
       st.n++; if (a === q.ans) st.ok++; st.pick[a] = (st.pick[a] || 0) + 1;
     });
   });
@@ -1832,7 +1992,7 @@ function studentDetail(acc) {
   html += S.tdata.chapters.map(function (c) {
     var v = m[c.ch];
     if (!v || !v.submitted) return '<p><b>' + esc(c.num) + '</b>　' + (v ? '已開始、未交卷（用時 ' + fmtDur(v.spent) + (v.opened ? '，開始於 ' + esc(v.opened) : '') + '）' : '未作答') + '</p>';
-    var row = c.qs.map(function (q) { var a = String((v.lastAns || {})[q.no] || ''); return '<span class="sc ' + (a === q.ans ? 'sc5' : 'sc1') + '" title="正解 ' + q.ans + '">' + cnum(q.no) + '：' + (a || '—') + '</span>'; }).join(' ');
+    var row = c.qs.filter(function (q) { return String((v.lastAns || {})[q.no] || ''); }).map(function (q) { var a = String((v.lastAns || {})[q.no] || ''); return '<span class="sc ' + (a === q.ans ? 'sc5' : 'sc1') + '" title="正解 ' + q.ans + '">' + cnum(q.no) + '：' + (a || '—') + '</span>'; }).join(' ');
     return '<p><b>' + esc(c.num) + '</b>　首次 ' + v.first + '・最高 ' + v.best + '・最近 ' + v.last + '（' + v.tries + ' 次）<br>' + row + '<br><small class="note">開始 ' + esc(v.opened || '—') + '・首次交卷 ' + esc(v.firstTime || '—') + '・最近交卷 ' + esc(v.lastTime) + '・累計用時 ' + fmtDur(v.spent) + '</small></p>';
   }).join('');
   modal(html + '<div class="mbtns"><button class="btn" onclick="closeModal()">關閉</button></div>');
@@ -1849,7 +2009,7 @@ function exportSheets() {
       var v = m[c.ch];
       if (v && v.submitted) {
         n++; tot += v.best; row.push(v.first, v.best, v.tries, v.firstTime, v.lastTime, mins(v.spent));
-        c.qs.forEach(function (q) { var a = String((v.lastAns || {})[q.no] || ''); r2.push([s.cls, s.seat, s.name, s.account, c.num, q.no, q.type, a, q.ans, a === q.ans ? '○' : '×', v.first, v.best, v.tries, v.opened || '', v.firstTime, v.lastTime, mins(v.spent)]); });
+        c.qs.forEach(function (q) { var a = String((v.lastAns || {})[q.no] || ''); if (!a) return; r2.push([s.cls, s.seat, s.name, s.account, c.num, q.no, q.type, a, q.ans, a === q.ans ? '○' : '×', v.first, v.best, v.tries, v.opened || '', v.firstTime, v.lastTime, mins(v.spent)]); });
       } else row.push(v ? '未交卷' : '', '', '', '', '', v ? mins(v.spent) : '');
     });
     row.push(n, tot); r1.push(row);
