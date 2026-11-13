@@ -21,9 +21,11 @@ function studentsOf(cls) {
 function tTabs() {
   var t = S.tTab || 'ov';
   return '<div class="ttabs">' + [['ov', '成績總覽'], ['ann', '公告與必讀'], ['qb', '題庫管理'], ['wd', '學生提問詞語'], ['rv', '內容審核']].map(function (x) {
-    return '<button class="chip' + (t === x[0] ? ' on' : '') + '" data-tt="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    return '<button class="chip' + (t === x[0] ? ' on' : '') + '" data-tt="' + x[0] + '">' + x[1] + '</button>'; }).join('') +
+    '<button class="chip" id="tBrowseAll" style="margin-left:auto">全解鎖回目／圖鑑／地圖</button></div>';
 }
 function bindTTabs() {
+  if ($('#tBrowseAll')) $('#tBrowseAll').onclick = function () { Qin.sfx('wood'); goHome(); };
   $$('[data-tt]').forEach(function (b) {
     b.onclick = function () {
       var was = S.tTab || 'ov'; S.tTab = b.dataset.tt;

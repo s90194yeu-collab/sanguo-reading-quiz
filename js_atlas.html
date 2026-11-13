@@ -12,7 +12,7 @@ function openAtlas() {
 function renderAtlas() {
   var d = S.atlas, up = S.atUpTo;
   var opts = d.chapters.filter(function (c) { return c.ch <= d.reach; }).map(function (c) { return '<option value="' + c.ch + '"' + (c.ch === up ? ' selected' : '') + '>顯示到' + esc(c.num) + '</option>'; }).join('');
-  view('<div class="homehead"><div><h2>人物・地圖</h2><p>只顯示你讀到' + esc(chName(d, d.reach)) + '為止的人物與事件，不會劇透。' + (S.guest ? '' : '讀得越多，解鎖越多。') + '</p></div>' +
+  view('<div class="homehead"><div><h2>人物・地圖</h2><p>' + (d.allUnlocked ? '教師模式：已解鎖目前所有回目的人物關係與地理時間軸（可用右側選單篩選回次）。' : '只顯示你讀到' + esc(chName(d, d.reach)) + '為止的人物與事件，不會劇透。' + (S.guest ? '' : '讀得越多，解鎖越多。')) + '</p></div>' +
     '<div class="rtools"><button class="chip' + (S.atTab === 'rel' ? ' on' : '') + '" data-at="rel">人物關係圖</button><button class="chip' + (S.atTab === 'map' ? ' on' : '') + '" data-at="map">地圖與時間軸</button>' +
     '<select class="chip" id="atUp">' + opts + '</select><button class="chip" id="atBack">回目錄</button></div></div>' +
     (S.atTab === 'rel' ? '<div class="atlas"><div class="scrollpanel graphbox"><div class="legend" id="legend"></div><svg id="graph" viewBox="0 0 1000 680"></svg></div><aside class="scrollpanel pcard" id="pcard"></aside></div>'
@@ -176,7 +176,7 @@ function drawMap() {
 function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 function markFixed(list) {
   var f = fixedSet(); list.forEach(function (m) { f[m.ch + '-' + m.no] = 1; }); store(fixedKey(), JSON.stringify(f));
-  if (S.token && !S.guest && list.length) call('apiMarkFixed', S.token, list.map(function (m) { return { ch: m.ch, no: m.no }; })).catch(function () { });
+  if (S.token && !S.guest && !S.teacher && list.length) call('apiMarkFixed', S.token, list.map(function (m) { return { ch: m.ch, no: m.no }; })).catch(function () { });
 }
 function startDrill() {
   var fx = fixedSet(), pool = (S.mist || []).filter(function (m) { return !fx[m.ch + '-' + m.no]; });

@@ -175,7 +175,7 @@ function markBm() {
 }
 function saveBm() {
   markBm();
-  if (S.guest) { store('sg_bm_guest_' + S.chap.ch, JSON.stringify(S.bm)); return; }
+  if (S.guest || S.teacher) { store('sg_bm_guest_' + S.chap.ch, JSON.stringify(S.bm)); return; }
   call('apiSaveBookmarks', S.token, S.chap.ch, S.bm, readPos()).catch(function () { toast('書籤儲存失敗，請檢查網路'); });
 }
 function drawBm(el) {

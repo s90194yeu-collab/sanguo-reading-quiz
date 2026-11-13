@@ -163,29 +163,35 @@ document.addEventListener('pointerdown', function first(e) {
   if (e && e.target && e.target.closest && e.target.closest('#btnMusic')) return;   // 直接點「琴音」鈕時交給按鈕自己切換，避免先開後關
   if (store('sg_music') === '1' && !Qin.isOn()) { Qin.toggle(); $('#btnMusic').classList.add('on'); }
 }, true);
-$('#btnHome').onclick = function () { if (S.chap && S.chap.preview) return goHome(); if (S.teacher) renderTeacher(); else goHome(); };
-$('#brand').onclick = function () { if (S.user) goHome(); else if (S.teacher) renderTeacher(); };
+$('#btnHome').onclick = function () { if (S.demo) stopDemo(); if (S.chap && S.chap.preview) { S.guest = !!S.guestBak; S.chap = null; S.tTab = 'rv'; S.rv = null; return renderTeacher(); } goHome(); };
+$('#btnTeacher').onclick = function () { if (!S.teacher) return; if (S.demo) stopDemo(); if (S.chap && S.chap.preview) { S.guest = !!S.guestBak; S.chap = null; } S.tTab = S.tTab || 'ov'; renderTeacher(); };
+$('#brand').onclick = function () { if (S.teacher) renderTeacher(); else if (S.user) goHome(); };
 $('#btnLogout').onclick = function () { logout(); };
 function setTop() {
   var logged = !!(S.user || S.teacher || S.guest);
+  $('#btnTeacher').classList.toggle('hidden', !S.teacher);
   $('#btnHome').classList.toggle('hidden', !logged);
   $('#btnLogout').classList.toggle('hidden', !logged);
-  $('#btnHome').textContent = S.teacher ? '後台' : '目錄';
+  $('#btnHome').textContent = '目錄';
   $('#btnLogout').textContent = S.guest ? '登入' : '登出';
-  $('#who').textContent = S.teacher ? '教師後台' : S.guest ? '訪客試讀' : S.user ? (S.user.cls + ' ' + (S.user.seat ? S.user.seat + '號 ' : '') + S.user.name) : '';
+  $('#who').textContent = S.teacher ? ('教師' + (S.teacherEmail ? '・' + S.teacherEmail : '後台')) : S.guest ? '訪客試讀' : S.user ? (S.user.cls + ' ' + (S.user.seat ? S.user.seat + '號 ' : '') + S.user.name) : '';
 }
 function logout(silent) {
   flushDraft();
   var wasGuest = S.guest;
-  S.token = S.user = S.teacher = S.home = S.chap = null; S.guest = false; store('sg_token', null); setTop(); renderLogin();
+  S.token = S.user = S.teacher = S.teacherEmail = S.home = S.chap = null; S.guest = false; store('sg_token', null); setTop(); renderLogin();
   if (!silent && !wasGuest) toast('已登出，後會有期');
 }
 
 /* ================= 啟動 ================= */
 call('apiInit', store('sg_token')).then(function (d) {
   $('#siteTitle').textContent = d.title; $('#siteSub').textContent = d.subtitle; document.title = d.title;
-  S.allowRegister = d.allowRegister; S.guestChapters = d.guestChapters || []; S.about = d.about || {};
-  if (d.teacher) { S.teacher = d.token; setTop(); renderTeacher(); return; }
+  S.allowRegister = d.allowRegister; S.googleClientId = d.googleClientId || ''; S.guestChapters = d.guestChapters || []; S.about = d.about || {};
+  if (d.teacher) {
+    S.teacher = d.token; S.token = d.token; S.teacherEmail = d.email || ''; store('sg_token', d.token); setTop();
+    if (d.auto && d.email) toast('已以教師信箱 ' + d.email + ' 自動登入');
+    renderTeacher(); return;
+  }
   if (d.user) {
     S.token = d.token; S.user = d.user; S.home = d.home; store('sg_token', d.token); setTop();
     if (d.auto) toast('已用 ' + d.email + ' 自動登入');
@@ -195,6 +201,33 @@ call('apiInit', store('sg_token')).then(function (d) {
 }).catch(function (e) { view('<div class="loading">' + esc(e.message) + '</div>'); });
 
 /* ================= 登入／註冊 ================= */
+function onGoogleCredential(resp) {
+  if (!resp || !resp.credential) return;
+  loading('驗證 Google 身分');
+  call('apiGoogleLogin', resp.credential).then(function (d) {
+    if (d.teacher) {
+      S.teacher = d.token; S.token = d.token; S.user = null; S.teacherEmail = d.email || '';
+      store('sg_token', d.token); setTop(); Qin.sfx('gong');
+      toast('歡迎教師 ' + (d.email || '') + '（全內容已解鎖）');
+      renderTeacher();
+      return;
+    }
+    afterLogin(d);
+  }).catch(function (e) { renderLogin(); var er = $('#err'); if (er) er.textContent = e.message; else fail(e); });
+}
+function renderGsiBtn(tries) {
+  var el = $('#gSignIn'); if (!el || !S.googleClientId) return;
+  if (!(window.google && google.accounts && google.accounts.id)) {
+    if ((tries || 0) < 25) setTimeout(function () { renderGsiBtn((tries || 0) + 1); }, 160);
+    return;
+  }
+  if (S._gsiCid !== S.googleClientId) {
+    google.accounts.id.initialize({ client_id: S.googleClientId, callback: onGoogleCredential });
+    S._gsiCid = S.googleClientId;
+  }
+  el.innerHTML = '';
+  google.accounts.id.renderButton(el, { theme: 'outline', size: 'large', width: 320, text: 'signin_with', locale: 'zh-TW' });
+}
 function renderLogin(tab) {
   tab = tab || 'stu';
   var tabs = '<div class="tabs"><button class="tab ' + (tab === 'stu' ? 'on' : '') + '" data-t="stu">學生登入</button>' +
@@ -216,10 +249,13 @@ function renderLogin(tab) {
     '<p class="note">不在老師名單上的讀者可以在這裡建立帳號，作答紀錄一樣會保存。</p>';
   if (tab === 'tea') body =
     '<form id="fTea"><div class="field"><label>教師密碼</label><input name="pw" type="password" required></div>' +
-    '<div class="err" id="err"></div><button class="btn wide">升　帳</button></form>';
+    '<div class="err" id="err"></div><button class="btn wide">升　帳</button></form>' +
+    '<p class="note">' + (S.googleClientId ? '授權教師信箱（如 @gm.nssh.ntpc.edu.tw、@gmail.com）可直接點上方 Google 帳號登入，或用密碼進入。' : '若需在公開網址使用 Google 帳號一鍵登入，請於試算表「設定」填入「Google登入ClientID」。') + '</p>';
+  var gbox = S.googleClientId ? '<div class="gbox"><div id="gSignIn" class="gsign"></div><p class="note">教師（授權信箱）或名單內同學可直接用 Google 帳號登入</p></div>' : '';
   var guest = S.guestChapters && S.guestChapters.length ? '<div class="guestbox"><button class="btn wide jade" id="btnGuest">免註冊、免登入　直接試閱' +
     S.guestChapters.map(function (n) { return '第' + cnum(n) + '回'; }).join('、') + '</button><button class="btn wide ghost demo-start" id="btnDemo">▶ 展示模式（電腦自動示範）</button><p class="note">試閱可閱讀並作答；成績不記錄，答案與書籤暫存在這台裝置。要累積成績請在下方登入。</p></div>' : '';
-  view('<div class="loginwrap scrollpanel"><p class="poemline">滾滾長江東逝水　浪花淘盡英雄</p>' + guest + tabs + body + '</div>');
+  view('<div class="loginwrap scrollpanel"><p class="poemline">滾滾長江東逝水　浪花淘盡英雄</p>' + guest + gbox + tabs + body + '</div>');
+  renderGsiBtn(0);
   if ($('#btnGuest')) $('#btnGuest').onclick = function () { Qin.sfx('wood'); S.guest = true; setTop(); goHome(); };
   if ($('#btnDemo')) $('#btnDemo').onclick = function () { startDemo(); };
   $$('.tab').forEach(function (b) { b.onclick = function () { Qin.sfx('wood'); renderLogin(b.dataset.t); }; });
@@ -240,12 +276,12 @@ function renderLogin(tab) {
   if (fT) (function (f) { f.onsubmit = function (e) {
     e.preventDefault(); var b = $('button', f); b.disabled = true; $('#err').textContent = '';
     call('apiTeacherLogin', f.pw.value).then(function (d) {
-      S.teacher = d.token; store('sg_token', d.token); setTop(); Qin.sfx('gong'); renderTeacher();
+      S.teacher = d.token; S.token = d.token; S.teacherEmail = ''; store('sg_token', d.token); setTop(); Qin.sfx('gong'); renderTeacher();
     }).catch(function (e) { b.disabled = false; $('#err').textContent = e.message; });
   }; })(fT);
 }
 function afterLogin(d) {
-  S.token = d.token; S.user = d.user; S.home = d.home; store('sg_token', d.token); setTop(); Qin.sfx('gong');
+  S.teacher = null; S.teacherEmail = ''; S.token = d.token; S.user = d.user; S.home = d.home; store('sg_token', d.token); setTop(); Qin.sfx('gong');
   toast('歡迎，' + d.user.name); renderHome();
 }
 
@@ -259,29 +295,41 @@ function goHome() {
   call('apiHome', S.token).then(function (h) { S.home = h; renderHome(); }).catch(fail);
 }
 function renderHome() {
-  var h = S.home, done = 0, sum = 0, tot = 0;
+  var h = S.home, done = 0, sum = 0, tot = 0, isT = !!S.teacher;
   var cards = h.chapters.map(function (c) {
     var p = h.progress[c.ch] || {}, stamp = '', st = '未讀';
-    if (p.submitted) { done++; sum += p.best; tot += c.qn; stamp = '<div class="stamp">' + p.best + '/' + c.qn + '<br>已閱</div>'; st = '作答 ' + p.tries + ' 次'; }
-    else if (p.hasDraft) { stamp = '<div class="stamp draft">存檔<br>中</div>'; st = '尚未交卷'; }
+    if (isT) {
+      var unpub = c.status && c.status !== '上架';
+      if (unpub || c.open === false) stamp = '<div class="stamp tea">' + esc(unpub ? c.status : '未開放') + '</div>';
+      st = '共 ' + c.qn + ' 題・全解鎖';
+    } else {
+      if (p.submitted) { done++; sum += p.best; tot += c.qn; stamp = '<div class="stamp">' + p.best + '/' + c.qn + '<br>已閱</div>'; st = '作答 ' + p.tries + ' 次'; }
+      else if (p.hasDraft) { stamp = '<div class="stamp draft">存檔<br>中</div>'; st = '尚未交卷'; }
+    }
     var lock = S.guest && !c.guest;
     if (S.guest) { stamp = c.guest ? '<div class="stamp draft">試讀</div>' : ''; st = c.guest ? '免登入' : '登入後閱讀'; }
-    var t = c.title.split(/\s+/), must = !S.guest && mustSet(h)[c.ch] && !p.submitted;
+    var t = c.title.split(/\s+/), must = !S.guest && !isT && mustSet(h)[c.ch] && !p.submitted;
     return '<div class="card' + (lock ? ' locked' : '') + '" data-ch="' + c.ch + '">' + (must ? '<div class="must">必讀</div>' : '') + '<div class="no">' + esc(c.num) + '</div><div class="vt"><span>' + esc(t[0] || '') +
       '</span><span>' + esc(t[1] || '') + '</span></div>' + stamp + '<div class="st' + (stamp ? '' : ' c') + '">' + st + '</div></div>';
   }).join('');
-  view('<div class="homehead"><div><h2>回目</h2><p>' + (S.guest ? '訪客可試讀標有「試讀」的回目；其餘回目請登入後閱讀。' : '點選一回，展卷閱讀並作答，答案會自動存檔。') + '</p></div>' +
-    (S.guest ? '' : '<div class="stat"><div><b>' + done + '</b>已完成回數</div><div><b>' + (tot ? Math.round(sum / tot * 100) : 0) + '%</b>最佳答對率</div>' +
-      '<div><button class="btn ghost" id="btnMist">錯題本</button></div><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>') +
-    (S.guest ? '<div class="stat"><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>' : '') + '</div>' +
+  var subDesc = isT ? '教師全解鎖模式：已開啟所有回目（含未上架與未開放）、完整圖鑑與輿圖；閱讀與測驗不記入學生統計。'
+    : S.guest ? '訪客可試讀標有「試讀」的回目；其餘回目請登入後閱讀。' : '點選一回，展卷閱讀並作答，答案會自動存檔。';
+  var statHTML = isT
+    ? '<div class="stat"><div><button class="btn" id="btnToTea">教師後台</button></div><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>'
+    : S.guest
+      ? '<div class="stat"><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>'
+      : '<div class="stat"><div><b>' + done + '</b>已完成回數</div><div><b>' + (tot ? Math.round(sum / tot * 100) : 0) + '%</b>最佳答對率</div>' +
+        '<div><button class="btn ghost" id="btnMist">錯題本</button></div><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>';
+  view('<div class="homehead"><div><h2>回目</h2><p>' + subDesc + '</p></div>' + statHTML + '</div>' +
     annHTML(h) + progressHTML(h) + boardHTML(h) +
     '<div class="cards">' + (cards || '<p>老師尚未開放任何回目。</p>') + '</div>');
+  if ($('#btnToTea')) $('#btnToTea').onclick = function () { Qin.sfx('wood'); renderTeacher(); };
   if ($('#btnMist')) $('#btnMist').onclick = function () { Qin.sfx('wood'); openMistakes(); };
   if ($('#btnAtlas')) $('#btnAtlas').onclick = function () { Qin.sfx('wood'); openAtlas(); };
   if ($('#btnCodex')) $('#btnCodex').onclick = function () { Qin.sfx('wood'); openCodex(); };
   $$('[data-goch]').forEach(function (b) { b.onclick = function () { Qin.sfx('wood'); openChapter(+b.dataset.goch); }; });
   $$('.ach[data-tip]').forEach(function (a) { a.onclick = function () { toast(a.dataset.tip, 2600); }; });
-  checkNewAch(h);
+  if (S.user) checkNewAch(h);
   $$('.card').forEach(function (c) {
     c.onclick = function () {
       if (c.classList.contains('locked')) { toast('本回需登入才能閱讀'); return; }

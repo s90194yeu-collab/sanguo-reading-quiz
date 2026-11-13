@@ -41,6 +41,8 @@ var DEFAULT_SET = [
   ['網站標題', '三國演義・閱讀試煉', '顯示在網站最上方'],
   ['副標題', '古典小說閱讀檢測', ''],
   ['教師密碼', 'nanshan', '進入教師後台的密碼，請務必修改'],
+  ['教師Email', 's90194yeu@gm.nssh.ntpc.edu.tw,cpbl90194@gmail.com', '允許以 Google 帳號直接進入教師後台並全解鎖內容的信箱（逗號分隔）'],
+  ['Google登入ClientID', '', '選填：填入 Google OAuth 2.0 Web Client ID 後，登入頁會顯示「以 Google 帳號登入」按鈕（適用公開網址及一般 Gmail）'],
   ['每次抽題數', '10', '每次出征從題庫隨機抽幾題（題庫題數不足時全出）；改完請按「清除網站快取」'],
   ['允許重作', '是', '是／否：交卷後可否再作答（成績記首次、最高、最近）'],
   ['交卷後顯示解析', '是', '是／否'],
@@ -220,6 +222,26 @@ function verify_(token, role) {
   if (p.e < Date.now()) throw new Error('登入已逾時，請重新登入');
   if (role && p.r !== role) throw new Error('權限不足');
   return p;
+}
+function authAny_(token) {
+  var p = verify_(token);
+  if (p.r !== 's' && p.r !== 't') throw new Error('權限不足');
+  return p;
+}
+var DEFAULT_TEACHER_EMAILS = ['s90194yeu@gm.nssh.ntpc.edu.tw', 'cpbl90194@gmail.com'];
+function teacherEmails_(set) {
+  set = set || getSettings_();
+  var raw = set['教師Email'];
+  if (raw === undefined) return DEFAULT_TEACHER_EMAILS.slice();
+  return str_(raw).split(/[,，、\s]+/).map(function (s) { return str_(s).toLowerCase(); }).filter(Boolean);
+}
+function isTeacherEmail_(email, set) {
+  email = str_(email).toLowerCase();
+  return !!(email && teacherEmails_(set).indexOf(email) >= 0);
+}
+function issueTeacher_(email) {
+  var who = str_(email) || 'teacher';
+  return { token: sign_({ a: who, r: 't', em: str_(email), e: Date.now() + 1000 * 60 * 60 * 12 }), email: str_(email) };
 }
 function hash_(pw) {
   var raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, getSecret_().slice(0, 16) + '|' + pw, Utilities.Charset.UTF_8);

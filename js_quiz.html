@@ -13,7 +13,7 @@ function renderQuiz() {
   var n = d.qn || 5, tries = d.save && d.save.tries;
   box.innerHTML = '<div class="bt bt-intro"><h3>閱讀檢測</h3><div class="sub">共 ' + n + ' 題' + (tries ? '・已作答 ' + tries + ' 次' : '') + '</div>' +
     '<p>先讀原文，再開始作答。每題作答後立即顯示正解與解析，作答時可隨時對照左側原文。</p>' +
-    (d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') +
+    (d.teacherRead ? '<div class="note">教師全解鎖模式：可不限次數直接測試作答並看解析，成績不會寫入學生統計。</div>' : d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') +
     '<div class="bt-act"><button class="btn" id="btGo">開始作答</button></div></div>';
   $('#btGo').onclick = function () { btStart(this); };
 }
@@ -64,7 +64,7 @@ function btAnswer(letter) {
   var st = S.bt, q = st.qs[st.i]; if (st.busy || st.done[q.no]) return;
   st.busy = true; st.pick = letter; Qin.sfx('wood');
   $$('#quiz .opt').forEach(function (o) { o.classList.toggle('sel', o.dataset.l === letter); o.classList.toggle('busy', o.dataset.l === letter); o.classList.toggle('dim', o.dataset.l !== letter); });
-  (S.guest ? call('apiGuestBattleAnswer', st.ticket, q.no, letter) : call('apiBattleAnswer', S.token, S.chap.ch, q.no, letter)).then(function (r) {
+  (S.guest || st.ticket ? call('apiGuestBattleAnswer', st.ticket, q.no, letter) : call('apiBattleAnswer', S.token, S.chap.ch, q.no, letter)).then(function (r) {
     st.busy = false; if (S.bt !== st) return;
     st.done[q.no] = r; st.gans[q.no] = letter; st.phase = 'shown'; Qin.sfx(r.ok ? 'bell' : 'gong');
     renderBattle();
@@ -72,8 +72,8 @@ function btAnswer(letter) {
 }
 function btFinish(btn) {
   var st = S.bt; if (btn) btn.disabled = true; clearTimeout(S.draftTimer); S.draftTimer = null;
-  (S.guest ? call('apiGuestBattleFinish', st.ticket, st.gans) : call('apiBattleFinish', S.token, S.chap.ch, readPos(), S.spent || 0)).then(function (r) {
-    if (S.guest) { r.tries = null; r.best = null; }
+  (S.guest || st.ticket ? call('apiGuestBattleFinish', st.ticket, st.gans) : call('apiBattleFinish', S.token, S.chap.ch, readPos(), S.spent || 0)).then(function (r) {
+    if (S.guest || S.chap.teacherRead) { r.tries = null; r.best = null; }
     S.chap.result = r; S.chap.bt = { state: 'done' }; S.chap.save = S.chap.save || {}; S.chap.save.tries = r.tries; S.chap.save.best = r.best; S.chap.save.submitted = true;
     S.bt = null; Qin.sfx(r.score === r.total ? 'bell' : 'gong'); renderQuiz(); $('#quiz').scrollTop = 0;
   }).catch(function (e) { if (btn) btn.disabled = false; fail(e); });
@@ -82,7 +82,7 @@ function renderResult() {
   var d = S.chap, res = d.result, box = $('#quiz'), oc = btOutcome(res.score, res.total);
   var head = '<div class="bt-end"><h3>' + oc[0] + '</h3><div>' + oc[1] + '</div></div>' +
     '<div class="result"><div class="bigseal">' + res.score + '/' + res.total + '<small>' + (res.score === res.total ? '全對' : res.score >= res.total * .6 ? '可也' : '再讀') + '</small></div><div>' +
-    (res.score === res.total ? '通讀全回，明察秋毫！' : '對照解析，回原文找找答案所在之處。') + (d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') +
+    (res.score === res.total ? '通讀全回，明察秋毫！' : '對照解析，回原文找找答案所在之處。') + (d.teacherRead ? '<div class="note">教師測試結果僅供檢視，不會計入學生作答紀錄。</div>' : d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') +
     (res.best != null || (d.save && d.save.best != null) ? '<div class="note">本回最高：' + (res.best != null ? res.best : d.save.best) + ' 分</div>' : '') + '</div></div>';
   head += summaryHTML(res.summary);
   var rv = (res.review || []).map(function (it, qi) {
@@ -94,7 +94,7 @@ function renderResult() {
       '<p class="stem">' + esc(it.stem) + '</p><div class="opts">' + opts + '</div><div class="fb show"><span class="verdict ' + (it.ok ? 'ok">✓ 答對了' : 'no">✗ 正解為 ' + it.ans) + '</span>' +
       (it.exp ? '<div>' + esc(it.exp) + '</div>' : '') + (it.para ? '<button class="link" data-para="' + it.para + '">看原文第 ' + it.para + ' 段</button>' : '') + '</div></div>';
   }).join('');
-  var bar = '<div class="qbar"><span class="savest">' + (d.guest ? '訪客試玩' : '已交卷' + (d.save && d.save.lastTime ? '・' + esc(d.save.lastTime) : '')) + '</span>' +
+  var bar = '<div class="qbar"><span class="savest">' + (d.teacherRead ? '教師測試（不記成績）' : d.guest ? '訪客試玩' : '已交卷' + (d.save && d.save.lastTime ? '・' + esc(d.save.lastTime) : '')) + '</span>' +
     (S.bfs ? '<button class="btn ghost" id="dlReport">本回戰報卡</button>' : '') +
     (d.allowRetry ? '<button class="btn ghost" id="retry">再作答一次（抽新題）</button>' : '') + '<button class="btn" id="back2">回目錄</button></div>';
   box.innerHTML = '<div class="bt">' + head + (rv ? '<h3>逐題檢討</h3>' + rv : '<p class="note">這是較早前的作答紀錄，沒有逐題檢討；再戰一次即可看到每題解析。</p>') + bar + '</div>';

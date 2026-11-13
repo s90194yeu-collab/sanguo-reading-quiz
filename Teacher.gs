@@ -3,7 +3,35 @@
 function apiTeacherLogin(pw) {
   var set = getSettings_();
   if (!str_(pw) || str_(pw) !== str_(set['教師密碼'])) throw new Error('教師密碼錯誤');
-  return { token: sign_({ a: 'teacher', r: 't', e: Date.now() + 1000 * 60 * 60 * 12 }) };
+  return { token: issueTeacher_('').token };
+}
+
+/** 前端 Google Identity Services 登入：驗證 id_token，教師信箱進後台並全解鎖，學生信箱比對名單登入 */
+function apiGoogleLogin(idToken) {
+  var set = getSettings_(), cid = str_(set['Google登入ClientID']);
+  if (!cid) throw new Error('尚未設定 Google 登入 Client ID');
+  idToken = str_(idToken);
+  if (!idToken) throw new Error('缺少 Google 登入憑證');
+  var res = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken), { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error('Google 身分驗證失敗，請重試');
+  var info = JSON.parse(res.getContentText() || '{}');
+  if (str_(info.aud) !== cid) throw new Error('Google Client ID 不符');
+  if (!(info.email_verified === true || str_(info.email_verified).toLowerCase() === 'true')) throw new Error('Google 信箱尚未通過驗證');
+  if (info.exp && Number(info.exp) * 1000 < Date.now()) throw new Error('Google 登入憑證已過期，請重新登入');
+  var email = str_(info.email).toLowerCase();
+  if (!email) throw new Error('無法取得 Google 信箱');
+  if (isTeacherEmail_(email, set)) {
+    var t = issueTeacher_(email);
+    return { teacher: true, token: t.token, email: email };
+  }
+  var byMail = findByEmail_(email);
+  if (byMail) {
+    var iss = issueStudent_(byMail);
+    iss.home = homeData_(iss.user.account);
+    iss.email = email;
+    return iss;
+  }
+  throw new Error('帳號 ' + email + ' 不是教師信箱，也尚未登錄在學生名單中');
 }
 
 function apiTeacherData(token) {
@@ -145,7 +173,8 @@ function syncNotesAndNames() {
 
 /* ---------- 學生標記看不懂的詞語 → 教師加註 ---------- */
 function apiAskWord(token, ch, para, word) {
-  var p = verify_(token, 's'); ch = Number(ch); word = str_(word).replace(/[\s，。、；：？！「」『』（）]/g, '').slice(0, 12);
+  var p = authAny_(token); if (p.r === 't') return { ok: true, skipped: true };
+  ch = Number(ch); word = str_(word).replace(/[\s，。、；：？！「」『』（）]/g, '').slice(0, 12);
   if (!ch || word.length < 1) throw new Error('請選取要詢問的詞語');
   var a = str_(p.a).toLowerCase(), mine = 0;
   var data = rows_(SHEET.ASK);

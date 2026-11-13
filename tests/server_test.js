@@ -70,3 +70,73 @@ module.exports = {};
   const s = e.main.getSheetByName('設定'); s.d = s.d.filter(r => r[0] !== '訪客試讀回數'); e.ctx.setupSheets();
   if (!s.d.some(r => r[0] === '訪客試讀回數')) throw 'setting not added';
   console.log('GUEST TESTS PASSED'); }
+{ // 教師雙信箱自動登入、Google ID Token 登入、全內容解鎖、不污染學生紀錄
+  ['s90194yeu@gm.nssh.ntpc.edu.tw', 'cpbl90194@gmail.com'].forEach(em => {
+    const ev = makeEnv(em); ev.ctx.setupSheets();
+    const ai = ev.ctx.apiInit(null);
+    assert(ai.teacher && ai.auto && ai.email === em && ai.token);
+    const ai2 = ev.ctx.apiInit(ai.token);
+    assert(ai2.teacher && ai2.email === em);
+  });
+  const tokens = {
+    t1: { aud: 'cid-123', email: 's90194yeu@gm.nssh.ntpc.edu.tw', email_verified: 'true', exp: Math.floor(Date.now() / 1000) + 600 },
+    t2: { aud: 'cid-123', email: 'cpbl90194@gmail.com', email_verified: true, exp: Math.floor(Date.now() / 1000) + 600 },
+    stu: { aud: 'cid-123', email: 'wang@stdmail.nssh.ntpc.edu.tw', email_verified: 'true', exp: Math.floor(Date.now() / 1000) + 600 },
+    stranger: { aud: 'cid-123', email: 'nobody@gmail.com', email_verified: 'true', exp: Math.floor(Date.now() / 1000) + 600 },
+    unverified: { aud: 'cid-123', email: 'cpbl90194@gmail.com', email_verified: 'false', exp: Math.floor(Date.now() / 1000) + 600 },
+    badAud: { aud: 'other-app', email: 'cpbl90194@gmail.com', email_verified: 'true', exp: Math.floor(Date.now() / 1000) + 600 }
+  };
+  const fetcher = url => {
+    const id = decodeURIComponent(url.split('id_token=')[1] || '');
+    if (!tokens[id]) return { getResponseCode: () => 400, getContentText: () => '{}' };
+    return { getResponseCode: () => 200, getContentText: () => JSON.stringify(tokens[id]) };
+  };
+  const ev = makeEnv('', fetcher); ev.ctx.setupSheets();
+  const ms = ev.main;
+  ms.getSheetByName('學生名單').appendRow(['s001', '', '王小明', '301', '1', 'wang@stdmail.nssh.ntpc.edu.tw', '校內']);
+  // 限制學生只看第 1 回，並把第 2 回設成待審
+  ms.getSheetByName('設定').d.forEach(row => {
+    if (row[0] === '開放回數') row[1] = '1';
+    if (row[0] === 'Google登入ClientID') row[1] = 'cid-123';
+  });
+  ev.ctx.clearContentCache();
+  const gl1 = ev.ctx.apiGoogleLogin('t1'); assert(gl1.teacher && gl1.email === 's90194yeu@gm.nssh.ntpc.edu.tw');
+  const gl2 = ev.ctx.apiGoogleLogin('t2'); assert(gl2.teacher && gl2.email === 'cpbl90194@gmail.com');
+  ev.ctx.apiTeacherSetStatus(gl2.token, 2, '待審');
+  const glS = ev.ctx.apiGoogleLogin('stu'); assert(!glS.teacher && glS.user.account === 's001');
+  assert.throws(() => ev.ctx.apiGoogleLogin('stranger'));
+  assert.throws(() => ev.ctx.apiGoogleLogin('unverified'));
+  assert.throws(() => ev.ctx.apiGoogleLogin('badAud'));
+  assert.throws(() => ev.ctx.apiGoogleLogin('invalid'));
+  // 學生端被鎖在 1 回，教師端全解鎖
+  assert(ev.ctx.apiHome(glS.token).chapters.length === 1);
+  assert.throws(() => ev.ctx.apiChapter(glS.token, 2));
+  assert.throws(() => ev.ctx.apiBattleStart(glS.token, 2));
+  const th = ev.ctx.apiHome(gl2.token);
+  assert(th.teacher && th.chapters.length === ev.ctx.catalog_().length);
+  const tc2 = th.chapters.find(c => c.ch === 2);
+  assert(tc2 && tc2.status === '待審' && tc2.open === false);
+  const ch2 = ev.ctx.apiChapter(gl2.token, 2);
+  assert(ch2.teacherRead && ch2.allUnlocked && ch2.paras.length > 0 && ch2.status === '待審');
+  const cx = ev.ctx.apiCodex(gl2.token);
+  assert(cx.allUnlocked && cx.chapters.length === ev.ctx.catalog_().length && cx.prog[2].done && cx.prog[2].mx === 9999);
+  const at = ev.ctx.apiAtlas(gl2.token);
+  assert(at.allUnlocked && at.reach === ev.ctx.catalog_().slice(-1)[0].ch && at.chapters.length === ev.ctx.catalog_().length);
+  // 教師作答、存檔、遊戲、提問、訂正皆不寫入學生紀錄表
+  const bt = ev.ctx.apiBattleStart(gl2.token, 2);
+  assert(bt.ticket && bt.practice && bt.qs.length > 0);
+  const ans = {};
+  bt.qs.forEach(q => { ev.ctx.apiGuestBattleAnswer(bt.ticket, q.no, 'A'); ans[q.no] = 'A'; });
+  const fin = ev.ctx.apiGuestBattleFinish(bt.ticket, ans);
+  assert(fin.total === bt.qs.length && fin.review.length === bt.qs.length);
+  ev.ctx.apiSaveDraft(gl2.token, 2, { 1: 'A' }, 0.5, [], 10);
+  ev.ctx.apiSaveBookmarks(gl2.token, 2, [{ i: 1, t: 'x', at: 'now' }], 0.5);
+  ev.ctx.apiSaveGame(gl2.token, 2, { mx: 5, ev: [0], pd: {} });
+  ev.ctx.apiAskWord(gl2.token, 2, 1, '漢室');
+  assert.strictEqual(ev.ctx.apiMistakes(gl2.token).length, 0);
+  assert(ev.ctx.apiMarkFixed(gl2.token, [{ ch: 2, no: 1 }]) === 0);
+  assert(ms.getSheetByName('存檔').getLastRow() === 1);
+  assert(ms.getSheetByName('作答紀錄').getLastRow() === 1);
+  assert(ms.getSheetByName('錯題訂正').getLastRow() === 1);
+  assert(ms.getSheetByName('詞語提問').getLastRow() === 1);
+  console.log('TEACHER GOOGLE AUTH & FULL UNLOCK TESTS PASSED'); }

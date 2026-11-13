@@ -26,13 +26,14 @@ class SS {
   insertSheet(n) { const s = new Sheet(n); this.sheets.push(s); return s; }
   getSheets() { return this.sheets; } getId() { return this.id; } getUrl() { return 'https://docs.google.com/spreadsheets/d/' + this.id; }
 }
-function makeEnv(email) {
+function makeEnv(email, fetcher) {
   const main = new SS(); main.insertSheet('工作表1'); const created = [];
   const cache = {}, props = {};
   const toBytes = s => Array.from(Buffer.from(s, 'utf8')).map(b => b > 127 ? b - 256 : b);
   const fromBytes = a => Buffer.from(a.map(b => b & 255));
   const ctx = {
     console,
+    UrlFetchApp: { fetch: fetcher || (() => ({ getResponseCode: () => 500, getContentText: () => '{}' })) },
     SpreadsheetApp: { getActive: () => main, flush() { }, create(n) { const s = new SS(); s.insertSheet('Sheet1'); s.title = n; created.push(s); return s; }, getUi: () => ({}) },
     CacheService: { getScriptCache: () => ({ get: k => cache[k] || null, put: (k, v) => { if (Buffer.byteLength(v) > 100000) throw new Error('too big'); cache[k] = v; }, remove: k => delete cache[k], removeAll: ks => ks.forEach(k => delete cache[k]) }) },
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => props[k] || null, setProperty: (k, v) => { props[k] = v; } }) },

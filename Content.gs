@@ -67,7 +67,8 @@ function cleanGame_(g, old) {
   return { mx: Math.max(Number(old.mx) || 0, Math.min(999, Number(g.mx) || 0)), ev: Object.keys(ev).map(Number).sort(function (a, b) { return a - b; }), pd: pd };
 }
 function apiSaveGame(token, ch, g) {
-  var p = verify_(token, 's'); ch = Number(ch);
+  var p = authAny_(token); if (p.r === 't') return { ok: true, g: cleanGame_(g, null), skipped: true };
+  ch = Number(ch);
   if (!chOpen_(ch)) throw new Error('本回尚未開放');
   var lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
@@ -105,16 +106,24 @@ function codexAll_() {
   try { c.put('codex', JSON.stringify(o), 600); } catch (e) { }
   return o;
 }
-function codexFor_(prog) {
+function codexFor_(prog, allOpen) {
   var all = codexAll_(), open = openChapters_();
-  var ok = function (ch) { return !open || open[ch]; };
-  return { people: all.people.filter(function (p) { return ok(p.first); }), battles: all.battles.filter(function (b) { return ok(b.ch); }),
+  var ok = function (ch) { return allOpen || !open || open[ch]; };
+  var out = { people: all.people.filter(function (p) { return ok(p.first); }), battles: all.battles.filter(function (b) { return ok(b.ch); }),
     chapters: catalog_().filter(function (c) { return ok(c.ch); }).map(function (c) { return { ch: c.ch, num: c.num, title: c.title }; }),
     art: artData_(), prog: prog || {} };
+  if (allOpen) out.allUnlocked = true;
+  return out;
 }
-/** 學生：prog = { 回: { mx, ev, pd, done } } */
+/** 學生：prog = { 回: { mx, ev, pd, done } }；教師：全回全解鎖 */
 function apiCodex(token) {
-  var p = verify_(token, 's'), a = str_(p.a).toLowerCase(), prog = {};
+  var p = authAny_(token);
+  if (p.r === 't') {
+    var tprog = {};
+    catalog_().forEach(function (c) { tprog[c.ch] = { mx: 9999, ev: [], pd: {}, done: true }; });
+    return codexFor_(tprog, true);
+  }
+  var a = str_(p.a).toLowerCase(), prog = {};
   rows_(SHEET.SAVE).forEach(function (r) {
     if (str_(r[0]).toLowerCase() !== a) return;
     var s = saveObj_(r), g = (s.draft && s.draft.g) || {};

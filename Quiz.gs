@@ -83,12 +83,19 @@ function btLoad_(p, ch) {
   return { save: o, bt: o && o.draft && o.draft.bt ? o.draft.bt : null };
 }
 
-/** 出征：有未完成的戰役就接著打；否則抽新題組 */
+/** 出征：有未完成的戰役就接著打；否則抽新題組（教師為不寫入紀錄的練習票證） */
 function apiBattleStart(token, ch) {
-  var p = verify_(token, 's'); ch = Number(ch);
-  if (!chOpen_(ch)) throw new Error('本回尚未開放');
+  var p = authAny_(token), isT = p.r === 't'; ch = Number(ch);
+  if (!isT && !chOpen_(ch)) throw new Error('本回尚未開放');
   var full = chapterFull_(ch), set = getSettings_();
   if (!full.qs.length) throw new Error('本回尚未建立題目');
+  if (isT) {
+    var btT = btNew_(full, set, []); btT.seen = [];
+    var vT = btView_(full, btT, yes_(set['交卷後顯示解析'] || '是'));
+    vT.ticket = sign_({ r: 'tg', ch: ch, nos: btT.nos, perm: btT.perm, e: Date.now() + 6 * 3600 * 1000 });
+    vT.practice = true;
+    return vT;
+  }
   var lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
     var L = btLoad_(p, ch), bt = L.bt;
@@ -158,7 +165,8 @@ function apiGuestBattleStart(ch) {
   return v;
 }
 function guestBt_(ticket) {
-  var p = verify_(ticket, 'g');
+  var p = verify_(ticket);
+  if (p.r !== 'g' && p.r !== 'tg') throw new Error('權限不足');
   return { ch: p.ch, bt: { nos: p.nos, perm: p.perm, ans: {} } };
 }
 function apiGuestBattleAnswer(ticket, no, letter) {
@@ -191,7 +199,8 @@ function applyQuestionBank1() {
 
 /* ---------- 錯題本 ---------- */
 function apiMistakes(token) {
-  var p = verify_(token, 's'), a = str_(p.a).toLowerCase(), showExp = yes_(getSettings_()['交卷後顯示解析'] || '是'), out = [];
+  var p = authAny_(token); if (p.r === 't') return [];
+  var a = str_(p.a).toLowerCase(), showExp = yes_(getSettings_()['交卷後顯示解析'] || '是'), out = [];
   rows_(SHEET.SAVE).forEach(function (r) {
     if (str_(r[0]).toLowerCase() !== a) return;
     var s = saveObj_(r); if (!s.submitted || !s.lastAns) return;
@@ -210,7 +219,8 @@ function apiMistakes(token) {
 }
 /** 錯題訂正：記錄到試算表，換裝置也看得到 */
 function apiMarkFixed(token, list) {
-  var p = verify_(token, 's'), a = str_(p.a).toLowerCase(), have = {}, t = now_(), add = [];
+  var p = authAny_(token); if (p.r === 't') return 0;
+  var a = str_(p.a).toLowerCase(), have = {}, t = now_(), add = [];
   rows_(SHEET.FIX).forEach(function (r) { if (str_(r[0]).toLowerCase() === a) have[Number(r[1]) + '-' + Number(r[2])] = 1; });
   (list || []).slice(0, 60).forEach(function (x) {
     var ch = Number(x.ch), no = Number(x.no), k = ch + '-' + no;

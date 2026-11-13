@@ -218,9 +218,9 @@ function bfInit(d) {
   var box = $('#bf'); S.bfs = null; S.demoPos = null; S.pdSkip = {};
   S.paraEls = $$('#txt p[data-i]');
   var g0 = null;
-  if (S.guest) { try { g0 = JSON.parse(store('sg_game_guest_' + d.ch) || 'null'); } catch (e) { } }
+  if (S.guest || d.teacherRead) { try { g0 = JSON.parse(store('sg_game_guest_' + d.ch) || 'null'); } catch (e) { } }
   else g0 = d.save && d.save.draft && d.save.draft.g;
-  S.game = { mx: (g0 && g0.mx) || 0, ev: (g0 && g0.ev) || [], pd: (g0 && g0.pd) || {} };
+  S.game = { mx: d.teacherRead ? 9999 : ((g0 && g0.mx) || 0), ev: (g0 && g0.ev) || [], pd: (g0 && g0.pd) || {} };
   $('#txt').addEventListener('scroll', readTick);
   if (!S.readBound) { S.readBound = true; window.addEventListener('scroll', readTick, { passive: true }); window.addEventListener('resize', function () { document.documentElement.style.setProperty('--topH', topH() + 'px'); readTick(); }); }
   $('#txt').addEventListener('click', evClick, true);
@@ -233,7 +233,7 @@ function gameSave() {
   clearTimeout(S.gameTimer);
   S.gameTimer = setTimeout(function () {
     var d = S.chap; if (!d || !S.game || S.demo || d.preview) return;
-    if (S.guest) { store('sg_game_guest_' + d.ch, JSON.stringify(S.game)); return; }
+    if (S.guest || d.teacherRead) { store('sg_game_guest_' + d.ch, JSON.stringify(S.game)); return; }
     if (S.token) call('apiSaveGame', S.token, d.ch, S.game).catch(function () { });
   }, 2500);
 }

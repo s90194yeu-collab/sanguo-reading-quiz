@@ -53,7 +53,8 @@ function renderChapter() {
   view('<div class="reader"><div class="rhead"><div class="chno">' + esc(d.num) + '</div><h2 class="couplet"><span>' + esc(t[0] || '') + '</span><span>' + esc(t[1] || '') + '</span></h2>' +
     '<div class="rtools"><span class="vgrp" role="group" aria-label="顯示內容"><b>顯示</b><button class="chip" data-v="txt">原文</button><button class="chip" data-v="bf">戰況畫面</button><button class="chip" data-v="quiz">閱讀檢測</button><button class="chip" id="btnLayout" title="一鍵版面">版面▾</button></span><button class="chip ' + (S.vert ? 'on' : '') + '" id="tgVert">直排</button><button class="chip" id="btnPref">字型・字級</button><button class="chip" id="btnBm">書籤</button><button class="chip" id="toHome">回目錄</button></div>' +
     '<div class="pop hidden" id="popPref"></div><div class="pop hidden" id="popBm"></div><div class="pop hidden" id="popLayout"></div></div>' +
-    (d.preview ? '<div class="pvbar">教師預覽・本回狀態：<b>' + esc(d.preview) + '</b>（學生' + (d.preview === '上架' ? '看得到' : '看不到') + '；預覽不存檔、不作答）</div>' : '') +
+    (d.preview ? '<div class="pvbar">教師預覽・本回狀態：<b>' + esc(d.preview) + '</b>（學生' + (d.preview === '上架' ? '看得到' : '看不到') + '；預覽不存檔、不作答）</div>'
+      : d.teacherRead ? '<div class="pvbar">教師全解鎖模式・本回狀態：<b>' + esc(d.status || '上架') + '</b>（學生端' + (d.open ? '已開放' : '未開放') + '）— 戰況、解析與測驗皆已開放，不記入學生紀錄</div>' : '') +
     '<div class="mtabs"><button class="chip on" data-p="txt">原文</button><button class="chip" data-p="quiz">試題</button></div>' +
     '<div class="cols"><div id="bf" class="bf pane on" style="display:none"></div><article class="scrollpanel text pane on' + (S.vert ? ' vert' : '') + '" id="txt">' + text + '</article>' +
     '<aside class="scrollpanel quiz pane" id="quiz"></aside></div></div>');
@@ -68,7 +69,7 @@ function renderChapter() {
   $('#btnBm').onclick = function (e) { e.stopPropagation(); togglePop('popBm', drawBm); };
   S.bm = (d.save && d.save.draft && d.save.draft.bm) || [];
   S.spent = (d.save && d.save.spent) || 0; S.spentSaved = S.spent; S.lastAct = Date.now();
-  if (S.guest) { try { S.bm = JSON.parse(store('sg_bm_guest_' + d.ch) || '[]'); } catch (e) { S.bm = []; } }
+  if (S.guest || d.teacherRead) { try { S.bm = JSON.parse(store('sg_bm_guest_' + d.ch) || '[]'); } catch (e) { S.bm = []; } }
   markBm();
   bindTextTips(tx);
   $('#toHome').onclick = goHome;
@@ -185,7 +186,7 @@ function bindSelection(tx) {
   var show = function () {
     var x = selInfo(tx); if (!x) { bar.className = ''; return; }
     bar.innerHTML = '<a href="' + DICT_URL + encodeURIComponent(x.w) + '" target="_blank" rel="noopener">查教育部辭典「' + esc(x.w) + '」</a>' +
-      (S.token && !S.guest ? '<button type="button" id="selAsk">看不懂，告訴老師</button>' : '');
+      (S.token && !S.guest && !S.teacher ? '<button type="button" id="selAsk">看不懂，告訴老師</button>' : '');
     bar.className = 'show';
     var bw = bar.offsetWidth, left = Math.min(Math.max(8, x.rect.left + x.rect.width / 2 - bw / 2), innerWidth - bw - 8);
     var top = x.rect.top - bar.offsetHeight - 10; if (top < 8) top = x.rect.bottom + 10;
@@ -371,7 +372,8 @@ function jumpPara(i) {
 function queueDraft() { clearTimeout(S.draftTimer); $('#savest') && ($('#savest').textContent = '研墨中…'); S.draftTimer = setTimeout(function () { saveDraft(false); }, 1200); }
 function saveDraft(manual) {
   clearTimeout(S.draftTimer); S.draftTimer = null;
-  if (!S.chap || (S.chap.result && (S.guest || S.spent === S.spentSaved))) return Promise.resolve();
+  if (!S.chap || S.teacher || S.chap.teacherRead || S.chap.preview) return Promise.resolve();
+  if (S.chap.result && (S.guest || S.spent === S.spentSaved)) return Promise.resolve();
   var ch = S.chap.ch;
   if (S.guest) {
     store('sg_guest_' + ch, JSON.stringify({ ans: S.ans, pos: readPos() })); S.posDirty = false;
@@ -388,6 +390,7 @@ function saveDraft(manual) {
   }).catch(function (e) { S.saving = false; if ($('#savest')) $('#savest').textContent = '存檔失敗，請檢查網路'; if (manual) fail(e); });
 }
 function flushDraft() {
+  if (S.teacher || (S.chap && (S.chap.teacherRead || S.chap.preview))) return;
   if (S.chap && (S.token || S.guest) && ((!S.chap.result && (S.draftTimer || S.posDirty)) || (S.token && S.spent !== S.spentSaved))) saveDraft(false);
 }
 window.addEventListener('beforeunload', flushDraft);

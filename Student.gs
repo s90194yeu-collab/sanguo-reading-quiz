@@ -107,16 +107,21 @@ function atlasAll_() {
   try { c.put('atlas', JSON.stringify(o), 600); } catch (e) { }
   return o;
 }
-function atlas_(reach) {
+function atlas_(reach, allOpen) {
   var all = atlasAll_();
-  return { reach: reach, chapters: catalog_().filter(function (c) { return chOpen_(c.ch); }).map(function (c) { return { ch: c.ch, num: c.num, title: c.title }; }), factions: artData_().factions,
+  return { reach: reach, chapters: catalog_().filter(function (c) { return allOpen || chOpen_(c.ch); }).map(function (c) { return { ch: c.ch, num: c.num, title: c.title }; }), factions: artData_().factions,
     people: peopleFor_(reach), rels: all.rels.filter(function (r) { return r.ch <= reach; }),
     places: all.places.filter(function (p) { return p.ch <= reach; }) };
 }
 function apiAtlas(token) {
-  var p = verify_(token, 's'), pr = progress_(p.a), reach = 1;
-  Object.keys(pr).forEach(function (k) { reach = Math.max(reach, Number(k)); });
-  return atlas_(reach);
+  var p = authAny_(token);
+  if (p.r === 't') {
+    var cats = catalog_(), reach = cats.length ? cats[cats.length - 1].ch : 1;
+    var out = atlas_(reach, true); out.allUnlocked = true; return out;
+  }
+  var pr = progress_(p.a), reachS = 1;
+  Object.keys(pr).forEach(function (k) { reachS = Math.max(reachS, Number(k)); });
+  return atlas_(reachS);
 }
 function apiGuestAtlas() {
   var g = Object.keys(guestChapters_(getSettings_())).map(Number);
@@ -162,26 +167,42 @@ function guestChapters_(set) {
 function apiInit(token) {
   var set = getSettings_();
   var out = { title: set['網站標題'] || '三國演義・閱讀試煉', subtitle: set['副標題'] || '',
-    allowRegister: yes_(set['開放外人註冊'] || '是'), user: null, token: null,
+    allowRegister: yes_(set['開放外人註冊'] || '是'), googleClientId: str_(set['Google登入ClientID']), user: null, token: null,
     guestChapters: Object.keys(guestChapters_(set)).map(Number),
     about: { maker: set['製作者'] || '', contact: set['聯絡方式'] || '', license: set['授權聲明'] || '',
       base: sourceOf_(set, 1, '第一回').base, refRoot: 'https://zh.wikisource.org/zh-hant/三國演義', note: set['校勘說明'] || '' } };
   if (token) {
     try {
       var p = verify_(token);
-      if (p.r === 't') { out.teacher = true; out.token = token; }
+      if (p.r === 't') { out.teacher = true; out.token = token; if (p.em) out.email = p.em; }
       else { var hit = findStudent_(p.a); if (hit) { out.user = userObj_(hit.r); out.token = token; } }
     } catch (e) { }
   }
   if (!out.user && !out.teacher) {
     var email = '';
-    try { email = Session.getActiveUser().getEmail(); } catch (e) { }
-    var byMail = findByEmail_(email);
-    if (byMail) { var iss = issueStudent_(byMail); out.user = iss.user; out.token = iss.token; out.auto = true; }
-    out.email = email;
+    try { email = str_(Session.getActiveUser().getEmail()).toLowerCase(); } catch (e) { }
+    if (isTeacherEmail_(email, set)) {
+      var tIss = issueTeacher_(email);
+      out.teacher = true; out.token = tIss.token; out.auto = true; out.email = email;
+    } else {
+      var byMail = findByEmail_(email);
+      if (byMail) { var iss = issueStudent_(byMail); out.user = iss.user; out.token = iss.token; out.auto = true; }
+      out.email = email;
+    }
   }
   if (out.user) out.home = homeData_(out.user.account);
   return out;
+}
+
+function teacherHomeData_() {
+  var st = chapterStatus_(), open = openChapters_();
+  var list = catalog_().map(function (c) {
+    var x = JSON.parse(JSON.stringify(c));
+    x.status = (st[c.ch] && st[c.ch].status) || '上架';
+    x.open = !open || !!open[c.ch];
+    return x;
+  });
+  return { chapters: list, progress: {}, ann: annAll_().slice(0, 8), board: null, teacher: true };
 }
 
 function homeData_(account) {
@@ -289,7 +310,8 @@ function apiRegister(f) {
 }
 
 function apiHome(token) {
-  var p = verify_(token, 's');
+  var p = authAny_(token);
+  if (p.r === 't') return teacherHomeData_();
   return homeData_(p.a);
 }
 
@@ -309,18 +331,22 @@ function apiGuestChapter(ch) {
 }
 
 function apiChapter(token, ch) {
-  var p = verify_(token, 's'); ch = Number(ch);
-  if (!chOpen_(ch)) throw new Error('本回尚未開放');
+  var p = authAny_(token), isT = p.r === 't'; ch = Number(ch);
+  if (!isT && !chOpen_(ch)) throw new Error('本回尚未開放');
   var full = chapterFull_(ch), set = getSettings_();
-  var hit = findSave_(p.a, ch), save = hit ? saveObj_(hit.r) : null;
+  var save = isT ? null : (function () { var hit = findSave_(p.a, ch); return hit ? saveObj_(hit.r) : null; })();
   var showExp = yes_(set['交卷後顯示解析'] || '是');
   var bt = save && save.draft && save.draft.bt ? save.draft.bt : null;
   if (save && save.draft) delete save.draft.bt;
+  var stMap = isT ? chapterStatus_() : null;
   var out = { ch: ch, num: full.num, title: full.title, paras: full.paras,
     ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
     qn: Math.min(full.qs.length, drawN_(set)), bt: { state: 'none' }, bf: full.bf || [], art: full.art,
-    allowRetry: yes_(set['允許重作'] || '是'), save: save, source: sourceOf_(set, ch, full.num),
-    notes: full.notes || [], names: full.names || [], people: peopleFor_(ch) };
+    allowRetry: isT ? true : yes_(set['允許重作'] || '是'), save: save, source: sourceOf_(set, ch, full.num),
+    notes: full.notes || [], names: full.names || [], people: peopleFor_(ch),
+    teacherRead: isT, allUnlocked: isT,
+    status: isT ? ((stMap[ch] && stMap[ch].status) || '上架') : undefined,
+    open: isT ? chOpen_(ch) : undefined };
   if (bt && !bt.fin) out.bt = btView_(full, bt, showExp);
   else if (save && save.submitted) {
     out.result = grade_(full, save.lastAns || {}, showExp); out.result.summary = full.summary;
@@ -361,7 +387,8 @@ function cleanSpent_(v, prev) {
   return Math.max(v, prev || 0);
 }
 function apiSaveDraft(token, ch, ans, pos, bm, spent) {
-  var p = verify_(token, 's'); ch = Number(ch);
+  var p = authAny_(token); if (p.r === 't') return { ok: true, time: now_(), skipped: true };
+  ch = Number(ch);
   var lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
     var hit = findSave_(p.a, ch), t = now_();
@@ -382,7 +409,8 @@ function apiSaveDraft(token, ch, ans, pos, bm, spent) {
 
 /** 只更新書籤與閱讀位置（交卷後仍可用） */
 function apiSaveBookmarks(token, ch, bm, pos) {
-  var p = verify_(token, 's'); ch = Number(ch);
+  var p = authAny_(token); if (p.r === 't') return { ok: true, time: now_(), skipped: true };
+  ch = Number(ch);
   var lock = LockService.getScriptLock(); lock.waitLock(15000);
   try {
     var hit = findSave_(p.a, ch), t = now_();

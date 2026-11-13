@@ -17,7 +17,7 @@ function renderCodex() {
   var d = S.codex, t = S.cxTab;
   var np = d.people.filter(cxPersonOpen).length, nb = d.battles.filter(cxBattleOpen).length, nev = d.battles.filter(cxEv).length;
   var npd = 0; Object.keys(d.prog || {}).forEach(function (k) { npd += Object.keys(d.prog[k].pd || {}).length; });
-  view('<div class="homehead"><div><h2>圖鑑</h2><p>讀到哪裡，人物與戰役就解鎖到哪裡；在戰況畫面按「找依據」點出原文句子，戰役會蓋上✓。</p></div>' +
+  view('<div class="homehead"><div><h2>圖鑑</h2><p>' + (d.allUnlocked ? '教師模式：已解鎖全書所有人物、事蹟與戰役圖鑑（點擊戰役可跳轉原文）。' : '讀到哪裡，人物與戰役就解鎖到哪裡；在戰況畫面按「找依據」點出原文句子，戰役會蓋上✓。') + '</p></div>' +
     '<div class="stat"><div><b>' + np + '／' + d.people.length + '</b>人物</div><div><b>' + nb + '／' + d.battles.length + '</b>戰役</div><div><b>' + nev + '</b>找到依據</div><div><b>' + npd + '</b>預測</div></div></div>' +
     '<div class="rtools" style="margin-bottom:16px"><button class="chip' + (t === 'people' ? ' on' : '') + '" data-cx="people">人物</button><button class="chip' + (t === 'battle' ? ' on' : '') + '" data-cx="battle">戰役</button>' +
     '<button class="chip' + (t === 'card' ? ' on' : '') + '" data-cx="card">戰報卡</button><button class="chip" id="cxBack">回目錄</button></div><div id="cxBody"></div>');
