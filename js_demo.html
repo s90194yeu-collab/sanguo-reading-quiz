@@ -39,14 +39,28 @@ function startDemo() {
     return loadHome().then(function () { return cap('<b>展示模式</b>電腦自動示範一整回的閱讀、戰況與作答；<br>不登入、不記錄成績。', 4200); })
       .then(function () { var c = $('.card[data-ch="1"]'); return click(c); })
       .then(function () { return waitFor('#bf .bf-title', 15000); })
-      .then(function () { if (S.vert) { $('#tgVert').click(); } return cap('<b>第一回</b>左上是「戰況面板」，隨著原文往下讀，雙方形勢會跟著改變。', 4200); })
+      .then(function () { S.game = { mx: 0, ev: [], pd: {} }; S.bfs.cur = undefined; bfUpdate(); if (S.vert) { $('#tgVert').click(); } return cap('<b>第一回</b>左上是「戰況面板」，隨著原文往下讀，雙方形勢會跟著改變；面板下方的色條是本回各幕，點一下可跳過去。', 4600); })
       .then(function () {
         var rows = S.bfs ? S.bfs.rows : [], chain = Promise.resolve();
         rows.forEach(function (r, k) {
-          chain = chain.then(function () { return scrollRow(r); }).then(function () {
+          chain = chain.then(function () { S.demoPd = !!(r.pq && r.title === '大興山對陣'); return scrollRow(r); }).then(function () {
             var ex = !seenScene[r.scene]; seenScene[r.scene] = 1;
             return cap('<b>第 ' + r.para + ' 段</b>' + (ex ? EXPLAIN[r.scene] + '<br>' : '') + esc(r.title) + '：' + esc(r.note), ex ? 6200 : 3400);
           });
+          if (r.pq && r.title === '大興山對陣') {
+            chain = chain.then(function () { return cap('<b>預測</b>讀到關鍵處會跳出小問題，先猜猜接下來怎麼發展（不計分），讀下去就揭曉。', 4400); })
+              .then(function () { var b = $$('.bf-pd [data-pd]')[1]; return b ? click(b) : sleep(200); }).then(function () { S.demoPd = false; return sleep(1600); });
+          }
+          if (r.title === '張飛對鄧茂' && r.anchor === '手起處') {
+            chain = chain.then(function () { var b = $('.bf-ev'); return b ? click(b) : sleep(200); })
+              .then(function () { return cap('<b>找依據</b>按「找依據」，再到原文點出支持這個畫面的句子。', 3800); })
+              .then(function () {
+                var t = evTarget(r); if (!t) return sleep(200);
+                var rg = textRange(t.p, t.s0, t.s1), rc = rg && rg.getClientRects()[0]; if (!rc) return sleep(200);
+                var c = $('#dCur'); c.style.left = (rc.left + Math.min(rc.width / 2, 60)) + 'px'; c.style.top = (rc.top + rc.height / 2) + 'px';
+                return sleep(1100).then(function () { c.classList.remove('click'); void c.offsetWidth; c.classList.add('click'); evCheckAt(rc.left + Math.min(rc.width / 2, 60), rc.top + rc.height / 2); return sleep(2600); });
+              });
+          }
           if (r.title === '關羽對程遠志' && r.note.indexOf('一刀') >= 0) {
             chain = chain.then(function () { uncap(); return scrollRow(rows[8]); }).then(function () { return cap('<b>往回捲</b>戰況跟著倒退：回到「大興山對陣」，雙方仍然相持。', 4200); });
           }

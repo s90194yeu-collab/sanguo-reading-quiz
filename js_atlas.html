@@ -131,8 +131,15 @@ function drawMap() {
   var route = evs.filter(function (e) { return e.ch === S.atCh; });
   var rpath = route.length > 1 ? '<path d="' + pathOf(route.map(function (e) { return [e.lon, e.lat]; })) + '" fill="none" stroke="#a8322a" stroke-width="2.5" stroke-dasharray="8 6" opacity=".8"/>' : '';
   var placed = order.map(function (k) { var q = proj(spots[k].lon, spots[k].lat); return [q[0] - 10, q[1] - 10, q[0] + 10, q[1] + 10]; });
+  // 勢力版圖：每個地點取「顯示到的回目」為止最後一筆有勢力的事件來著色
+  var FAC = {}; (d.factions || []).forEach(function (f) { FAC[f.name] = f; });
+  var facOfSpot = function (sp) { var f = ''; sp.evs.forEach(function (e) { if (e.fac) f = e.fac; }); return FAC[f] || null; };
+  var used = {}, halos = order.map(function (k) { var f = facOfSpot(spots[k]); if (!f) return ''; used[f.name] = f; var q = proj(spots[k].lon, spots[k].lat);
+    return '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="46" fill="' + f.c1 + '" opacity=".2"/><circle cx="' + q[0] + '" cy="' + q[1] + '" r="46" fill="none" stroke="' + f.c1 + '" stroke-width="2" stroke-dasharray="4 5" opacity=".55"/>'; }).join('');
+  var legend = Object.keys(used).map(function (n, i) { return '<g transform="translate(18,' + (20 + i * 26) + ')"><rect width="18" height="18" fill="' + used[n].c1 + '" stroke="#3e2616"/><text x="26" y="15" style="font:15px var(--f-title)" fill="#3e2616">' + esc(n) + '</text></g>'; }).join('');
+  if (legend) legend = '<g><rect x="8" y="8" width="130" height="' + (Object.keys(used).length * 26 + 30) + '" fill="#fbf3e0" opacity=".85" stroke="#c7b48c"/>' + legend.replace(/translate\(18,(\d+)\)/g, function (m, y) { return 'translate(18,' + (+y + 18) + ')'; }) + '<text x="18" y="24" style="font:700 13px var(--f-title)" fill="#6b4529">勢力（到' + esc(chName(d, up)) + '）</text></g>';
   var marks = order.map(function (k) {
-    var s = spots[k], q = proj(s.lon, s.lat), cur = s.evs.some(function (e) { return e.ch === S.atCh; });
+    var s = spots[k], q = proj(s.lon, s.lat), cur = s.evs.some(function (e) { return e.ch === S.atCh; }), fc = facOfSpot(s);
     var nums = s.evs.map(function (e) { return e.k; }).join('・');
     var w = Math.max(s.name.length * 17, nums.length * 7) + 6;
     var box = function (side) { return side > 0 ? [q[0] + 12, q[1] - 26, q[0] + 12 + w, q[1] + 18] : [q[0] - 12 - w, q[1] - 26, q[0] - 12, q[1] + 18]; };
@@ -141,11 +148,11 @@ function drawMap() {
     var dy = 0; if (!side) { side = 1; dy = 26; }
     placed.push(box(side));
     var lx = side > 0 ? q[0] + 13 : q[0] - 13, an = side > 0 ? 'start' : 'end';
-    return '<g class="mk" data-p="' + esc(k) + '" style="cursor:pointer"><circle cx="' + q[0] + '" cy="' + q[1] + '" r="9" fill="' + (cur ? '#a8322a' : '#6b4529') + '" stroke="#fbf3e0" stroke-width="3"/>' +
+    return '<g class="mk" data-p="' + esc(k) + '" style="cursor:pointer"><circle cx="' + q[0] + '" cy="' + q[1] + '" r="9" fill="' + (fc ? fc.c1 : cur ? '#a8322a' : '#6b4529') + '" stroke="' + (cur ? '#a8322a' : '#fbf3e0') + '" stroke-width="3"/>' +
       '<text x="' + lx + '" y="' + (q[1] - 8 + dy) + '" text-anchor="' + an + '" class="glab" style="font:700 16px var(--f-title)" fill="' + (cur ? '#a8322a' : '#3e2616') + '">' + esc(s.name) + '</text>' +
       '<text x="' + lx + '" y="' + (q[1] + 12 + dy) + '" text-anchor="' + an + '" class="glab" style="font:12px var(--f-title)">' + nums + '</text></g>';
   }).join('');
-  svg.innerHTML = bg + rpath + '<g id="pulse"></g>' + marks + '<text x="985" y="755" text-anchor="end" style="font:12px var(--f-title)" fill="#8b7c6b">示意圖：位置為約略，河道依今日地形簡化' + (S.atZoom === 'c' ? '（洛陽周邊放大）' : '') + '</text>';
+  svg.innerHTML = bg + halos + rpath + '<g id="pulse"></g>' + marks + legend + '<text x="985" y="755" text-anchor="end" style="font:12px var(--f-title)" fill="#8b7c6b">示意圖：位置為約略，河道依今日地形簡化' + (S.atZoom === 'c' ? '（洛陽周邊放大）' : '') + '</text>';
   var chs = d.chapters.filter(function (c) { return c.ch <= up; });
   $('#tl').innerHTML = '<div class="rtools" style="margin-bottom:8px"><button class="chip' + (S.atZoom !== 'c' ? ' on' : '') + '" data-z="all">全圖</button><button class="chip' + (S.atZoom === 'c' ? ' on' : '') + '" data-z="c">放大洛陽周邊</button></div>' +
     '<p class="note" style="margin-top:0">點回目看該回路線，點事件在地圖上標出位置。</p>' + chs.map(function (c) {

@@ -8,7 +8,8 @@ var SHEET = {
   SET: '設定', ROSTER: '學生名單', TEXT: '原文', QB: '題庫',
   ILL: '插圖', SAVE: '存檔', LOG: '作答紀錄',
   NOTE: '註釋', PEOPLE: '人物', DEED: '人物事蹟', SUM: '回末小結',
-  REL: '人物關係', PLACE: '地點事件', ANN: '公告', FIX: '錯題訂正', NAME: '專名', ASK: '詞語提問', BF: '戰況'
+  REL: '人物關係', PLACE: '地點事件', ANN: '公告', FIX: '錯題訂正', NAME: '專名', ASK: '詞語提問', BF: '戰況',
+  LOOK: '人物造型', FAC: '勢力', STAT: '回目狀態'
 };
 var HEAD = {
   '設定': ['項目', '值', '說明'],
@@ -23,12 +24,18 @@ var HEAD = {
   '人物事蹟': ['姓名', '回', '事蹟'],
   '回末小結': ['回', '本回大事（一行一件）', '名句', '想一想'],
   '人物關係': ['人物甲', '人物乙', '關係', '從第幾回起'],
-  '地點事件': ['回', '序', '年代', '地點', '事件', '經度', '緯度'],
+  '地點事件': ['回', '序', '年代', '地點', '事件', '經度', '緯度', '勢力（此地此時屬誰；勢力版圖用，空白＝不著色）'],
   '公告': ['編號', '建立時間', '對象班級（全部或逗號分隔）', '標題', '內容', '必讀回次（逗號分隔）', '截止日期', '置頂'],
   '錯題訂正': ['帳號', '回', '題號', '訂正時間'],
   '專名': ['回（0＝各回通用）', '詞', '類別（人名／地名／朝代／年號／書名）', '說明（選填，點詞時顯示）'],
   '詞語提問': ['時間', '帳號', '姓名', '班級', '回', '段落', '詞語'],
-  '戰況': ['回', '段', '錨句（該段中的一句話，戰況從這句起換畫面；空白＝段首）', '場景（軍陣／單挑／謀略／平時）', '標題', '甲方名稱', '甲方人物（頓號分隔）', '甲方兵力（原文有寫才填）', '甲方勢（佔優／相持／潰敗）', '乙方名稱', '乙方人物', '乙方兵力', '乙方勢', '說明（依文意示意）', '依據段']
+  '戰況': ['回', '段', '錨句（該段中的一句話，戰況從這句起換畫面；空白＝段首）', '場景（軍陣／單挑／謀略／平時）', '標題', '甲方名稱', '甲方人物（頓號分隔）', '甲方兵力（原文有寫才填）', '甲方勢（佔優／相持／潰敗）', '乙方名稱', '乙方人物', '乙方兵力', '乙方勢', '說明（依文意示意）', '依據段',
+    '背景（戰場／黃昏／夜／桃園／水戰／攻城／火攻／宮廷／營帳；空白＝依場景）', '騎馬（甲／乙／雙方；空白＝步戰）', '頭像人物（說明列左側；空白＝甲方第一人）',
+    '甲方勢力（對照「勢力」表；空白＝依關鍵字判斷）', '乙方勢力', '預測問題（不計分，讀到這幕時詢問；空白＝無）', '預測選項（｜分隔，2～4 個）'],
+  '人物造型': ['人物或關鍵字', '比對（姓名／關鍵字）', '頭飾（盔／頭巾／冠／亂髮／幘／兜帽／光頭）', '鬍鬚（無／長鬚／虯髯／八字／山羊）', '武器（劍／雙劍／矛／偃月刀／戟／羽扇／弓／無）',
+    '髮或盔色', '盔纓或頭巾色', '甲色', '衣色', '膚色', '鬍色', '坐騎色', '備註'],
+  '勢力': ['勢力', '主色', '副色', '關鍵字（軍名或人名含這些字就套用；頓號分隔）', '說明'],
+  '回目狀態': ['回', '狀態（草稿／待審／上架／下架）', '匯入時間', '審核時間', '備註']
 };
 var DEFAULT_SET = [
   ['網站標題', '三國演義・閱讀試煉', '顯示在網站最上方'],
@@ -69,6 +76,11 @@ function onOpen() {
     .addItem('初始化／補建工作表', 'setupSheets')
     .addItem('第一回題庫更新為 20 題', 'applyQuestionBank1')
     .addItem('第一回戰況更新（隨原文顯示勝負）', 'applyBattleData1')
+    .addSeparator()
+    .addItem('匯入內容包（貼上 JSON，先檢查再寫入）', 'showImportDialog')
+    .addItem('匯出內容包（某一回）', 'showExportDialog')
+    .addItem('第一回升級（造型、勢力、戰況新欄位）', 'applyChapter1Upgrade')
+    .addSeparator()
     .addItem('清除網站快取（改完原文或題庫後按）', 'clearContentCache')
     .addToUi();
 }
@@ -121,7 +133,9 @@ function setupSheets() {
   seedIfEmpty_(SHEET.DEED, (SEED.deeds || []).map(function (x) { return [x.name, x.ch, x.text]; }));
   seedIfEmpty_(SHEET.NAME, (SEED.names || []).map(function (x) { return [x.ch, x.w, x.k, x.note]; }));
   seedIfEmpty_(SHEET.REL, (SEED.rels || []).map(function (x) { return [x.a, x.b, x.rel, x.ch]; }));
-  seedIfEmpty_(SHEET.PLACE, (SEED.places || []).map(function (x) { return [x.ch, x.no, x.year, x.place, x.event, x.lon, x.lat]; }));
+  seedIfEmpty_(SHEET.PLACE, (SEED.places || []).map(function (x) { return [x.ch, x.no, x.year, x.place, x.event, x.lon, x.lat, x.fac || '']; }));
+  seedIfEmpty_(SHEET.LOOK, (SEED.looks || []).map(lookRow_));
+  seedIfEmpty_(SHEET.FAC, (SEED.factions || []).map(function (x) { return [x.name, x.c1, x.c2, x.keys, x.note]; }));
   seedIfEmpty_(SHEET.SUM, (SEED.summary || []).map(function (x) { return [x.ch, x.events, x.quote, x.think]; }));
   seedIfEmpty_(SHEET.BF, (SEED.bf || []).map(bfRow_));
   var rs = ss.getSheetByName(SHEET.ROSTER);
@@ -130,7 +144,11 @@ function setupSheets() {
   clearContentCache();
 }
 
-function bfRow_(x) { return [x.ch, x.para, x.anchor, x.scene, x.title, x.aName, x.aUnits, x.aTroops, x.aState, x.bName, x.bUnits, x.bTroops, x.bState, x.note, x.basis]; }
+function bfRow_(x) {
+  return [x.ch, x.para, x.anchor, x.scene, x.title, x.aName, x.aUnits, x.aTroops, x.aState, x.bName, x.bUnits, x.bTroops, x.bState, x.note, x.basis,
+    x.bg || '', x.horse || '', x.face || '', x.aFac || '', x.bFac || '', x.pq || '', x.po || ''];
+}
+function lookRow_(x) { return [x.key, x.match || '姓名', x.head, x.beard, x.weapon, x.hair, x.plume, x.armor, x.cloth, x.skin, x.beardC, x.horseC, x.note || '']; }
 /** 已部署的專案：把第一回戰況寫進「戰況」工作表（先刪掉第一回舊列再寫入；請先執行 setupSheets） */
 function applyBattleData1() {
   var sh = sh_(SHEET.BF); if (!sh) { setupSheets(); sh = sh_(SHEET.BF); }
@@ -153,7 +171,7 @@ function ensureSetup_() {
 
 function clearContentCache() {
   var c = CacheService.getScriptCache();
-  var keys = ['catalog', 'settings', 'people', 'atlas'];
+  var keys = ['catalog', 'settings', 'people', 'atlas', 'status', 'looks', 'codex'];
   for (var i = 1; i <= 120; i++) keys.push('ch_' + i);
   c.removeAll(keys);
 }

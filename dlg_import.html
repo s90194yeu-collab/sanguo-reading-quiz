@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><head><base target="_top"><meta charset="utf-8">
+<style>
+body{font:14px/1.6 "Noto Sans TC","Microsoft JhengHei",sans-serif;margin:0;padding:12px;color:#2a2420}
+textarea{width:100%;height:300px;font:12px/1.4 monospace;box-sizing:border-box}
+.row{display:flex;gap:10px;align-items:center;margin:8px 0;flex-wrap:wrap}
+button{font:inherit;padding:6px 14px;cursor:pointer}
+#go{background:#a8322a;color:#fff;border:0}
+#out{max-height:200px;overflow:auto;border:1px solid #ccc;padding:6px 10px;background:#fbf7ee}
+.e{color:#b00}.w{color:#8a5a00}.ok{color:#1d6b3a;font-weight:700}
+</style></head><body>
+<div>把 Gemini 產出的內容包（JSON）整份貼在下面，或選擇 .json 檔。先「檢查」，沒有錯誤才可「匯入」。</div>
+<div class="row"><input type="file" id="file" accept=".json,application/json"></div>
+<textarea id="js" placeholder='{ "格式版本": 1, "回": 6, ... }'></textarea>
+<div class="row">
+  <button id="chk">檢查</button>
+  <label><input type="checkbox" id="pub"> 匯入後直接上架（不勾＝設為「待審」，到教師後台審核後再上架）</label>
+  <button id="go" disabled>匯入</button>
+</div>
+<div id="out">尚未檢查。</div>
+<script>
+var $ = function (s) { return document.querySelector(s); };
+function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+function show(r) {
+  var h = '';
+  if (r.imported) h += '<div class="ok">已匯入第 ' + r.ch + ' 回（' + esc(r.done.join('、')) + '），狀態：' + r.status + '</div>';
+  else if (r.ok) h += '<div class="ok">檢查通過，可以匯入。</div>';
+  if (r.stats) h += '<div>' + esc(JSON.stringify(r.stats)) + '</div>';
+  (r.errors || []).forEach(function (e) { h += '<div class="e">✕ ' + esc(e) + '</div>'; });
+  (r.warnings || []).forEach(function (e) { h += '<div class="w">△ ' + esc(e) + '</div>'; });
+  $('#out').innerHTML = h || '沒有訊息'; $('#go').disabled = !(r.ok && !r.imported);
+}
+$('#file').onchange = function () { var f = this.files[0]; if (!f) return; var rd = new FileReader(); rd.onload = function () { $('#js').value = rd.result; $('#go').disabled = true; }; rd.readAsText(f, 'utf-8'); };
+$('#js').oninput = function () { $('#go').disabled = true; };
+$('#chk').onclick = function () { $('#out').textContent = '檢查中…'; google.script.run.withSuccessHandler(show).withFailureHandler(function (e) { $('#out').textContent = e.message; }).importPack($('#js').value, 'check'); };
+$('#go').onclick = function () { if (!confirm('確定匯入？同一回的原文、題庫、戰況等會被整批取代。')) return; $('#go').disabled = true; $('#out').textContent = '匯入中…'; google.script.run.withSuccessHandler(show).withFailureHandler(function (e) { $('#out').textContent = e.message; }).importPack($('#js').value, 'import', $('#pub').checked); };
+</script></body></html>

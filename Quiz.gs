@@ -86,7 +86,7 @@ function btLoad_(p, ch) {
 /** 出征：有未完成的戰役就接著打；否則抽新題組 */
 function apiBattleStart(token, ch) {
   var p = verify_(token, 's'); ch = Number(ch);
-  var open = openChapters_(); if (open && !open[ch]) throw new Error('本回尚未開放');
+  if (!chOpen_(ch)) throw new Error('本回尚未開放');
   var full = chapterFull_(ch), set = getSettings_();
   if (!full.qs.length) throw new Error('本回尚未建立題目');
   var lock = LockService.getScriptLock(); lock.waitLock(15000);
@@ -149,7 +149,7 @@ function apiBattleFinish(token, ch, pos, spent) {
 /* ----- 訪客：不存檔，用簽章票證帶著題組 ----- */
 function apiGuestBattleStart(ch) {
   ch = Number(ch); var set = getSettings_();
-  if (!guestChapters_(set)[ch]) throw new Error('本回需登入才能作答');
+  if (!guestChapters_(set)[ch] || !chOpen_(ch)) throw new Error('本回需登入才能作答');
   var full = chapterFull_(ch);
   if (!full.qs.length) throw new Error('本回尚未建立題目');
   var bt = btNew_(full, set, []); bt.seen = [];

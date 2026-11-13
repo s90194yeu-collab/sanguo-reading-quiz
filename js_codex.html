@@ -1,0 +1,111 @@
+/* 圖鑑（人物依讀到的段落解鎖、戰役依讀到的幕解鎖）與戰報卡（下載 PNG）。本檔是純 JavaScript，由 Index.html 的 include() 併入同一個 <script>。 */
+function openCodex() {
+  flushDraft(); loading('翻開圖鑑');
+  (S.guest ? call('apiGuestCodex') : call('apiCodex', S.token)).then(function (d) {
+    if (S.guest) d.chapters.forEach(function (c) {
+      try { var g = JSON.parse(store('sg_game_guest_' + c.ch) || 'null'); if (g) d.prog[c.ch] = { mx: g.mx || 0, ev: g.ev || [], pd: g.pd || {}, done: false }; } catch (e) { }
+    });
+    S.codex = d; S.artCache = d.art; S.cxTab = S.cxTab || 'people'; renderCodex();
+  }).catch(fail);
+}
+function cxReadTo(ch) { var p = (S.codex.prog || {})[ch]; return p ? (p.done ? 9999 : p.mx || 0) : 0; }
+function cxLaterRead(ch) { var P = S.codex.prog || {}; return Object.keys(P).some(function (k) { return +k > ch && (P[k].mx > 0 || P[k].done); }); }
+function cxPersonOpen(p) { return cxReadTo(p.first) >= p.para || cxLaterRead(p.first); }
+function cxBattleOpen(b) { return cxReadTo(b.ch) >= b.para || cxLaterRead(b.ch); }
+function cxEv(b) { var p = (S.codex.prog || {})[b.ch]; return !!(p && (p.ev || []).indexOf(b.k) >= 0); }
+function renderCodex() {
+  var d = S.codex, t = S.cxTab;
+  var np = d.people.filter(cxPersonOpen).length, nb = d.battles.filter(cxBattleOpen).length, nev = d.battles.filter(cxEv).length;
+  var npd = 0; Object.keys(d.prog || {}).forEach(function (k) { npd += Object.keys(d.prog[k].pd || {}).length; });
+  view('<div class="homehead"><div><h2>圖鑑</h2><p>讀到哪裡，人物與戰役就解鎖到哪裡；在戰況畫面按「找依據」點出原文句子，戰役會蓋上✓。</p></div>' +
+    '<div class="stat"><div><b>' + np + '／' + d.people.length + '</b>人物</div><div><b>' + nb + '／' + d.battles.length + '</b>戰役</div><div><b>' + nev + '</b>找到依據</div><div><b>' + npd + '</b>預測</div></div></div>' +
+    '<div class="rtools" style="margin-bottom:16px"><button class="chip' + (t === 'people' ? ' on' : '') + '" data-cx="people">人物</button><button class="chip' + (t === 'battle' ? ' on' : '') + '" data-cx="battle">戰役</button>' +
+    '<button class="chip' + (t === 'card' ? ' on' : '') + '" data-cx="card">戰報卡</button><button class="chip" id="cxBack">回目錄</button></div><div id="cxBody"></div>');
+  $$('[data-cx]').forEach(function (b) { b.onclick = function () { S.cxTab = b.dataset.cx; Qin.sfx('wood'); renderCodex(); }; });
+  $('#cxBack').onclick = goHome;
+  var body = $('#cxBody'), chName3 = function (ch) { var c = d.chapters.filter(function (x) { return x.ch === ch; })[0]; return c ? c.num : '第' + cnum(ch) + '回'; };
+  if (t === 'people') {
+    body.innerHTML = '<div class="cx-grid">' + d.people.map(function (p, i) {
+      var open = cxPersonOpen(p);
+      return '<button class="cx-card' + (open ? '' : ' lock') + '" data-p="' + i + '"><canvas width="16" height="16"></canvas><b>' + (open ? esc(p.name) : '？？？') + '</b><small>' + (open ? esc(p.camp || '') : chName3(p.first) + '第 ' + p.para + ' 段登場') + '</small></button>';
+    }).join('') + '</div>';
+    $$('.cx-card', body).forEach(function (el) {
+      var p = d.people[+el.dataset.p], cv = $('canvas', el);
+      PX.drawPortrait(cv, specFor(p.name, { name: p.camp, units: [p.name] }, false, d.art));
+      el.onclick = function () {
+        if (el.classList.contains('lock')) { toast('讀到' + chName3(p.first) + '第 ' + p.para + ' 段就會解鎖'); return; }
+        var reach = 0; Object.keys(d.prog).forEach(function (k) { if (d.prog[k].mx > 0 || d.prog[k].done) reach = Math.max(reach, +k); });
+        var deeds = (p.deeds || []).filter(function (x) { return x.ch <= reach; });
+        modal('<div class="cx-pmodal"><canvas width="16" height="16"></canvas><div><h3>' + esc(p.name) + '</h3><p class="note">' + esc(p.camp || '') + '・' + chName3(p.first) + '登場</p></div></div><p>' + esc(p.intro) + '</p>' +
+          (deeds.length ? '<h4 class="sec" style="margin-top:12px">讀過的事蹟</h4><ul>' + deeds.map(function (x) { return '<li>' + esc(chName3(x.ch)) + '：' + esc(x.t) + '</li>'; }).join('') + '</ul>' : '') +
+          '<div class="mbtns"><button class="btn" onclick="closeModal()">關閉</button></div>');
+        PX.drawPortrait($('.cx-pmodal canvas'), specFor(p.name, { name: p.camp, units: [p.name] }, false, d.art));
+      };
+    });
+  } else if (t === 'battle') {
+    body.innerHTML = d.chapters.map(function (c) {
+      var bs = d.battles.filter(function (b) { return b.ch === c.ch; }); if (!bs.length) return '';
+      return '<h4 class="sec">' + esc(c.num) + '　' + esc(c.title) + '</h4><div class="cx-bgrid">' + bs.map(function (b) {
+        var open = cxBattleOpen(b), i = d.battles.indexOf(b);
+        return '<button class="cx-bt' + (open ? '' : ' lock') + (cxEv(b) ? ' ev' : '') + '" data-b="' + i + '"><canvas></canvas><span><b>' + (open ? esc(b.title) : '？？？') + '</b><small>' +
+          (open ? esc((b.a.name || b.a.units[0] || '') + ' ' + (b.a.state || '') + '｜' + (b.b.name || b.b.units[0] || '') + ' ' + (b.b.state || '')) : '讀到第 ' + b.para + ' 段解鎖') + '</small></span></button>';
+      }).join('') + '</div>';
+    }).join('');
+    $$('.cx-bt', body).forEach(function (el) {
+      var b = d.battles[+el.dataset.b], open = !el.classList.contains('lock');
+      var sa = Object.assign({ _pal: sidePal(b.a, d.art) }, b.a), sb = Object.assign({ _pal: sidePal(b.b, d.art) }, b.b);
+      PX.drawScene($('canvas', el), b.bg || BF_DEFAULT_BG[b.scene] || '黃昏', sa, sb, b.para + 1, 0, b.scene === '軍陣');
+      el.onclick = function () {
+        if (!open) { toast('讀到' + chName3(b.ch) + '第 ' + b.para + ' 段就會解鎖'); return; }
+        modal('<h3>' + esc(b.title) + '</h3><p class="note">' + esc(chName3(b.ch)) + '・第 ' + b.para + ' 段・' + esc(b.scene) + (cxEv(b) ? '・✓ 已找到依據' : '') + '</p><p>' + esc(b.note) + '</p>' +
+          '<p class="note">戰況為依文意示意，兵力數字只在原文有寫時標出。</p><div class="mbtns"><button class="btn ghost" id="cxGo">回原文看這段</button><button class="btn" onclick="closeModal()">關閉</button></div>');
+        $('#cxGo').onclick = function () { closeModal(); if (!S.guest) S.pendingJump = b.para; if (S.guest) { openChapter(b.ch); setTimeout(function () { jumpPara(b.para); }, 1600); } else openChapter(b.ch); };
+      };
+    });
+  } else {
+    body.innerHTML = '<p class="note">戰報卡列出你已讀到的戰役與雙方形勢，可下載成圖片分享。</p><div class="cx-cards">' + d.chapters.map(function (c) {
+      var bs = d.battles.filter(function (b) { return b.ch === c.ch; }), op = bs.filter(cxBattleOpen).length;
+      return '<div class="scrollpanel cx-cc"><b>' + esc(c.num) + '</b><span>' + esc(c.title) + '</span><small>已讀戰役 ' + op + '／' + bs.length + '</small>' +
+        '<button class="btn' + (op ? '' : ' ghost') + '" data-rc="' + c.ch + '"' + (op ? '' : ' disabled') + '>下載戰報卡</button></div>';
+    }).join('') + '</div>';
+    $$('[data-rc]', body).forEach(function (b) {
+      b.onclick = function () {
+        var ch = +b.dataset.rc, c = d.chapters.filter(function (x) { return x.ch === ch; })[0], p = d.prog[ch] || {};
+        reportCard(c.num, c.title, d.battles.filter(function (x) { return x.ch === ch && cxBattleOpen(x); }), p.ev || [], Object.keys(p.pd || {}).length, d.art);
+      };
+    });
+  }
+}
+/** 繪製並下載戰報卡（PNG） */
+function reportCard(num, title, battles, ev, npd, art) {
+  var W = 720, rowH = 46, H = 230 + Math.max(1, battles.length) * rowH + 70, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  var ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+  var bgc = document.createElement('canvas'), b0 = battles[0] || { scene: '軍陣', a: {}, b: {} };
+  PX.drawScene(bgc, b0.bg || BF_DEFAULT_BG[b0.scene] || '黃昏', Object.assign({ _pal: sidePal(b0.a, art) }, b0.a), Object.assign({ _pal: sidePal(b0.b, art) }, b0.b), 3, 0, b0.scene === '軍陣');
+  ctx.drawImage(bgc, 0, 0, 192, 52, 0, 0, W, 195);
+  ctx.fillStyle = '#101850'; ctx.fillRect(0, 195, W, H - 195);
+  ctx.strokeStyle = '#f4f4ff'; ctx.lineWidth = 6; ctx.strokeRect(3, 3, W - 6, H - 6);
+  var font = function (sz, b) { return (b ? '700 ' : '') + sz + 'px "Cubic 11","LXGW WenKai TC","Noto Serif TC",serif'; };
+  ctx.fillStyle = 'rgba(16,24,80,.82)'; ctx.fillRect(24, 120, W - 48, 64); ctx.strokeStyle = '#f4f4ff'; ctx.lineWidth = 3; ctx.strokeRect(24, 120, W - 48, 64);
+  ctx.fillStyle = '#ffe07a'; ctx.font = font(30, true); ctx.fillText(num + '　戰報', 42, 162);
+  ctx.fillStyle = '#ffffff'; ctx.font = font(17); ctx.textAlign = 'right'; ctx.fillText(title, W - 42, 160); ctx.textAlign = 'left';
+  var col = { '佔優': '#8bf5a2', '相持': '#ffe07a', '潰敗': '#ff9a8c' };
+  battles.forEach(function (b, i) {
+    var y = 222 + i * rowH;
+    ctx.fillStyle = i % 2 ? '#141e70' : '#18237e'; ctx.fillRect(18, y - 4, W - 36, rowH - 4);
+    ctx.fillStyle = ev.indexOf(b.k) >= 0 ? '#8bf5a2' : '#5a68b8'; ctx.font = font(18, true); ctx.fillText(ev.indexOf(b.k) >= 0 ? '✓' : '・', 30, y + 26);
+    ctx.fillStyle = '#ffffff'; ctx.font = font(18, true); ctx.fillText(b.title, 56, y + 26);
+    var sx = 300; [b.a, b.b].forEach(function (sd, j) {
+      var nm = sd.name || (sd.units || [])[0] || '—';
+      ctx.font = font(15); ctx.fillStyle = '#cdd8ff'; ctx.fillText(nm, sx, y + 25);
+      var w = ctx.measureText(nm).width; ctx.fillStyle = col[sd.state] || '#cdd8ff'; ctx.fillText(sd.state || '', sx + w + 8, y + 25);
+      sx += 200; if (!j) { ctx.fillStyle = '#7a88d0'; ctx.fillText('｜', sx - 26, y + 25); }
+    });
+  });
+  if (!battles.length) { ctx.fillStyle = '#cdd8ff'; ctx.font = font(17); ctx.fillText('還沒有讀到本回的戰役。', 42, 252); }
+  ctx.fillStyle = '#b8c8ff'; ctx.font = font(14);
+  ctx.fillText('找到依據 ' + battles.filter(function (b) { return ev.indexOf(b.k) >= 0; }).length + '／' + battles.length + '　預測 ' + npd + ' 次　（戰況依文意示意，非實際兵力）', 30, H - 34);
+  ctx.textAlign = 'right'; ctx.fillText((S.user ? S.user.name + '・' : '') + ($('#siteTitle') ? $('#siteTitle').textContent : ''), W - 30, H - 34);
+  var a = document.createElement('a'); a.download = num + '戰報.png'; a.href = cv.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove();
+  toast('已下載戰報卡');
+}

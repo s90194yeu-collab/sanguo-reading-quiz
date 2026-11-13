@@ -78,6 +78,20 @@ var Qin = (function () {
       o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t + 3.6);
     });
   }
+  /** 戰鼓：低頻悶響兩聲＋鼓皮雜音（戰況轉為佔優／潰敗時） */
+  function drum() {
+    var t0 = ctx.currentTime;
+    [0, .22].forEach(function (dt, i) {
+      var t = t0 + dt, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(i ? 92 : 110, t); o.frequency.exponentialRampToValueAtTime(48, t + .35);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(i ? .5 : .7, t + .008); g.gain.exponentialRampToValueAtTime(.0001, t + .5);
+      o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t + .55);
+      var len = ctx.sampleRate * .08, nb = ctx.createBuffer(1, len, ctx.sampleRate), d = nb.getChannelData(0);
+      for (var k = 0; k < len; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / len, 3);
+      var ns = ctx.createBufferSource(), ng = ctx.createGain(), lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+      ns.buffer = nb; ng.gain.value = .25; ns.connect(lp); lp.connect(ng); ng.connect(sfxGain); ns.start(t);
+    });
+  }
   return {
     toggle: function () {
       init(); if (!ctx) return false; ctx.resume();
@@ -91,7 +105,7 @@ var Qin = (function () {
     setSfx: function (v) { sfxOn = v; },
     sfx: function (kind) {
       if (!sfxOn) return; init(); if (!ctx) return; ctx.resume();
-      ({ wood: wood, bell: bell, gong: gong }[kind] || wood)();
+      ({ wood: wood, bell: bell, gong: gong, drum: drum }[kind] || wood)();
     }
   };
 })();
@@ -104,7 +118,7 @@ var FONTS = {
   dfkai: { label: '標楷體', css: "'BiauKai','DFKai-SB','標楷體','TW-Kai','Kaiti TC','LXGW WenKai TC',serif" },
   sans: { label: '黑體', css: "'Noto Sans TC','Microsoft JhengHei','微軟正黑體','PingFang TC',sans-serif" }
 };
-var PREF = (function () { var p = {}; try { p = JSON.parse(localStorage.getItem('sg_pref') || '{}'); } catch (e) { } return { font: p.font || 'serif', fs: p.fs || 18, lh: p.lh || 2.05, vert: !!p.vert, pn: p.pn !== false, view: { txt: !p.view || p.view.txt !== false, bf: !p.view || p.view.bf !== false, quiz: !p.view || p.view.quiz !== false } }; })();
+var PREF = (function () { var p = {}; try { p = JSON.parse(localStorage.getItem('sg_pref') || '{}'); } catch (e) { } return { font: p.font || 'serif', fs: p.fs || 18, lh: p.lh || 2.05, vert: !!p.vert, pn: p.pn !== false, bfMini: !!p.bfMini, view: { txt: !p.view || p.view.txt !== false, bf: !p.view || p.view.bf !== false, quiz: !p.view || p.view.quiz !== false } }; })();
 S.vert = PREF.vert;
 function applyPref() {
   var r = document.documentElement.style;
@@ -120,7 +134,7 @@ function $(s, el) { return (el || document).querySelector(s); }
 function $$(s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); }
 function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
 function toast(msg, ms) { var t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(function () { t.classList.remove('show'); }, ms || 2200); }
-function view(html) { $('#view').innerHTML = html; window.scrollTo(0, 0); }
+function view(html) { var rp = $('#rprog'); if (rp) rp.remove(); if (S.ev) evStop(); $('#view').innerHTML = html; window.scrollTo(0, 0); }
 function loading(msg) { view('<div class="loading">' + esc(msg || '展卷中') + '</div>'); }
 function call(fn) {
   var args = Array.prototype.slice.call(arguments, 1);
@@ -149,7 +163,7 @@ document.addEventListener('pointerdown', function first(e) {
   if (e && e.target && e.target.closest && e.target.closest('#btnMusic')) return;   // 直接點「琴音」鈕時交給按鈕自己切換，避免先開後關
   if (store('sg_music') === '1' && !Qin.isOn()) { Qin.toggle(); $('#btnMusic').classList.add('on'); }
 }, true);
-$('#btnHome').onclick = function () { if (S.teacher) renderTeacher(); else goHome(); };
+$('#btnHome').onclick = function () { if (S.chap && S.chap.preview) return goHome(); if (S.teacher) renderTeacher(); else goHome(); };
 $('#brand').onclick = function () { if (S.user) goHome(); else if (S.teacher) renderTeacher(); };
 $('#btnLogout').onclick = function () { logout(); };
 function setTop() {
@@ -237,6 +251,7 @@ function afterLogin(d) {
 
 /* ================= 目錄 ================= */
 function goHome() {
+  if (S.chap && S.chap.preview) { S.guest = !!S.guestBak; S.chap = null; S.tTab = 'rv'; S.rv = null; return renderTeacher(); }
   flushDraft();
   if (S.guest) { loading('翻回目錄'); return call('apiGuestHome').then(function (h) { S.home = h; renderHome(); }).catch(fail); }
   if (!S.token) return renderLogin();
@@ -257,12 +272,13 @@ function renderHome() {
   }).join('');
   view('<div class="homehead"><div><h2>回目</h2><p>' + (S.guest ? '訪客可試讀標有「試讀」的回目；其餘回目請登入後閱讀。' : '點選一回，展卷閱讀並作答，答案會自動存檔。') + '</p></div>' +
     (S.guest ? '' : '<div class="stat"><div><b>' + done + '</b>已完成回數</div><div><b>' + (tot ? Math.round(sum / tot * 100) : 0) + '%</b>最佳答對率</div>' +
-      '<div><button class="btn ghost" id="btnMist">錯題本</button></div><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div></div>') +
-    (S.guest ? '<div class="stat"><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div></div>' : '') + '</div>' +
+      '<div><button class="btn ghost" id="btnMist">錯題本</button></div><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>') +
+    (S.guest ? '<div class="stat"><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>' : '') + '</div>' +
     annHTML(h) + progressHTML(h) + boardHTML(h) +
     '<div class="cards">' + (cards || '<p>老師尚未開放任何回目。</p>') + '</div>');
   if ($('#btnMist')) $('#btnMist').onclick = function () { Qin.sfx('wood'); openMistakes(); };
   if ($('#btnAtlas')) $('#btnAtlas').onclick = function () { Qin.sfx('wood'); openAtlas(); };
+  if ($('#btnCodex')) $('#btnCodex').onclick = function () { Qin.sfx('wood'); openCodex(); };
   $$('[data-goch]').forEach(function (b) { b.onclick = function () { Qin.sfx('wood'); openChapter(+b.dataset.goch); }; });
   $$('.ach[data-tip]').forEach(function (a) { a.onclick = function () { toast(a.dataset.tip, 2600); }; });
   checkNewAch(h);

@@ -2160,7 +2160,8 @@ var SEED = {
 "place": "鉅鹿",
 "event": "張角得天書，與張寶、張梁起事",
 "lon": 115.0,
-"lat": 37.25
+"lat": 37.25,
+"fac": "黃巾"
 },
 {
 "ch": 1,
@@ -2169,7 +2170,8 @@ var SEED = {
 "place": "涿郡",
 "event": "劉關張桃園結義，斬程遠志",
 "lon": 115.97,
-"lat": 39.48
+"lat": 39.48,
+"fac": "漢廷"
 },
 {
 "ch": 1,
@@ -2178,7 +2180,8 @@ var SEED = {
 "place": "青州",
 "event": "劉備用計解青州之圍",
 "lon": 118.3,
-"lat": 36.8
+"lat": 36.8,
+"fac": "漢廷"
 },
 {
 "ch": 1,
@@ -2187,7 +2190,8 @@ var SEED = {
 "place": "廣宗",
 "event": "盧植圍張角；劉備救下董卓",
 "lon": 115.25,
-"lat": 36.85
+"lat": 36.85,
+"fac": "黃巾"
 },
 {
 "ch": 1,
@@ -2196,7 +2200,8 @@ var SEED = {
 "place": "潁川",
 "event": "皇甫嵩火攻黃巾，曹操截殺",
 "lon": 113.45,
-"lat": 34.15
+"lat": 34.15,
+"fac": "漢廷"
 },
 {
 "ch": 2,
@@ -2205,7 +2210,8 @@ var SEED = {
 "place": "宛城",
 "event": "朱儁、孫堅攻破宛城",
 "lon": 112.53,
-"lat": 33.0
+"lat": 33.0,
+"fac": "漢廷"
 },
 {
 "ch": 2,
@@ -2214,7 +2220,8 @@ var SEED = {
 "place": "安喜縣",
 "event": "劉備任縣尉；張飛怒鞭督郵",
 "lon": 115.0,
-"lat": 38.5
+"lat": 38.5,
+"fac": "漢廷"
 },
 {
 "ch": 2,
@@ -2223,7 +2230,8 @@ var SEED = {
 "place": "洛陽",
 "event": "十常侍亂政；何進召外兵入京",
 "lon": 112.45,
-"lat": 34.62
+"lat": 34.62,
+"fac": "漢廷"
 },
 {
 "ch": 3,
@@ -2232,7 +2240,8 @@ var SEED = {
 "place": "洛陽",
 "event": "何進被殺，袁紹、曹操入宮誅宦官",
 "lon": 112.45,
-"lat": 34.62
+"lat": 34.62,
+"fac": "董卓"
 },
 {
 "ch": 3,
@@ -2241,7 +2250,8 @@ var SEED = {
 "place": "北邙山",
 "event": "少帝與陳留王流落；董卓迎駕",
 "lon": 112.55,
-"lat": 34.85
+"lat": 34.85,
+"fac": "董卓"
 },
 {
 "ch": 3,
@@ -2250,7 +2260,8 @@ var SEED = {
 "place": "洛陽",
 "event": "赤兔馬收呂布，丁原被殺",
 "lon": 112.45,
-"lat": 34.62
+"lat": 34.62,
+"fac": "董卓"
 },
 {
 "ch": 4,
@@ -2259,7 +2270,8 @@ var SEED = {
 "place": "洛陽",
 "event": "董卓廢少帝、立獻帝；曹操獻刀",
 "lon": 112.45,
-"lat": 34.62
+"lat": 34.62,
+"fac": "董卓"
 },
 {
 "ch": 4,
@@ -2268,7 +2280,8 @@ var SEED = {
 "place": "中牟",
 "event": "曹操逃亡被捉，縣令陳宮釋放",
 "lon": 113.97,
-"lat": 34.72
+"lat": 34.72,
+"fac": "漢廷"
 },
 {
 "ch": 4,
@@ -2277,7 +2290,8 @@ var SEED = {
 "place": "成皋",
 "event": "曹操誤殺呂伯奢一家",
 "lon": 113.25,
-"lat": 34.6
+"lat": 34.6,
+"fac": "群雄"
 },
 {
 "ch": 5,
@@ -2286,7 +2300,8 @@ var SEED = {
 "place": "陳留",
 "event": "曹操散家財、發矯詔起兵",
 "lon": 114.7,
-"lat": 34.45
+"lat": 34.45,
+"fac": "曹操"
 },
 {
 "ch": 5,
@@ -2295,7 +2310,8 @@ var SEED = {
 "place": "聯軍大營",
 "event": "十七鎮諸侯會盟，推袁紹為盟主",
 "lon": 114.2,
-"lat": 35.15
+"lat": 35.15,
+"fac": "群雄"
 },
 {
 "ch": 5,
@@ -2304,7 +2320,8 @@ var SEED = {
 "place": "汜水關",
 "event": "孫堅兵敗；關羽溫酒斬華雄",
 "lon": 113.05,
-"lat": 34.9
+"lat": 34.9,
+"fac": "董卓"
 },
 {
 "ch": 5,
@@ -2313,7 +2330,8 @@ var SEED = {
 "place": "虎牢關",
 "event": "三英戰呂布",
 "lon": 113.4,
-"lat": 34.85
+"lat": 34.85,
+"fac": "董卓"
 }
 ],
 "chapters": [
@@ -5152,7 +5170,14 @@ var SEED = {
 "bTroops": "",
 "bState": "",
 "note": "以江水東流、英雄淘盡起興，先寫興亡之感。",
-"basis": 2
+"basis": 2,
+"bg": "桃園",
+"horse": "",
+"face": "",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5169,7 +5194,14 @@ var SEED = {
 "bTroops": "",
 "bState": "",
 "note": "分久必合，合久必分：七國併於秦，楚漢分爭併於漢，漢末又將由合轉分。",
-"basis": 4
+"basis": 4,
+"bg": "",
+"horse": "",
+"face": "",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5186,7 +5218,14 @@ var SEED = {
 "bTroops": "",
 "bState": "",
 "note": "天象異變不斷，十常侍朋比為奸，靈帝尊信張讓，朝政日非，人心思亂。",
-"basis": 5
+"basis": 5,
+"bg": "宮廷",
+"horse": "",
+"face": "靈帝",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5203,7 +5242,14 @@ var SEED = {
 "bTroops": "",
 "bState": "",
 "note": "不第秀才張角得天書，以符水治病，徒眾日多，立三十六方，伺機起事。",
-"basis": 6
+"basis": 6,
+"bg": "",
+"horse": "",
+"face": "張角",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5220,7 +5266,14 @@ var SEED = {
 "bTroops": "",
 "bState": "潰敗",
 "note": "裹黃巾從張角反者四五十萬，賊勢浩大，官軍望風而靡。",
-"basis": 6
+"basis": 6,
+"bg": "戰場",
+"horse": "",
+"face": "",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5237,7 +5290,14 @@ var SEED = {
 "bTroops": "",
 "bState": "",
 "note": "黃巾犯幽州，太守劉焉出榜招募義兵，榜文引出涿縣的劉備。",
-"basis": 7
+"basis": 7,
+"bg": "營帳",
+"horse": "",
+"face": "劉焉",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5254,7 +5314,14 @@ var SEED = {
 "bTroops": "",
 "bState": "",
 "note": "劉備見榜長歎，張飛厲聲相詰，二人結識，同入村店飲酒時關羽亦至。",
-"basis": 8
+"basis": 8,
+"bg": "",
+"horse": "",
+"face": "張飛",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5271,7 +5338,14 @@ var SEED = {
 "bTroops": "",
 "bState": "",
 "note": "三人於桃園祭告天地，結為兄弟，協力同心，聚鄉勇、備兵器。",
-"basis": 9
+"basis": 9,
+"bg": "桃園",
+"horse": "",
+"face": "劉備",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5288,7 +5362,14 @@ var SEED = {
 "bTroops": "五萬",
 "bState": "相持",
 "note": "程遠志統兵五萬來犯，劉焉令鄒靖引劉備三人統兵五百迎敵，兩軍於大興山下對陣。",
-"basis": 10
+"basis": 10,
+"bg": "黃昏",
+"horse": "",
+"face": "劉備",
+"aFac": "",
+"bFac": "",
+"pq": "義軍五百對黃巾五萬，你認為接下來會怎麼發展？",
+"po": "義軍寡不敵眾，退回涿郡｜雙方先派將領陣前交鋒｜義軍趁夜劫營取勝"
 },
 {
 "ch": 1,
@@ -5305,7 +5386,14 @@ var SEED = {
 "bTroops": "",
 "bState": "相持",
 "note": "程遠志遣副將鄧茂出戰，張飛挺丈八蛇矛出陣迎戰。",
-"basis": 10
+"basis": 10,
+"bg": "戰場",
+"horse": "雙方",
+"face": "張飛",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5322,7 +5410,14 @@ var SEED = {
 "bTroops": "",
 "bState": "潰敗",
 "note": "張飛手起矛落，刺中鄧茂心窩，鄧茂翻身落馬。",
-"basis": 10
+"basis": 10,
+"bg": "戰場",
+"horse": "雙方",
+"face": "張飛",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5339,7 +5434,14 @@ var SEED = {
 "bTroops": "",
 "bState": "相持",
 "note": "程遠志見折了鄧茂，拍馬舞刀直取張飛；關羽舞大刀縱馬迎上。",
-"basis": 10
+"basis": 10,
+"bg": "戰場",
+"horse": "雙方",
+"face": "關羽",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5356,7 +5458,14 @@ var SEED = {
 "bTroops": "",
 "bState": "潰敗",
 "note": "程遠志見了關羽先吃一驚，措手不及，被一刀揮為兩段。",
-"basis": 10
+"basis": 10,
+"bg": "戰場",
+"horse": "雙方",
+"face": "關羽",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5373,7 +5482,14 @@ var SEED = {
 "bTroops": "",
 "bState": "潰敗",
 "note": "眾賊見主將被斬，倒戈而走，投降者不計其數，義軍大勝而回。",
-"basis": 12
+"basis": 12,
+"bg": "黃昏",
+"horse": "",
+"face": "",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5390,7 +5506,14 @@ var SEED = {
 "bTroops": "",
 "bState": "佔優",
 "note": "賊眾我寡，玄德兵寡不勝，退三十里下寨。",
-"basis": 12
+"basis": 12,
+"bg": "攻城",
+"horse": "",
+"face": "",
+"aFac": "",
+"bFac": "",
+"pq": "劉備兵少不勝，退三十里下寨。你認為他接下來會怎麼做？",
+"po": "回涿郡請求增援｜設下埋伏用奇兵｜與黃巾議和"
 },
 {
 "ch": 1,
@@ -5400,14 +5523,21 @@ var SEED = {
 "title": "設伏奇兵",
 "aName": "玄德軍",
 "aUnits": "劉備、關羽、張飛",
-"aTroops": "各一千",
+"aTroops": "",
 "aState": "相持",
 "bName": "黃巾軍",
 "bUnits": "黃巾圍城之眾",
 "bTroops": "",
 "bState": "相持",
 "note": "劉備定下奇兵之計：關羽引一千軍伏山左，張飛引一千軍伏山右，鳴金為號，齊出接應。",
-"basis": 12
+"basis": 12,
+"bg": "營帳",
+"horse": "",
+"face": "劉備",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5424,7 +5554,14 @@ var SEED = {
 "bTroops": "",
 "bState": "潰敗",
 "note": "鳴金為號，左右兩軍齊出，三路夾攻，賊眾大潰，解青州之圍。",
-"basis": 12
+"basis": 12,
+"bg": "黃昏",
+"horse": "",
+"face": "",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5441,7 +5578,14 @@ var SEED = {
 "bTroops": "",
 "bState": "",
 "note": "劉備曾師事盧植，欲往助之；盧植大喜，留在帳前聽調。",
-"basis": 14
+"basis": 14,
+"bg": "營帳",
+"horse": "",
+"face": "盧植",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5458,7 +5602,14 @@ var SEED = {
 "bTroops": "十五萬",
 "bState": "相持",
 "note": "張角賊眾十五萬，盧植兵五萬，相拒於廣宗，未見勝負。",
-"basis": 15
+"basis": 15,
+"bg": "戰場",
+"horse": "",
+"face": "",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5475,7 +5626,14 @@ var SEED = {
 "bTroops": "",
 "bState": "相持",
 "note": "皇甫嵩、朱儁與賊對壘，賊戰不利，退入長社依草結營。",
-"basis": 15
+"basis": 15,
+"bg": "戰場",
+"horse": "",
+"face": "",
+"aFac": "",
+"bFac": "",
+"pq": "黃巾退入長社，依草結營。你認為皇甫嵩可能怎麼破敵？",
+"po": "趁風縱火燒營｜截斷黃巾糧道｜按兵不動等待援軍"
 },
 {
 "ch": 1,
@@ -5492,7 +5650,14 @@ var SEED = {
 "bTroops": "",
 "bState": "潰敗",
 "note": "一齊縱火，火燄張天，賊眾驚慌，馬不及鞍，人不及甲，四散奔走。",
-"basis": 15
+"basis": 15,
+"bg": "火攻",
+"horse": "",
+"face": "",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5509,7 +5674,14 @@ var SEED = {
 "bTroops": "",
 "bState": "潰敗",
 "note": "殺到天明，張梁、張寶引敗殘軍士奪路而走，忽見一彪紅旗軍馬截住去路。",
-"basis": 16
+"basis": 16,
+"bg": "黃昏",
+"horse": "",
+"face": "",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5526,7 +5698,14 @@ var SEED = {
 "bTroops": "",
 "bState": "",
 "note": "騎都尉曹操自幼機變多謀；橋玄、許劭等都看出他非尋常人物。",
-"basis": 16
+"basis": 16,
+"bg": "宮廷",
+"horse": "",
+"face": "曹操",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5543,7 +5722,14 @@ var SEED = {
 "bTroops": "",
 "bState": "潰敗",
 "note": "曹操引馬步軍五千攔住，大殺一陣，斬首萬餘級；張梁、張寶死戰得脫。",
-"basis": 16
+"basis": 16,
+"bg": "戰場",
+"horse": "甲",
+"face": "曹操",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5560,7 +5746,14 @@ var SEED = {
 "bTroops": "",
 "bState": "",
 "note": "左豐索賄不遂，誣盧植惰慢軍心；朝廷遣董卓代將，檻車押盧植回京。",
-"basis": 17
+"basis": 17,
+"bg": "營帳",
+"horse": "",
+"face": "盧植",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5577,7 +5770,14 @@ var SEED = {
 "bTroops": "",
 "bState": "潰敗",
 "note": "漢軍大敗，黃巾蓋地而來，旗上大書「天公將軍」。",
-"basis": 18
+"basis": 18,
+"bg": "戰場",
+"horse": "",
+"face": "董卓",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5594,7 +5794,14 @@ var SEED = {
 "bTroops": "",
 "bState": "潰敗",
 "note": "劉備三人飛馬引軍衝出，角軍大亂，敗走五十餘里。",
-"basis": 18
+"basis": 18,
+"bg": "戰場",
+"horse": "甲",
+"face": "劉備",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
 },
 {
 "ch": 1,
@@ -5611,7 +5818,412 @@ var SEED = {
 "bTroops": "",
 "bState": "",
 "note": "三人救了董卓；劉備自稱白身，董卓輕之不為禮，張飛怒欲殺之。",
-"basis": 18
+"basis": 18,
+"bg": "營帳",
+"horse": "",
+"face": "張飛",
+"aFac": "",
+"bFac": "",
+"pq": "",
+"po": ""
+}
+],
+"looks": [
+{
+"key": "劉備",
+"match": "姓名",
+"head": "冠",
+"beard": "無",
+"weapon": "雙劍",
+"hair": "#1b1b22",
+"plume": "#f3cf4a",
+"armor": "#3a8f5a",
+"cloth": "#2a6a3c",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#e8e2d0",
+"note": "雙股劍；面如冠玉"
+},
+{
+"key": "關羽",
+"match": "姓名",
+"head": "幘",
+"beard": "長鬚",
+"weapon": "偃月刀",
+"hair": "#1f7a40",
+"plume": "#2f9e5c",
+"armor": "#2f9e5c",
+"cloth": "#1f6a3a",
+"skin": "#c8503a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": "面如重棗、髯長二尺；青龍偃月刀"
+},
+{
+"key": "張飛",
+"match": "姓名",
+"head": "亂髮",
+"beard": "虯髯",
+"weapon": "矛",
+"hair": "#1b1b22",
+"plume": "#3a3a5a",
+"armor": "#3a3a5a",
+"cloth": "#26263a",
+"skin": "#c98a5a",
+"beardC": "#1b1620",
+"horseC": "#2a2a2a",
+"note": "豹頭環眼、燕頷虎鬚；丈八蛇矛"
+},
+{
+"key": "曹操",
+"match": "姓名",
+"head": "冠",
+"beard": "八字",
+"weapon": "劍",
+"hair": "#1b1b22",
+"plume": "#f3cf4a",
+"armor": "#3a5fd0",
+"cloth": "#22327a",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#4a3424",
+"note": ""
+},
+{
+"key": "董卓",
+"match": "姓名",
+"head": "冠",
+"beard": "虯髯",
+"weapon": "戟",
+"hair": "#2a2a30",
+"plume": "#c9a227",
+"armor": "#6a58a8",
+"cloth": "#44366e",
+"skin": "#e0b890",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "張角",
+"match": "姓名",
+"head": "頭巾",
+"beard": "山羊",
+"weapon": "羽扇",
+"hair": "#e0b030",
+"plume": "#f3d36a",
+"armor": "#c9a227",
+"cloth": "#8a6e1c",
+"skin": "#f0c29a",
+"beardC": "#d8d0c0",
+"horseC": "#8a5a2b",
+"note": "道人"
+},
+{
+"key": "張寶",
+"match": "姓名",
+"head": "頭巾",
+"beard": "八字",
+"weapon": "劍",
+"hair": "#e0b030",
+"plume": "#f3d36a",
+"armor": "#b89228",
+"cloth": "#8a6e1c",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "張梁",
+"match": "姓名",
+"head": "頭巾",
+"beard": "虯髯",
+"weapon": "戟",
+"hair": "#e0b030",
+"plume": "#f3d36a",
+"armor": "#b89228",
+"cloth": "#8a6e1c",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "程遠志",
+"match": "姓名",
+"head": "頭巾",
+"beard": "八字",
+"weapon": "偃月刀",
+"hair": "#e0b030",
+"plume": "#c0392b",
+"armor": "#b89228",
+"cloth": "#8a6e1c",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": "拍馬舞刀"
+},
+{
+"key": "鄧茂",
+"match": "姓名",
+"head": "頭巾",
+"beard": "無",
+"weapon": "矛",
+"hair": "#e0b030",
+"plume": "#c0392b",
+"armor": "#b89228",
+"cloth": "#8a6e1c",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "盧植",
+"match": "姓名",
+"head": "冠",
+"beard": "長鬚",
+"weapon": "劍",
+"hair": "#1b1b22",
+"plume": "#f3cf4a",
+"armor": "#c0392b",
+"cloth": "#7a2018",
+"skin": "#f0c29a",
+"beardC": "#3a3030",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "皇甫嵩",
+"match": "姓名",
+"head": "盔",
+"beard": "八字",
+"weapon": "戟",
+"hair": "#9aa8c8",
+"plume": "#c0392b",
+"armor": "#c0392b",
+"cloth": "#7a2018",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "朱儁",
+"match": "姓名",
+"head": "盔",
+"beard": "八字",
+"weapon": "矛",
+"hair": "#9aa8c8",
+"plume": "#c0392b",
+"armor": "#c0392b",
+"cloth": "#7a2018",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "劉焉",
+"match": "姓名",
+"head": "冠",
+"beard": "長鬚",
+"weapon": "無",
+"hair": "#1b1b22",
+"plume": "#f3cf4a",
+"armor": "#a8452f",
+"cloth": "#6a2a1a",
+"skin": "#f0c29a",
+"beardC": "#bbb4a8",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "鄒靖",
+"match": "姓名",
+"head": "盔",
+"beard": "八字",
+"weapon": "劍",
+"hair": "#9aa8c8",
+"plume": "#c0392b",
+"armor": "#c0392b",
+"cloth": "#7a2018",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "靈帝",
+"match": "姓名",
+"head": "冠",
+"beard": "無",
+"weapon": "無",
+"hair": "#1b1b22",
+"plume": "#f3cf4a",
+"armor": "#c9a227",
+"cloth": "#7a2018",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": "天子"
+},
+{
+"key": "張讓",
+"match": "姓名",
+"head": "兜帽",
+"beard": "無",
+"weapon": "無",
+"hair": "#3a2a40",
+"plume": "#3a2a40",
+"armor": "#5a3a6a",
+"cloth": "#3a2a40",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": "宦官"
+},
+{
+"key": "左豐",
+"match": "姓名",
+"head": "兜帽",
+"beard": "無",
+"weapon": "無",
+"hair": "#3a2a40",
+"plume": "#3a2a40",
+"armor": "#5a3a6a",
+"cloth": "#3a2a40",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": "宦官"
+},
+{
+"key": "蔡邕",
+"match": "姓名",
+"head": "幘",
+"beard": "長鬚",
+"weapon": "無",
+"hair": "#2a2a30",
+"plume": "#2a2a30",
+"armor": "#6a7a8a",
+"cloth": "#3a4a5a",
+"skin": "#f0c29a",
+"beardC": "#9a948a",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "黃巾",
+"match": "關鍵字",
+"head": "頭巾",
+"beard": "無",
+"weapon": "劍",
+"hair": "#e0b030",
+"plume": "#e0b030",
+"armor": "#b89228",
+"cloth": "#8a6e1c",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": "黃巾軍一般兵"
+},
+{
+"key": "官軍",
+"match": "關鍵字",
+"head": "盔",
+"beard": "無",
+"weapon": "戟",
+"hair": "#9aa8c8",
+"plume": "#c0392b",
+"armor": "#c0392b",
+"cloth": "#7a2018",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "漢軍",
+"match": "關鍵字",
+"head": "盔",
+"beard": "無",
+"weapon": "戟",
+"hair": "#9aa8c8",
+"plume": "#c0392b",
+"armor": "#c0392b",
+"cloth": "#7a2018",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": ""
+},
+{
+"key": "義軍",
+"match": "關鍵字",
+"head": "幘",
+"beard": "無",
+"weapon": "矛",
+"hair": "#3f8f57",
+"plume": "#3f8f57",
+"armor": "#3f9d57",
+"cloth": "#2a6a3c",
+"skin": "#f0c29a",
+"beardC": "#1b1620",
+"horseC": "#8a5a2b",
+"note": ""
+}
+],
+"factions": [
+{
+"name": "漢廷",
+"c1": "#c0392b",
+"c2": "#7a2018",
+"keys": "官軍、漢軍、朝廷、守軍、幽州、盧植、皇甫嵩、朱儁、劉焉、鄒靖、靈帝",
+"note": "漢朝廷與各地官軍（漢尚火德，用赤色）"
+},
+{
+"name": "黃巾",
+"c1": "#e0b030",
+"c2": "#8a6e1c",
+"keys": "黃巾、太平道、張角、張寶、張梁、程遠志、鄧茂",
+"note": "太平道張角所領"
+},
+{
+"name": "劉備",
+"c1": "#3f9d57",
+"c2": "#2a6a3c",
+"keys": "涿郡、義軍、義士、結義、玄德、劉關張、劉備、關羽、張飛",
+"note": "劉關張與其部眾（日後的蜀）"
+},
+{
+"name": "曹操",
+"c1": "#3a5fd0",
+"c2": "#22327a",
+"keys": "曹操",
+"note": "曹操所部（日後的魏）"
+},
+{
+"name": "孫堅",
+"c1": "#e07a2a",
+"c2": "#8a3a10",
+"keys": "孫堅、孫策、孫權、江東",
+"note": "孫氏所部（日後的吳）"
+},
+{
+"name": "董卓",
+"c1": "#6a58a8",
+"c2": "#44366e",
+"keys": "董卓軍、西涼、李傕、郭汜",
+"note": "董卓所部（第一回時仍屬漢軍，戰況表以「乙方勢力」標為漢廷）"
+},
+{
+"name": "群雄",
+"c1": "#8a7a6a",
+"c2": "#5a4a3a",
+"keys": "",
+"note": "其他；找不到勢力時套用"
 }
 ]
 };

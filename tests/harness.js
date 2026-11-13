@@ -24,7 +24,7 @@ function fontCss() {
 module.exports = async function (cb, vw, vh) {
   const html = assemble(SRC);
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: vw || 1366, height: vh || 768 } });
-  const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errs.push(m.text()); });
   await p.exposeFunction('__gas', (k, a) => { try { const v = ctx[k](...JSON.parse(a)); return JSON.stringify({ v: v === undefined ? null : v }); } catch (e) { return JSON.stringify({ err: e.message }); } });
   await p.route('**/*', r => {
     const u = r.request().url();

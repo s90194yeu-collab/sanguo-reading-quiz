@@ -95,10 +95,16 @@ function renderResult() {
       (it.exp ? '<div>' + esc(it.exp) + '</div>' : '') + (it.para ? '<button class="link" data-para="' + it.para + '">看原文第 ' + it.para + ' 段</button>' : '') + '</div></div>';
   }).join('');
   var bar = '<div class="qbar"><span class="savest">' + (d.guest ? '訪客試玩' : '已交卷' + (d.save && d.save.lastTime ? '・' + esc(d.save.lastTime) : '')) + '</span>' +
+    (S.bfs ? '<button class="btn ghost" id="dlReport">本回戰報卡</button>' : '') +
     (d.allowRetry ? '<button class="btn ghost" id="retry">再作答一次（抽新題）</button>' : '') + '<button class="btn" id="back2">回目錄</button></div>';
   box.innerHTML = '<div class="bt">' + head + (rv ? '<h3>逐題檢討</h3>' + rv : '<p class="note">這是較早前的作答紀錄，沒有逐題檢討；再戰一次即可看到每題解析。</p>') + bar + '</div>';
   $$('.link', box).forEach(function (b) { b.onclick = function () { jumpPara(+b.dataset.para); }; });
   if ($('#dlCard')) $('#dlCard').onclick = downloadCard;
   if ($('#retry')) $('#retry').onclick = function () { btStart(this); };
+  if ($('#dlReport')) $('#dlReport').onclick = function () {
+    var g = S.game || { mx: 0, ev: [], pd: {} }, mx = g.mx || 0;
+    var bs = S.bfs.rows.filter(function (r) { return r.scene !== '平時' && r.para <= Math.max(mx, 1); });
+    reportCard(d.num, d.title, bs.map(function (r) { return { k: r.k, title: r.title, scene: r.scene, a: r.a, b: r.b, bg: r.bg, para: r.para }; }), g.ev, Object.keys(g.pd || {}).length, artOf());
+  };
   $('#back2').onclick = goHome;
 }

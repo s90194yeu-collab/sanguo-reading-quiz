@@ -1,12 +1,16 @@
 /* 三國演義閱讀檢測：學生端內容、存檔、登入、目錄（Apps Script 會把所有 .gs 合在同一個全域範圍執行） */
 /* ---------- 內容 ---------- */
 function openChapters_() {
-  var s = getSettings_()['開放回數'] || '全部';
-  if (s === '全部' || s === '') return null;
-  var o = {};
-  s.split(/[,，、\s]+/).forEach(function (x) { if (x) o[Number(x)] = true; });
+  var s = getSettings_()['開放回數'] || '全部', o = null;
+  if (!(s === '全部' || s === '')) { o = {}; s.split(/[,，、\s]+/).forEach(function (x) { if (x) o[Number(x)] = true; }); }
+  var st = chapterStatus_(), hidden = Object.keys(st).filter(function (k) { return st[k].status !== '上架'; });
+  if (!hidden.length) return o;
+  if (!o) { o = {}; catalog_().forEach(function (c) { o[c.ch] = true; }); }
+  hidden.forEach(function (k) { delete o[k]; });
   return o;
 }
+/** 學生、訪客看得到這一回嗎（開放回數＋已上架） */
+function chOpen_(ch) { var o = openChapters_(); return !o || !!o[ch]; }
 function catalog_() {
   var c = CacheService.getScriptCache(), hit = c.get('catalog');
   if (hit) return JSON.parse(hit);
@@ -53,13 +57,16 @@ function chapterFull_(ch) {
     .map(function (r) { return { w: str_(r[1]), k: str_(r[2]) || '人名', note: str_(r[3]) }; });
   var sm = rows_(SHEET.SUM).filter(function (r) { return Number(r[0]) === ch; })[0];
   var summary = sm ? { events: str_(sm[1]).split(/\n+/).filter(String), quote: str_(sm[2]), think: str_(sm[3]) } : null;
+  var units = function (v) { return str_(v).split(/[、,，]/).map(function (x) { return x.trim(); }).filter(String); };
   var bf = rows_(SHEET.BF).filter(function (r) { return Number(r[0]) === ch && str_(r[3]); }).map(function (r, k) {
+    var po = str_(r[21]).split(/[｜|]/).map(function (x) { return x.trim(); }).filter(String);
     return { k: k, para: Number(r[1]) || 1, anchor: str_(r[2]), scene: str_(r[3]), title: str_(r[4]),
-      a: { name: str_(r[5]), units: str_(r[6]).split(/[、,，]/).map(function (x) { return x.trim(); }).filter(String), troops: str_(r[7]), state: str_(r[8]) },
-      b: { name: str_(r[9]), units: str_(r[10]).split(/[、,，]/).map(function (x) { return x.trim(); }).filter(String), troops: str_(r[11]), state: str_(r[12]) },
-      note: str_(r[13]), basis: Number(r[14]) || Number(r[1]) || 0 };
+      a: { name: str_(r[5]), units: units(r[6]), troops: str_(r[7]), state: str_(r[8]), fac: str_(r[18]) },
+      b: { name: str_(r[9]), units: units(r[10]), troops: str_(r[11]), state: str_(r[12]), fac: str_(r[19]) },
+      note: str_(r[13]), basis: Number(r[14]) || Number(r[1]) || 0,
+      bg: str_(r[15]), horse: str_(r[16]), face: str_(r[17]), pq: str_(r[20]), po: po.length >= 2 ? po : [] };
   });
-  var o = { ch: ch, num: num, title: title, paras: paras, qs: qs, ill: ill, notes: notes, names: names, summary: summary, bf: bf };
+  var o = { ch: ch, num: num, title: title, paras: paras, qs: qs, ill: ill, notes: notes, names: names, summary: summary, bf: bf, art: artData_() };
   try { c.put(key, JSON.stringify(o), 600); } catch (e) { }
   return o;
 }
@@ -94,7 +101,7 @@ function atlasAll_() {
     rels: rows_(SHEET.REL).filter(function (r) { return str_(r[0]) && str_(r[1]); })
       .map(function (r) { return { a: str_(r[0]), b: str_(r[1]), rel: str_(r[2]), ch: Number(r[3]) || 1 }; }),
     places: rows_(SHEET.PLACE).filter(function (r) { return Number(r[0]) && str_(r[3]); })
-      .map(function (r) { return { ch: Number(r[0]), no: Number(r[1]) || 0, year: str_(r[2]), place: str_(r[3]), event: str_(r[4]), lon: Number(r[5]), lat: Number(r[6]) }; })
+      .map(function (r) { return { ch: Number(r[0]), no: Number(r[1]) || 0, year: str_(r[2]), place: str_(r[3]), event: str_(r[4]), lon: Number(r[5]), lat: Number(r[6]), fac: str_(r[7]) }; })
       .sort(function (a, b) { return a.ch - b.ch || a.no - b.no; })
   };
   try { c.put('atlas', JSON.stringify(o), 600); } catch (e) { }
@@ -102,7 +109,7 @@ function atlasAll_() {
 }
 function atlas_(reach) {
   var all = atlasAll_();
-  return { reach: reach, chapters: catalog_().map(function (c) { return { ch: c.ch, num: c.num, title: c.title }; }),
+  return { reach: reach, chapters: catalog_().filter(function (c) { return chOpen_(c.ch); }).map(function (c) { return { ch: c.ch, num: c.num, title: c.title }; }), factions: artData_().factions,
     people: peopleFor_(reach), rels: all.rels.filter(function (r) { return r.ch <= reach; }),
     places: all.places.filter(function (p) { return p.ch <= reach; }) };
 }
@@ -289,22 +296,21 @@ function apiHome(token) {
 /* ---------- 訪客模式：免登入、不寫入任何紀錄 ---------- */
 function apiGuestHome() {
   var g = guestChapters_(getSettings_());
-  return { chapters: catalog_().map(function (c) { var x = JSON.parse(JSON.stringify(c)); x.guest = !!g[c.ch]; return x; }), progress: {} };
+  return { chapters: catalog_().filter(function (c) { return chOpen_(c.ch); }).map(function (c) { var x = JSON.parse(JSON.stringify(c)); x.guest = !!g[c.ch]; return x; }), progress: {} };
 }
 function apiGuestChapter(ch) {
   ch = Number(ch); var set = getSettings_();
-  if (!guestChapters_(set)[ch]) throw new Error('本回需登入才能閱讀');
+  if (!guestChapters_(set)[ch] || !chOpen_(ch)) throw new Error('本回需登入才能閱讀');
   var full = chapterFull_(ch);
   return { ch: ch, num: full.num, title: full.title, paras: full.paras, guest: true,
     ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
-    qn: Math.min(full.qs.length, drawN_(set)), bt: { state: 'none' }, bf: full.bf || [],
+    qn: Math.min(full.qs.length, drawN_(set)), bt: { state: 'none' }, bf: full.bf || [], art: full.art,
     allowRetry: true, save: null, source: sourceOf_(set, ch, full.num), notes: full.notes || [], names: full.names || [], people: peopleFor_(ch) };
 }
 
 function apiChapter(token, ch) {
   var p = verify_(token, 's'); ch = Number(ch);
-  var open = openChapters_();
-  if (open && !open[ch]) throw new Error('本回尚未開放');
+  if (!chOpen_(ch)) throw new Error('本回尚未開放');
   var full = chapterFull_(ch), set = getSettings_();
   var hit = findSave_(p.a, ch), save = hit ? saveObj_(hit.r) : null;
   var showExp = yes_(set['交卷後顯示解析'] || '是');
@@ -312,7 +318,7 @@ function apiChapter(token, ch) {
   if (save && save.draft) delete save.draft.bt;
   var out = { ch: ch, num: full.num, title: full.title, paras: full.paras,
     ill: full.ill.filter(function (x) { return x.url || yes_(set['顯示未完成插圖'] || '是'); }),
-    qn: Math.min(full.qs.length, drawN_(set)), bt: { state: 'none' }, bf: full.bf || [],
+    qn: Math.min(full.qs.length, drawN_(set)), bt: { state: 'none' }, bf: full.bf || [], art: full.art,
     allowRetry: yes_(set['允許重作'] || '是'), save: save, source: sourceOf_(set, ch, full.num),
     notes: full.notes || [], names: full.names || [], people: peopleFor_(ch) };
   if (bt && !bt.fin) out.bt = btView_(full, bt, showExp);
@@ -360,7 +366,7 @@ function apiSaveDraft(token, ch, ans, pos, bm, spent) {
   try {
     var hit = findSave_(p.a, ch), t = now_();
     var prevObj = hit ? saveObj_(hit.r) : null, old = prevObj ? prevObj.draft : null;
-    var draft = JSON.stringify({ ans: ans || {}, pos: Number(pos) || 0, bm: bm ? cleanBm_(bm) : ((old && old.bm) || []), bt: (old && old.bt) || undefined });
+    var draft = JSON.stringify({ ans: ans || {}, pos: Number(pos) || 0, bm: bm ? cleanBm_(bm) : ((old && old.bm) || []), bt: (old && old.bt) || undefined, g: (old && old.g) || undefined });
     var sp = cleanSpent_(spent, prevObj ? prevObj.spent : 0);
     if (hit) {
       var s = sh_(SHEET.SAVE);

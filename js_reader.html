@@ -51,8 +51,9 @@ function renderChapter() {
     return h;
   }).join('') + '<p class="endnote">— 本回完 —</p>' + sourceHTML(d.source);
   view('<div class="reader"><div class="rhead"><div class="chno">' + esc(d.num) + '</div><h2 class="couplet"><span>' + esc(t[0] || '') + '</span><span>' + esc(t[1] || '') + '</span></h2>' +
-    '<div class="rtools"><span class="vgrp" role="group" aria-label="顯示內容"><b>顯示</b><button class="chip" data-v="txt">原文</button><button class="chip" data-v="bf">戰況畫面</button><button class="chip" data-v="quiz">閱讀檢測</button></span><button class="chip ' + (S.vert ? 'on' : '') + '" id="tgVert">直排</button><button class="chip" id="btnPref">字型・字級</button><button class="chip" id="btnBm">書籤</button><button class="chip" id="toHome">回目錄</button></div>' +
-    '<div class="pop hidden" id="popPref"></div><div class="pop hidden" id="popBm"></div></div>' +
+    '<div class="rtools"><span class="vgrp" role="group" aria-label="顯示內容"><b>顯示</b><button class="chip" data-v="txt">原文</button><button class="chip" data-v="bf">戰況畫面</button><button class="chip" data-v="quiz">閱讀檢測</button><button class="chip" id="btnLayout" title="一鍵版面">版面▾</button></span><button class="chip ' + (S.vert ? 'on' : '') + '" id="tgVert">直排</button><button class="chip" id="btnPref">字型・字級</button><button class="chip" id="btnBm">書籤</button><button class="chip" id="toHome">回目錄</button></div>' +
+    '<div class="pop hidden" id="popPref"></div><div class="pop hidden" id="popBm"></div><div class="pop hidden" id="popLayout"></div></div>' +
+    (d.preview ? '<div class="pvbar">教師預覽・本回狀態：<b>' + esc(d.preview) + '</b>（學生' + (d.preview === '上架' ? '看得到' : '看不到') + '；預覽不存檔、不作答）</div>' : '') +
     '<div class="mtabs"><button class="chip on" data-p="txt">原文</button><button class="chip" data-p="quiz">試題</button></div>' +
     '<div class="cols"><div id="bf" class="bf pane on" style="display:none"></div><article class="scrollpanel text pane on' + (S.vert ? ' vert' : '') + '" id="txt">' + text + '</article>' +
     '<aside class="scrollpanel quiz pane" id="quiz"></aside></div></div>');
@@ -61,6 +62,7 @@ function renderChapter() {
   var tx = $('#txt');
   bfInit(d);
   viewBind(); applyView();
+  if (!$('#rprog')) $('.top').insertAdjacentHTML('beforeend', '<div id="rprog"><i></i></div>'); readTick();
   $('#tgVert').onclick = function () { S.vert = PREF.vert = !S.vert; applyPref(); this.classList.toggle('on', S.vert); tx.classList.toggle('vert', S.vert); if (S.vert) tx.scrollLeft = tx.scrollWidth; setTimeout(bfUpdate, 60); };
   $('#btnPref').onclick = function (e) { e.stopPropagation(); togglePop('popPref', drawPref); };
   $('#btnBm').onclick = function (e) { e.stopPropagation(); togglePop('popBm', drawBm); };
