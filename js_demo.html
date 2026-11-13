@@ -1,0 +1,88 @@
+/* 展示模式。本檔是純 JavaScript，由 Index.html 的 include() 併入同一個 <script>。 */
+/* ================= 展示模式：電腦自動讀一回、看戰況變化、作答、結算 ================= */
+function startDemo() {
+  if (S.demo) return;
+  var D = S.demo = { abort: false, speed: window.__demoSpeed || 1 };
+  S.guest = true; setTop();
+  S.viewSaved = JSON.stringify(PREF.view); PREF.view = { txt: true, bf: true, quiz: true }; applyView();
+  if (!Qin.isOn()) { Qin.toggle(); $('#btnMusic').classList.add('on'); }
+  document.body.insertAdjacentHTML('beforeend', '<div class="demo-tag" id="dTag">展示模式</div><button class="demo-x" id="dX">✕ 結束展示</button><div class="demo-bar hide" id="dBar"></div>' +
+    '<div class="dcur" id="dCur" style="left:60%;top:70%"><svg viewBox="0 0 22 22"><path d="M2 1l16 9-7 2 4 8-3 1-4-8-6 5z" fill="#fff" stroke="#222" stroke-width="1.4" stroke-linejoin="round"/></svg></div>');
+  $('#dX').onclick = function () { endDemo(true); };
+  var sleep = function (ms) { return new Promise(function (ok, no) { setTimeout(function () { D.abort ? no('abort') : ok(); }, ms / D.speed); }); };
+  var cap = function (h, ms) { var b = $('#dBar'); if (!b) return Promise.resolve(); b.innerHTML = h; b.classList.remove('hide'); return sleep(ms || 3800); };
+  var uncap = function () { var b = $('#dBar'); if (b) b.classList.add('hide'); };
+  var moveTo = function (el) {
+    var c = $('#dCur'); if (!c || !el) return sleep(200);
+    var r = el.getBoundingClientRect(); c.style.left = (r.left + Math.min(r.width / 2, 120)) + 'px'; c.style.top = (r.top + r.height / 2) + 'px'; return sleep(1000);
+  };
+  var click = function (el) {
+    return moveTo(el).then(function () { var c = $('#dCur'); c.classList.remove('click'); void c.offsetWidth; c.classList.add('click'); return sleep(350); }).then(function () { if (el) el.click(); });
+  };
+  var waitFor = function (sel, ms) { var t0 = Date.now(); return new Promise(function (ok, no) { (function chk() { if (D.abort) return no('abort'); if ($(sel)) return ok($(sel)); if (Date.now() - t0 > (ms || 12000)) return no('timeout ' + sel); setTimeout(chk, 150); })(); }); };
+  var scrollRow = function (r) {
+    var tx = $('#txt'), p = $('#txt p[data-i="' + r.para + '"]'); if (!p) return sleep(300);
+    var t = (S.chap.paras[r.para - 1] || {}).t || '', j = r.anchor ? t.indexOf(r.anchor) : 0, at = j < 0 ? 0 : j / Math.max(1, t.length) + .003;
+    if (window.innerWidth <= 900) {
+      var line = topH() + innerHeight * .25 + ($('#bf') ? $('#bf').offsetHeight : 0), y = p.getBoundingClientRect().top + scrollY + p.offsetHeight * at - line + 2; window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+    } else tx.scrollTo({ top: Math.max(0, p.offsetTop + p.offsetHeight * at - tx.clientHeight * .3 + 2), behavior: 'smooth' });
+    return sleep(1500);
+  };
+  var seenScene = {};
+  var EXPLAIN = {
+    '平時': '這一段沒有戰事，面板顯示登場人物。戰況面板<b>只跟著你讀到的段落變化</b>。',
+    '軍陣': '軍陣：原文有寫兵力才標數字（五百、五萬），沒寫就只標「佔優／相持／潰敗」，依文意示意。',
+    '單挑': '單挑：一對一，隨原文招式推進；往回捲，戰況也會跟著倒退。',
+    '謀略': '謀略：記錄計策與伏兵，雙方形勢依原文而變。'
+  };
+  var run = function () {
+    return loadHome().then(function () { return cap('<b>展示模式</b>電腦自動示範一整回的閱讀、戰況與作答；<br>不登入、不記錄成績。', 4200); })
+      .then(function () { var c = $('.card[data-ch="1"]'); return click(c); })
+      .then(function () { return waitFor('#bf .bf-title', 15000); })
+      .then(function () { if (S.vert) { $('#tgVert').click(); } return cap('<b>第一回</b>左上是「戰況面板」，隨著原文往下讀，雙方形勢會跟著改變。', 4200); })
+      .then(function () {
+        var rows = S.bfs ? S.bfs.rows : [], chain = Promise.resolve();
+        rows.forEach(function (r, k) {
+          chain = chain.then(function () { return scrollRow(r); }).then(function () {
+            var ex = !seenScene[r.scene]; seenScene[r.scene] = 1;
+            return cap('<b>第 ' + r.para + ' 段</b>' + (ex ? EXPLAIN[r.scene] + '<br>' : '') + esc(r.title) + '：' + esc(r.note), ex ? 6200 : 3400);
+          });
+          if (r.title === '關羽對程遠志' && r.note.indexOf('一刀') >= 0) {
+            chain = chain.then(function () { uncap(); return scrollRow(rows[8]); }).then(function () { return cap('<b>往回捲</b>戰況跟著倒退：回到「大興山對陣」，雙方仍然相持。', 4200); });
+          }
+        });
+        return chain;
+      })
+      .then(function () { uncap(); var q = $('.mtabs .chip[data-p="quiz"]'); if (window.innerWidth <= 900 && q) q.click(); return cap('<b>答題</b>與戰況分開：題目每次從題庫隨機抽出，對錯只計成績，不影響戰況。', 4800); })
+      .then(function () { return click($('#btGo')); })
+      .then(function () { return waitFor('.bt .opt', 12000); })
+      .then(function () {
+        var pick = [1, 2, 0, 3, 1, 2, 3, 0, 2, 1], chain = Promise.resolve(), n = (S.bt && S.bt.qs.length) || 10;
+        for (var k = 0; k < n; k++) (function (k) {
+          chain = chain.then(function () { return waitFor('#quiz .opt:not(.dim)', 8000); })
+            .then(function () { return sleep(600); })
+            .then(function () { var opts = $$('#quiz .opt'); return click(opts[pick[k % pick.length] % opts.length]); })
+            .then(function () { return waitFor('#btNext', 8000); })
+            .then(function () { return k === 0 ? cap('<b>即時解析</b>每題作答後立即顯示正解與解析，可按「看原文第 N 段」回頭對照。', 4600) : sleep(1500); })
+            .then(function () { return click($('#btNext')); });
+        })(k);
+        return chain;
+      })
+      .then(function () { return waitFor('#btFin', 8000); })
+      .then(function () { return click($('#btFin')); })
+      .then(function () { return waitFor('.bt-end', 8000); })
+      .then(function () { return cap('<b>結算</b>顯示成績與逐題檢討；登入後成績才會存檔，老師後台可看全班統計。', 5200); })
+      .then(function () { uncap(); return sleep(300); });
+  };
+  var loadHome = function () { S.guest = true; goHome(); return waitFor('.card[data-ch="1"]', 15000).then(function () { return sleep(800); }); };
+  run().then(function () { endDemo(false); }).catch(function (e) { if (e !== 'abort') { try { console.error(e); } catch (x) { } endDemo(false); } });
+}
+function endDemo(quit) {
+  var D = S.demo; if (!D) return; D.abort = true; S.demo = null; S.demoPos = null;
+  if (S.viewSaved) { try { PREF.view = JSON.parse(S.viewSaved); } catch (e) { } S.viewSaved = null; applyView(); }
+  ['dTag', 'dX', 'dBar', 'dCur'].forEach(function (id) { var e = $('#' + id); if (e) e.remove(); });
+  if (quit) { S.guest = false; S.token ? goHome() : renderLogin(); return; }
+  document.body.insertAdjacentHTML('beforeend', '<div class="demo-end" id="dEnd"><div><h3>展示結束</h3><p>這是電腦自動示範的流程，沒有記錄任何成績。<br>戰況面板會隨閱讀位置變化，答題對錯只計成績。</p><div class="bt-act"><button class="btn" id="dAgain">重新展示</button><button class="btn ghost" id="dHome">回首頁</button></div></div></div>');
+  $('#dAgain').onclick = function () { $('#dEnd').remove(); startDemo(); };
+  $('#dHome').onclick = function () { $('#dEnd').remove(); S.guest = false; S.token ? goHome() : renderLogin(); };
+}

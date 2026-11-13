@@ -1,0 +1,275 @@
+/* 音樂、狀態與工具、頂欄、啟動、登入、目錄。本檔是純 JavaScript，由 Index.html 的 include() 併入同一個 <script>。 */
+/* ================= 古琴音樂（Web Audio 即時合成，無外部音檔） ================= */
+var Qin = (function () {
+  var ctx = null, master, sfxGain, musicGain, verb, playing = false, timer = null, nextT = 0, idx = 4;
+  var sfxOn = true;
+  // D 宮五聲音階：宮 商 角 徵 羽
+  var base = 146.83, steps = [0, 2, 4, 7, 9];
+  function f(i) { var o = Math.floor(i / 5), s = steps[((i % 5) + 5) % 5]; return base * Math.pow(2, o + s / 12); }
+  function init() {
+    if (ctx) return;
+    var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    ctx = new AC();
+    master = ctx.createGain(); master.gain.value = .9; master.connect(ctx.destination);
+    verb = ctx.createConvolver();
+    var len = ctx.sampleRate * 3.2, buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (var c = 0; c < 2; c++) { var d = buf.getChannelData(c); for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6); }
+    verb.buffer = buf;
+    var wet = ctx.createGain(); wet.gain.value = .32; verb.connect(wet); wet.connect(master);
+    musicGain = ctx.createGain(); musicGain.gain.value = 0; musicGain.connect(master); musicGain.connect(verb);
+    sfxGain = ctx.createGain(); sfxGain.gain.value = .55; sfxGain.connect(master); sfxGain.connect(verb);
+  }
+  function pluck(freq, t, dur, vel, dest) {
+    var o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), o3 = ctx.createOscillator();
+    var g = ctx.createGain(), lp = ctx.createBiquadFilter();
+    o1.type = 'triangle'; o2.type = 'sine'; o3.type = 'sine';
+    o1.frequency.setValueAtTime(freq * 1.006, t); o1.frequency.exponentialRampToValueAtTime(freq, t + .08);
+    o2.frequency.value = freq * 2; o3.frequency.value = freq * 3.01;
+    var g2 = ctx.createGain(); g2.gain.value = .22; var g3 = ctx.createGain(); g3.gain.value = .07;
+    // 吟猱：輕微顫音
+    var lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 5.2; lg.gain.setValueAtTime(0, t);
+    lg.gain.linearRampToValueAtTime(freq * .006, t + Math.min(dur, 1.2)); lfo.connect(lg); lg.connect(o1.frequency);
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(3200, t); lp.frequency.exponentialRampToValueAtTime(520, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vel, t + .006);
+    g.gain.exponentialRampToValueAtTime(vel * .35, t + .25); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o1.connect(lp); o2.connect(g2); g2.connect(lp); o3.connect(g3); g3.connect(lp); lp.connect(g); g.connect(dest);
+    [o1, o2, o3, lfo].forEach(function (o) { o.start(t); o.stop(t + dur + .05); });
+  }
+  function phrase(t) {
+    var beat = .62, n = 5 + Math.floor(Math.random() * 5);
+    pluck(f(0) / 2, t, 6, .09, musicGain);           // 低音散聲
+    if (Math.random() < .6) pluck(f(3) / 2, t + .02, 5.5, .05, musicGain);
+    for (var k = 0; k < n; k++) {
+      idx += [-2, -1, -1, 0, 1, 1, 2][Math.floor(Math.random() * 7)];
+      idx = Math.max(2, Math.min(12, idx));
+      var dur = [1, 1, 1.5, .75, 2, .5][Math.floor(Math.random() * 6)] * beat;
+      var last = k === n - 1;
+      if (last) { idx = [5, 8, 10][Math.floor(Math.random() * 3)]; dur = beat * 3; }
+      pluck(f(idx), t, last ? 4.5 : 2.6, .13 + Math.random() * .05, musicGain);
+      if (Math.random() < .12) pluck(f(idx) * 2, t + .01, 2, .04, musicGain); // 泛音
+      t += dur;
+    }
+    return t + 1.6 + Math.random() * 2;
+  }
+  function loop() {
+    if (!playing) return;
+    while (nextT < ctx.currentTime + 2) nextT = phrase(Math.max(nextT, ctx.currentTime + .1));
+    timer = setTimeout(loop, 500);
+  }
+  function wood() {
+    var t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(1150, t); o.frequency.exponentialRampToValueAtTime(620, t + .06);
+    g.gain.setValueAtTime(.32, t); g.gain.exponentialRampToValueAtTime(.0001, t + .11);
+    o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t + .12);
+  }
+  function bell() {
+    var t = ctx.currentTime;
+    [[784, .2], [784 * 2.76, .07], [784 * 5.4, .03], [1175, .1]].forEach(function (p, i) {
+      var o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = p[0];
+      g.gain.setValueAtTime(.0001, t + i * .002); g.gain.exponentialRampToValueAtTime(p[1], t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + 2.2);
+      o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t + 2.3);
+    });
+  }
+  function gong() {
+    var t = ctx.currentTime;
+    [[98, .35], [98 * 2.02, .12], [98 * 2.9, .06]].forEach(function (p) {
+      var o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(p[0] * 1.02, t); o.frequency.exponentialRampToValueAtTime(p[0], t + 1.5);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(p[1], t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + 3.5);
+      o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t + 3.6);
+    });
+  }
+  return {
+    toggle: function () {
+      init(); if (!ctx) return false; ctx.resume();
+      playing = !playing;
+      musicGain.gain.cancelScheduledValues(ctx.currentTime);
+      musicGain.gain.linearRampToValueAtTime(playing ? .75 : 0, ctx.currentTime + 1.2);
+      if (playing) { nextT = ctx.currentTime + .2; loop(); } else clearTimeout(timer);
+      return playing;
+    },
+    isOn: function () { return playing; },
+    setSfx: function (v) { sfxOn = v; },
+    sfx: function (kind) {
+      if (!sfxOn) return; init(); if (!ctx) return; ctx.resume();
+      ({ wood: wood, bell: bell, gong: gong }[kind] || wood)();
+    }
+  };
+})();
+
+/* ================= 狀態與工具 ================= */
+var S = { token: null, user: null, home: null, chap: null, teacher: null, tdata: null, draftTimer: null, vert: false };
+var FONTS = {
+  serif: { label: '明體', css: "'Noto Serif TC','PMingLiU','新細明體',serif" },
+  kai: { label: '楷體', css: "'LXGW WenKai TC','標楷體',serif" },
+  dfkai: { label: '標楷體', css: "'BiauKai','DFKai-SB','標楷體','TW-Kai','Kaiti TC','LXGW WenKai TC',serif" },
+  sans: { label: '黑體', css: "'Noto Sans TC','Microsoft JhengHei','微軟正黑體','PingFang TC',sans-serif" }
+};
+var PREF = (function () { var p = {}; try { p = JSON.parse(localStorage.getItem('sg_pref') || '{}'); } catch (e) { } return { font: p.font || 'serif', fs: p.fs || 18, lh: p.lh || 2.05, vert: !!p.vert, pn: p.pn !== false, view: { txt: !p.view || p.view.txt !== false, bf: !p.view || p.view.bf !== false, quiz: !p.view || p.view.quiz !== false } }; })();
+S.vert = PREF.vert;
+function applyPref() {
+  var r = document.documentElement.style;
+  r.setProperty('--fs', PREF.fs + 'px'); r.setProperty('--lh', PREF.lh); r.setProperty('--read-font', (FONTS[PREF.font] || FONTS.serif).css);
+  document.documentElement.classList.toggle('pnoff', !PREF.pn);
+  try { localStorage.setItem('sg_pref', JSON.stringify(PREF)); } catch (e) { }
+}
+applyPref();
+var CN = '〇一二三四五六七八九十';
+function cnum(n) { if (n <= 10) return CN[n]; if (n < 20) return '十' + (n % 10 ? CN[n % 10] : ''); var t = Math.floor(n / 10), u = n % 10; if (n < 100) return CN[t] + '十' + (u ? CN[u] : ''); return String(n); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function $(s, el) { return (el || document).querySelector(s); }
+function $$(s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); }
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+function toast(msg, ms) { var t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(function () { t.classList.remove('show'); }, ms || 2200); }
+function view(html) { $('#view').innerHTML = html; window.scrollTo(0, 0); }
+function loading(msg) { view('<div class="loading">' + esc(msg || '展卷中') + '</div>'); }
+function call(fn) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  return new Promise(function (res, rej) {
+    var r = google.script.run.withSuccessHandler(res).withFailureHandler(function (e) { rej(e && e.message ? e : new Error(String(e))); });
+    r[fn].apply(r, args);
+  });
+}
+function fail(e) {
+  var m = (e && e.message) || String(e);
+  if (/重新登入|逾時/.test(m)) { logout(true); toast(m, 3000); return; }
+  modal('<h3>出了點狀況</h3><p>' + esc(m) + '</p><div class="mbtns"><button class="btn" onclick="closeModal()">知道了</button></div>');
+}
+function modal(html, cls) { var m = $('#modal'); m.innerHTML = '<div class="mbox scrollpanel ' + (cls || '') + '">' + html + '</div>'; m.classList.add('show'); }
+function closeModal() { $('#modal').classList.remove('show'); }
+$('#modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
+function typeCls(t) { return { '劇情': 't1', '文意理解': 't1', '人物': 't2', '意象': 't3', '概念': 't3', '修辭': 't4' }[t] || 't1'; }
+
+/* ================= 頂欄 ================= */
+$('#btnMusic').onclick = function () { var on = Qin.toggle(); this.classList.toggle('on', on); store('sg_music', on ? '1' : '0'); };
+$('#btnSfx').onclick = function () { var on = !this.classList.contains('on'); this.classList.toggle('on', on); Qin.setSfx(on); store('sg_sfx', on ? '1' : '0'); };
+if (store('sg_sfx') === '0') { $('#btnSfx').classList.remove('on'); Qin.setSfx(false); }
+// 瀏覽器規定須先互動才能出聲：記得上次開著琴音，就在第一次點擊時接續
+document.addEventListener('pointerdown', function first(e) {
+  document.removeEventListener('pointerdown', first, true);
+  if (e && e.target && e.target.closest && e.target.closest('#btnMusic')) return;   // 直接點「琴音」鈕時交給按鈕自己切換，避免先開後關
+  if (store('sg_music') === '1' && !Qin.isOn()) { Qin.toggle(); $('#btnMusic').classList.add('on'); }
+}, true);
+$('#btnHome').onclick = function () { if (S.teacher) renderTeacher(); else goHome(); };
+$('#brand').onclick = function () { if (S.user) goHome(); else if (S.teacher) renderTeacher(); };
+$('#btnLogout').onclick = function () { logout(); };
+function setTop() {
+  var logged = !!(S.user || S.teacher || S.guest);
+  $('#btnHome').classList.toggle('hidden', !logged);
+  $('#btnLogout').classList.toggle('hidden', !logged);
+  $('#btnHome').textContent = S.teacher ? '後台' : '目錄';
+  $('#btnLogout').textContent = S.guest ? '登入' : '登出';
+  $('#who').textContent = S.teacher ? '教師後台' : S.guest ? '訪客試讀' : S.user ? (S.user.cls + ' ' + (S.user.seat ? S.user.seat + '號 ' : '') + S.user.name) : '';
+}
+function logout(silent) {
+  flushDraft();
+  var wasGuest = S.guest;
+  S.token = S.user = S.teacher = S.home = S.chap = null; S.guest = false; store('sg_token', null); setTop(); renderLogin();
+  if (!silent && !wasGuest) toast('已登出，後會有期');
+}
+
+/* ================= 啟動 ================= */
+call('apiInit', store('sg_token')).then(function (d) {
+  $('#siteTitle').textContent = d.title; $('#siteSub').textContent = d.subtitle; document.title = d.title;
+  S.allowRegister = d.allowRegister; S.guestChapters = d.guestChapters || []; S.about = d.about || {};
+  if (d.teacher) { S.teacher = d.token; setTop(); renderTeacher(); return; }
+  if (d.user) {
+    S.token = d.token; S.user = d.user; S.home = d.home; store('sg_token', d.token); setTop();
+    if (d.auto) toast('已用 ' + d.email + ' 自動登入');
+    renderHome(); return;
+  }
+  renderLogin();
+}).catch(function (e) { view('<div class="loading">' + esc(e.message) + '</div>'); });
+
+/* ================= 登入／註冊 ================= */
+function renderLogin(tab) {
+  tab = tab || 'stu';
+  var tabs = '<div class="tabs"><button class="tab ' + (tab === 'stu' ? 'on' : '') + '" data-t="stu">學生登入</button>' +
+    (S.allowRegister ? '<button class="tab ' + (tab === 'reg' ? 'on' : '') + '" data-t="reg">自行註冊</button>' : '') +
+    '<button class="tab ' + (tab === 'tea' ? 'on' : '') + '" data-t="tea">教師後台</button></div>';
+  var body = '';
+  if (tab === 'stu') body =
+    '<form id="fLogin"><div class="field"><label>帳號（學號）</label><input name="account" autocomplete="username" required></div>' +
+    '<div class="field"><label>密碼</label><input name="password" type="password" autocomplete="current-password" required></div>' +
+    '<div class="field hidden" id="nameRow"><label>第一次登入：請輸入名單上的姓名，並以上面的密碼作為你的新密碼</label><input name="name"></div>' +
+    '<div class="err" id="err"></div><button class="btn wide">入　卷</button></form>' +
+    '<p class="note">名單內的同學：老師若沒有給你密碼，第一次登入時自己設定一組即可（之後都用這組）。忘記密碼請找老師清空後重設。</p>';
+  if (tab === 'reg') body =
+    '<form id="fReg"><div class="row2"><div class="field"><label>帳號（英數字）</label><input name="account" required></div>' +
+    '<div class="field"><label>密碼（至少4字）</label><input name="password" type="password" required></div></div>' +
+    '<div class="row2"><div class="field"><label>姓名</label><input name="name" required></div><div class="field"><label>學校</label><input name="school"></div></div>' +
+    '<div class="row2"><div class="field"><label>班級</label><input name="cls" placeholder="例：301"></div><div class="field"><label>座號</label><input name="seat"></div></div>' +
+    '<div class="err" id="err"></div><button class="btn wide jade">建　檔</button></form>' +
+    '<p class="note">不在老師名單上的讀者可以在這裡建立帳號，作答紀錄一樣會保存。</p>';
+  if (tab === 'tea') body =
+    '<form id="fTea"><div class="field"><label>教師密碼</label><input name="pw" type="password" required></div>' +
+    '<div class="err" id="err"></div><button class="btn wide">升　帳</button></form>';
+  var guest = S.guestChapters && S.guestChapters.length ? '<div class="guestbox"><button class="btn wide jade" id="btnGuest">免註冊、免登入　直接試閱' +
+    S.guestChapters.map(function (n) { return '第' + cnum(n) + '回'; }).join('、') + '</button><button class="btn wide ghost demo-start" id="btnDemo">▶ 展示模式（電腦自動示範）</button><p class="note">試閱可閱讀並作答；成績不記錄，答案與書籤暫存在這台裝置。要累積成績請在下方登入。</p></div>' : '';
+  view('<div class="loginwrap scrollpanel"><p class="poemline">滾滾長江東逝水　浪花淘盡英雄</p>' + guest + tabs + body + '</div>');
+  if ($('#btnGuest')) $('#btnGuest').onclick = function () { Qin.sfx('wood'); S.guest = true; setTop(); goHome(); };
+  if ($('#btnDemo')) $('#btnDemo').onclick = function () { startDemo(); };
+  $$('.tab').forEach(function (b) { b.onclick = function () { Qin.sfx('wood'); renderLogin(b.dataset.t); }; });
+  var fL = $('#fLogin'), fR = $('#fReg'), fT = $('#fTea');
+  if (fL) (function (f) { f.onsubmit = function (e) {
+    e.preventDefault(); var b = $('button', f); b.disabled = true; $('#err').textContent = '';
+    call('apiLogin', f.account.value, f.password.value, f.elements['name'].value).then(function (d) {
+      b.disabled = false;
+      if (d.needSetup) { $('#nameRow').classList.remove('hidden'); f.elements['name'].focus(); $('#err').textContent = '這是你第一次登入，請輸入姓名以確認身分。'; return; }
+      afterLogin(d);
+    }).catch(function (e) { b.disabled = false; $('#err').textContent = e.message; });
+  }; })(fL);
+  if (fR) (function (f) { f.onsubmit = function (e) {
+    e.preventDefault(); var b = $('button', f); b.disabled = true; $('#err').textContent = '';
+    call('apiRegister', { account: f.account.value, password: f.password.value, name: f.elements['name'].value, school: f.school.value, cls: f.cls.value, seat: f.seat.value })
+      .then(afterLogin).catch(function (e) { b.disabled = false; $('#err').textContent = e.message; });
+  }; })(fR);
+  if (fT) (function (f) { f.onsubmit = function (e) {
+    e.preventDefault(); var b = $('button', f); b.disabled = true; $('#err').textContent = '';
+    call('apiTeacherLogin', f.pw.value).then(function (d) {
+      S.teacher = d.token; store('sg_token', d.token); setTop(); Qin.sfx('gong'); renderTeacher();
+    }).catch(function (e) { b.disabled = false; $('#err').textContent = e.message; });
+  }; })(fT);
+}
+function afterLogin(d) {
+  S.token = d.token; S.user = d.user; S.home = d.home; store('sg_token', d.token); setTop(); Qin.sfx('gong');
+  toast('歡迎，' + d.user.name); renderHome();
+}
+
+/* ================= 目錄 ================= */
+function goHome() {
+  flushDraft();
+  if (S.guest) { loading('翻回目錄'); return call('apiGuestHome').then(function (h) { S.home = h; renderHome(); }).catch(fail); }
+  if (!S.token) return renderLogin();
+  loading('翻回目錄');
+  call('apiHome', S.token).then(function (h) { S.home = h; renderHome(); }).catch(fail);
+}
+function renderHome() {
+  var h = S.home, done = 0, sum = 0, tot = 0;
+  var cards = h.chapters.map(function (c) {
+    var p = h.progress[c.ch] || {}, stamp = '', st = '未讀';
+    if (p.submitted) { done++; sum += p.best; tot += c.qn; stamp = '<div class="stamp">' + p.best + '/' + c.qn + '<br>已閱</div>'; st = '作答 ' + p.tries + ' 次'; }
+    else if (p.hasDraft) { stamp = '<div class="stamp draft">存檔<br>中</div>'; st = '尚未交卷'; }
+    var lock = S.guest && !c.guest;
+    if (S.guest) { stamp = c.guest ? '<div class="stamp draft">試讀</div>' : ''; st = c.guest ? '免登入' : '登入後閱讀'; }
+    var t = c.title.split(/\s+/), must = !S.guest && mustSet(h)[c.ch] && !p.submitted;
+    return '<div class="card' + (lock ? ' locked' : '') + '" data-ch="' + c.ch + '">' + (must ? '<div class="must">必讀</div>' : '') + '<div class="no">' + esc(c.num) + '</div><div class="vt"><span>' + esc(t[0] || '') +
+      '</span><span>' + esc(t[1] || '') + '</span></div>' + stamp + '<div class="st' + (stamp ? '' : ' c') + '">' + st + '</div></div>';
+  }).join('');
+  view('<div class="homehead"><div><h2>回目</h2><p>' + (S.guest ? '訪客可試讀標有「試讀」的回目；其餘回目請登入後閱讀。' : '點選一回，展卷閱讀並作答，答案會自動存檔。') + '</p></div>' +
+    (S.guest ? '' : '<div class="stat"><div><b>' + done + '</b>已完成回數</div><div><b>' + (tot ? Math.round(sum / tot * 100) : 0) + '%</b>最佳答對率</div>' +
+      '<div><button class="btn ghost" id="btnMist">錯題本</button></div><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div></div>') +
+    (S.guest ? '<div class="stat"><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div></div>' : '') + '</div>' +
+    annHTML(h) + progressHTML(h) + boardHTML(h) +
+    '<div class="cards">' + (cards || '<p>老師尚未開放任何回目。</p>') + '</div>');
+  if ($('#btnMist')) $('#btnMist').onclick = function () { Qin.sfx('wood'); openMistakes(); };
+  if ($('#btnAtlas')) $('#btnAtlas').onclick = function () { Qin.sfx('wood'); openAtlas(); };
+  $$('[data-goch]').forEach(function (b) { b.onclick = function () { Qin.sfx('wood'); openChapter(+b.dataset.goch); }; });
+  $$('.ach[data-tip]').forEach(function (a) { a.onclick = function () { toast(a.dataset.tip, 2600); }; });
+  checkNewAch(h);
+  $$('.card').forEach(function (c) {
+    c.onclick = function () {
+      if (c.classList.contains('locked')) { toast('本回需登入才能閱讀'); return; }
+      Qin.sfx('wood'); openChapter(+c.dataset.ch);
+    };
+  });
+}

@@ -1,0 +1,209 @@
+/* 人物關係圖、地圖與時間軸、錯題重練。本檔是純 JavaScript，由 Index.html 的 include() 併入同一個 <script>。 */
+/* ================= 人物關係圖・地圖與時間軸 ================= */
+var CAMP_COLOR = { '劉關張': '#a8322a', '黃巾軍': '#b8901e', '漢室官員': '#3e6a5a', '漢室': '#7a6a2a', '西涼軍閥': '#5b3f7a', '討董聯軍': '#2f5f8a', '外戚': '#b5651d', '宦官（十常侍）': '#6b6560', '其他': '#7a5a44' };
+var EXTRA_COLOR = ['#8a3a5a', '#4a7a3a', '#3a6a8a', '#8a6a3a'];
+function campColor(c, list) { return CAMP_COLOR[c] || EXTRA_COLOR[list.indexOf(c) % EXTRA_COLOR.length]; }
+function openAtlas() {
+  flushDraft(); loading('攤開輿圖');
+  (S.guest ? call('apiGuestAtlas') : call('apiAtlas', S.token)).then(function (d) {
+    S.atlas = d; S.atUpTo = d.reach; S.atTab = S.atTab || 'rel'; S.atSel = null; S.atCh = d.reach; renderAtlas();
+  }).catch(fail);
+}
+function renderAtlas() {
+  var d = S.atlas, up = S.atUpTo;
+  var opts = d.chapters.filter(function (c) { return c.ch <= d.reach; }).map(function (c) { return '<option value="' + c.ch + '"' + (c.ch === up ? ' selected' : '') + '>顯示到' + esc(c.num) + '</option>'; }).join('');
+  view('<div class="homehead"><div><h2>人物・地圖</h2><p>只顯示你讀到' + esc(chName(d, d.reach)) + '為止的人物與事件，不會劇透。' + (S.guest ? '' : '讀得越多，解鎖越多。') + '</p></div>' +
+    '<div class="rtools"><button class="chip' + (S.atTab === 'rel' ? ' on' : '') + '" data-at="rel">人物關係圖</button><button class="chip' + (S.atTab === 'map' ? ' on' : '') + '" data-at="map">地圖與時間軸</button>' +
+    '<select class="chip" id="atUp">' + opts + '</select><button class="chip" id="atBack">回目錄</button></div></div>' +
+    (S.atTab === 'rel' ? '<div class="atlas"><div class="scrollpanel graphbox"><div class="legend" id="legend"></div><svg id="graph" viewBox="0 0 1000 680"></svg></div><aside class="scrollpanel pcard" id="pcard"></aside></div>'
+      : '<div class="atlas"><div class="scrollpanel mapbox"><svg id="map" viewBox="0 0 1000 767"></svg></div><aside class="scrollpanel timeline" id="tl"></aside></div>'));
+  $$('[data-at]').forEach(function (b) { b.onclick = function () { S.atTab = b.dataset.at; renderAtlas(); }; });
+  $('#atUp').onchange = function () { S.atUpTo = +this.value; S.atCh = S.atUpTo; S.atSel = null; renderAtlas(); };
+  $('#atBack').onclick = goHome;
+  if (S.atTab === 'rel') drawGraph(); else drawMap();
+}
+function graphData() {
+  var d = S.atlas, up = S.atUpTo;
+  var people = d.people.filter(function (p) { return (p.first || 1) <= up; });
+  var names = {}; people.forEach(function (p) { names[p.name] = p; });
+  var pair = {};
+  d.rels.filter(function (r) { return r.ch <= up && names[r.a] && names[r.b]; }).forEach(function (r) {
+    var k = [r.a, r.b].sort().join('|'); if (!pair[k] || pair[k].ch <= r.ch) pair[k] = r;
+  });
+  return { people: people, edges: Object.keys(pair).map(function (k) { return pair[k]; }) };
+}
+function layoutGraph(g) {
+  var camps = []; g.people.forEach(function (p) { if (camps.indexOf(p.camp) < 0) camps.push(p.camp); });
+  var W = 1000, H = 680, cen = {};
+  camps.forEach(function (c, i) { var a = -Math.PI / 2 + i / camps.length * Math.PI * 2; cen[c] = { x: W / 2 + 320 * Math.cos(a), y: H / 2 + 220 * Math.sin(a) }; });
+  if (camps.length === 1) cen[camps[0]] = { x: W / 2, y: H / 2 };
+  var cnt = {}, N = g.people.map(function (p) {
+    var k = cnt[p.camp] = (cnt[p.camp] || 0) + 1, a = k * 2.4;
+    return { p: p, x: cen[p.camp].x + 34 * Math.sqrt(k) * Math.cos(a), y: cen[p.camp].y + 34 * Math.sqrt(k) * Math.sin(a), vx: 0, vy: 0 };
+  });
+  var idx = {}; N.forEach(function (n, i) { idx[n.p.name] = i; });
+  for (var it = 0; it < 320; it++) {
+    var t = 1 - it / 320;
+    for (var i = 0; i < N.length; i++) for (var j = i + 1; j < N.length; j++) {
+      var dx = N[j].x - N[i].x, dy = N[j].y - N[i].y, d2 = dx * dx + dy * dy + .01, d = Math.sqrt(d2), f = 3800 / d2;
+      if (d < 70) f += (70 - d) * .5;
+      N[i].vx -= f * dx / d; N[i].vy -= f * dy / d; N[j].vx += f * dx / d; N[j].vy += f * dy / d;
+    }
+    g.edges.forEach(function (e) {
+      var a = N[idx[e.a]], b = N[idx[e.b]], dx = b.x - a.x, dy = b.y - a.y, d = Math.sqrt(dx * dx + dy * dy) + .01, f = (d - 140) * .018;
+      a.vx += f * dx / d; a.vy += f * dy / d; b.vx -= f * dx / d; b.vy -= f * dy / d;
+    });
+    N.forEach(function (n) {
+      var c = cen[n.p.camp]; n.vx += (c.x - n.x) * .012; n.vy += (c.y - n.y) * .012;
+      n.x += Math.max(-24, Math.min(24, n.vx)) * t; n.y += Math.max(-24, Math.min(24, n.vy)) * t; n.vx *= .55; n.vy *= .55;
+      n.x = Math.max(40, Math.min(W - 40, n.x)); n.y = Math.max(36, Math.min(H - 36, n.y));
+    });
+  }
+  return { nodes: N, idx: idx, camps: camps };
+}
+function drawGraph() {
+  var g = graphData(), L = layoutGraph(g), svg = $('#graph');
+  $('#legend').innerHTML = L.camps.map(function (c) { return '<span><i style="background:' + campColor(c, L.camps) + '"></i>' + esc(c) + '</span>'; }).join('') +
+    '<span style="color:var(--mute)">・點人物看關係與小卡</span>';
+  var eh = g.edges.map(function (e, k) {
+    var a = L.nodes[L.idx[e.a]], b = L.nodes[L.idx[e.b]];
+    return '<g class="gedge" data-a="' + esc(e.a) + '" data-b="' + esc(e.b) + '"><line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="#9c8a70" stroke-width="1.6"><title>' + esc(e.a + '—' + e.b + '：' + e.rel) + '</title></line>' +
+      '<text class="glab" x="' + (a.x + b.x) / 2 + '" y="' + ((a.y + b.y) / 2 + 4) + '" text-anchor="middle" style="display:none">' + esc(e.rel) + '</text></g>';
+  }).join('');
+  var nh = L.nodes.map(function (n) {
+    var c = campColor(n.p.camp, L.camps), nm = n.p.name, fs = nm.length > 2 ? 13 : 15;
+    return '<g class="gnode" data-n="' + esc(nm) + '" transform="translate(' + n.x.toFixed(1) + ',' + n.y.toFixed(1) + ')"><circle r="25" fill="' + c + '" stroke="#f6efdf" stroke-width="3"/>' +
+      '<text text-anchor="middle" y="' + (fs / 2 - 1) + '" fill="#fff8ea" style="font:700 ' + fs + 'px var(--f-title)">' + esc(nm) + '</text></g>';
+  }).join('');
+  svg.innerHTML = '<g>' + eh + '</g><g>' + nh + '</g>';
+  var sel = function (name) {
+    S.atSel = name;
+    $$('.gnode', svg).forEach(function (n) {
+      var on = !name || n.dataset.n === name || g.edges.some(function (e) { return (e.a === name && e.b === n.dataset.n) || (e.b === name && e.a === n.dataset.n); });
+      n.classList.toggle('gdim', !on);
+    });
+    $$('.gedge', svg).forEach(function (e) {
+      var on = e.dataset.a === name || e.dataset.b === name;
+      e.classList.toggle('gdim', !!name && !on); $('text', e).style.display = name && on ? '' : 'none';
+      $('line', e).setAttribute('stroke', name && on ? '#a8322a' : '#9c8a70'); $('line', e).setAttribute('stroke-width', name && on ? 2.6 : 1.6);
+    });
+    personCard(name, g, L);
+  };
+  $$('.gnode', svg).forEach(function (n) { n.onclick = function (ev) { ev.stopPropagation(); Qin.sfx('wood'); sel(S.atSel === n.dataset.n ? null : n.dataset.n); }; });
+  svg.onclick = function () { sel(null); };
+  sel(S.atSel && L.idx[S.atSel] !== undefined ? S.atSel : null);
+}
+function personCard(name, g, L) {
+  var box = $('#pcard');
+  if (!name) { box.innerHTML = '<h3 style="font-size:20px">人物關係圖</h3><p class="note">目前出場 ' + g.people.length + ' 人、' + g.edges.length + ' 組關係。點選圓圈裡的人名，看他和誰有關係，以及到目前為止的事蹟。</p><p class="note">切換右上角「顯示到第幾回」，可以看人物關係怎麼一回回長出來。</p>'; return; }
+  var p = g.people.filter(function (x) { return x.name === name; })[0]; if (!p) return;
+  var rels = g.edges.filter(function (e) { return e.a === name || e.b === name; }).map(function (e) {
+    var o = e.a === name ? e.b : e.a; return '<li class="rl" data-n="' + esc(o) + '"><b>' + esc(o) + '</b>：' + esc(e.rel) + '<small style="color:var(--mute)">（' + esc(chName(S.atlas, e.ch)) + '）</small></li>';
+  }).join('');
+  box.innerHTML = '<h3>' + esc(p.name) + '</h3><span class="camp" style="background:' + campColor(p.camp, L.camps) + '">' + esc(p.camp) + '</span>' +
+    (p.alias && p.alias.length ? '<div class="note">又稱：' + esc(p.alias.join('、')) + '</div>' : '') + '<p style="line-height:1.85">' + esc(p.intro) + '</p>' +
+    '<h4>關係</h4><ul>' + (rels || '<li class="note">目前還沒有記錄</li>') + '</ul>' +
+    '<h4>事蹟（至' + esc(chName(S.atlas, S.atUpTo)) + '）</h4><ul>' + ((p.deeds || []).filter(function (d) { return d.ch <= S.atUpTo; }).map(function (d) { return '<li>' + esc(chName(S.atlas, d.ch)) + '：' + esc(d.t) + '</li>'; }).join('') || '<li class="note">—</li>') + '</ul>';
+  $$('.rl', box).forEach(function (li) { li.onclick = function () { var n = $('.gnode[data-n="' + li.dataset.n + '"]'); n && n.dispatchEvent(new MouseEvent('click', { bubbles: false })); }; });
+}
+/* 地圖：經緯度投影到 1000×767；河道與州名為示意 */
+var MAPB = { all: [106, 41, 15], c: [111.7, 35.95, 3.9] };
+function proj(lon, lat) { var B = MAPB[S.atZoom] || MAPB.all; return [((lon - B[0]) / B[2] * 1000), ((B[1] - lat) / B[2] * 1000)]; }
+function pathOf(pts) { return pts.map(function (p, i) { var q = proj(p[0], p[1]); return (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1); }).join(''); }
+var RIVERS = [
+  ['黃河', [[106.3, 38.6], [106.8, 39.8], [108.5, 40.6], [110.4, 40.3], [110.6, 38.6], [110.4, 35.8], [110.3, 34.6], [111.5, 34.8], [113, 34.95], [114.5, 35.1], [115.5, 35.9], [116.6, 36.7], [118, 37.5], [119.2, 37.9]], [116.8, 37.15]],
+  ['長江', [[106, 29.6], [108, 30.6], [110.5, 30.8], [112, 30.3], [113.5, 30], [114.5, 30.6], [116, 30], [117.5, 30.9], [119, 32.1], [121, 31.8]], [116.6, 30.2]],
+  ['漢水', [[106.5, 33.1], [109, 32.7], [111, 32.5], [112.2, 32], [113, 31], [114.2, 30.6]], [110.2, 32.85]],
+  ['渭水', [[106.5, 34.4], [108.9, 34.35], [110.2, 34.6]], [107.6, 34.6]],
+  ['淮水', [[112.6, 32.9], [114.5, 32.4], [116.5, 32.8], [118.5, 33.4], [119.6, 33.9]], [115.6, 32.85]]
+];
+var REGIONS = [['幽州', 116.6, 40.4], ['冀州', 115.6, 38.1], ['青州', 118.6, 36.3], ['兗州', 116.2, 35.6], ['豫州', 115.2, 33.6], ['徐州', 118.3, 34.3], ['司隸', 110.4, 35.3], ['并州', 112.3, 38.8], ['荊州', 112.3, 31.4], ['揚州', 118.6, 30.7], ['涼州', 106.8, 37.2]];
+function drawMap() {
+  var d = S.atlas, up = S.atUpTo, svg = $('#map');
+  var evs = d.places.filter(function (p) { return p.ch <= up; });
+  var spots = {}, order = [];
+  evs.forEach(function (e, i) { e.k = i + 1; var key = e.place; if (!spots[key]) { spots[key] = { name: e.place, lon: e.lon, lat: e.lat, evs: [] }; order.push(key); } spots[key].evs.push(e); });
+  var bg = '<defs><radialGradient id="mpg" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#f6ecd2"/><stop offset="1" stop-color="#dfcca2"/></radialGradient></defs><rect width="1000" height="767" fill="url(#mpg)"/>' +
+    '<g opacity=".5">' + [200, 400, 600, 800].map(function (x) { return '<line x1="' + x + '" y1="0" x2="' + x + '" y2="767" stroke="#c7b48c" stroke-dasharray="2 6"/>'; }).join('') + '</g>' +
+    REGIONS.map(function (r) { var q = proj(r[1], r[2]); return '<text x="' + q[0] + '" y="' + q[1] + '" text-anchor="middle" style="font:700 26px var(--f-title);letter-spacing:8px" fill="#b3a07a" opacity=".55">' + r[0] + '</text>'; }).join('') +
+    RIVERS.map(function (r) { var q = proj(r[2][0], r[2][1]); return '<path d="' + pathOf(r[1]) + '" fill="none" stroke="#7c9eae" stroke-width="' + (r[0] === '黃河' || r[0] === '長江' ? 5 : 3) + '" stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>' +
+      '<text x="' + q[0] + '" y="' + q[1] + '" style="font:15px var(--f-title)" fill="#4f7486" text-anchor="middle">' + r[0] + '</text>'; }).join('');
+  var route = evs.filter(function (e) { return e.ch === S.atCh; });
+  var rpath = route.length > 1 ? '<path d="' + pathOf(route.map(function (e) { return [e.lon, e.lat]; })) + '" fill="none" stroke="#a8322a" stroke-width="2.5" stroke-dasharray="8 6" opacity=".8"/>' : '';
+  var placed = order.map(function (k) { var q = proj(spots[k].lon, spots[k].lat); return [q[0] - 10, q[1] - 10, q[0] + 10, q[1] + 10]; });
+  var marks = order.map(function (k) {
+    var s = spots[k], q = proj(s.lon, s.lat), cur = s.evs.some(function (e) { return e.ch === S.atCh; });
+    var nums = s.evs.map(function (e) { return e.k; }).join('・');
+    var w = Math.max(s.name.length * 17, nums.length * 7) + 6;
+    var box = function (side) { return side > 0 ? [q[0] + 12, q[1] - 26, q[0] + 12 + w, q[1] + 18] : [q[0] - 12 - w, q[1] - 26, q[0] - 12, q[1] + 18]; };
+    var hit = function (bx) { return placed.some(function (o) { return !(bx[2] < o[0] || bx[0] > o[2] || bx[3] < o[1] || bx[1] > o[3]); }); };
+    var side = !hit(box(1)) ? 1 : !hit(box(-1)) ? -1 : 0;
+    var dy = 0; if (!side) { side = 1; dy = 26; }
+    placed.push(box(side));
+    var lx = side > 0 ? q[0] + 13 : q[0] - 13, an = side > 0 ? 'start' : 'end';
+    return '<g class="mk" data-p="' + esc(k) + '" style="cursor:pointer"><circle cx="' + q[0] + '" cy="' + q[1] + '" r="9" fill="' + (cur ? '#a8322a' : '#6b4529') + '" stroke="#fbf3e0" stroke-width="3"/>' +
+      '<text x="' + lx + '" y="' + (q[1] - 8 + dy) + '" text-anchor="' + an + '" class="glab" style="font:700 16px var(--f-title)" fill="' + (cur ? '#a8322a' : '#3e2616') + '">' + esc(s.name) + '</text>' +
+      '<text x="' + lx + '" y="' + (q[1] + 12 + dy) + '" text-anchor="' + an + '" class="glab" style="font:12px var(--f-title)">' + nums + '</text></g>';
+  }).join('');
+  svg.innerHTML = bg + rpath + '<g id="pulse"></g>' + marks + '<text x="985" y="755" text-anchor="end" style="font:12px var(--f-title)" fill="#8b7c6b">示意圖：位置為約略，河道依今日地形簡化' + (S.atZoom === 'c' ? '（洛陽周邊放大）' : '') + '</text>';
+  var chs = d.chapters.filter(function (c) { return c.ch <= up; });
+  $('#tl').innerHTML = '<div class="rtools" style="margin-bottom:8px"><button class="chip' + (S.atZoom !== 'c' ? ' on' : '') + '" data-z="all">全圖</button><button class="chip' + (S.atZoom === 'c' ? ' on' : '') + '" data-z="c">放大洛陽周邊</button></div>' +
+    '<p class="note" style="margin-top:0">點回目看該回路線，點事件在地圖上標出位置。</p>' + chs.map(function (c) {
+    var es = evs.filter(function (e) { return e.ch === c.ch; });
+    return '<div class="tl-ch"><h4 data-c="' + c.ch + '" class="' + (c.ch === S.atCh ? 'on' : '') + '">' + esc(c.num) + '　' + esc(c.title.split(/\s+/)[0] || '') + '</h4>' + es.map(function (e) {
+      return '<div class="tl-ev" data-k="' + e.k + '"><b>' + e.k + '</b><div>' + esc(e.event) + '<small>' + esc(e.year) + '・' + esc(e.place) + '</small></div></div>';
+    }).join('') + '</div>';
+  }).join('');
+  var focus = function (e) {
+    var q = proj(e.lon, e.lat);
+    $('#pulse').innerHTML = '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="10" fill="none" stroke="#a8322a" stroke-width="3" class="mpulse"/>';
+    $$('.tl-ev').forEach(function (x) { x.classList.toggle('on', +x.dataset.k === e.k); });
+  };
+  $$('.tl-ch h4').forEach(function (h) { h.onclick = function () { S.atCh = +h.dataset.c; drawMap(); }; });
+  $$('[data-z]').forEach(function (b) { b.onclick = function () { S.atZoom = b.dataset.z; drawMap(); }; });
+  $$('.tl-ev').forEach(function (x) { x.onclick = function () { var e = evs[+x.dataset.k - 1]; focus(e); if (window.innerWidth <= 900) $('#map').scrollIntoView({ behavior: 'smooth' }); }; });
+  $$('.mk', svg).forEach(function (m) { m.onclick = function () { var s = spots[m.dataset.p]; focus(s.evs[s.evs.length - 1]); var el = $('.tl-ev[data-k="' + s.evs[0].k + '"]'); el && el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }; });
+}
+
+/* ================= 錯題重練 ================= */
+function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function markFixed(list) {
+  var f = fixedSet(); list.forEach(function (m) { f[m.ch + '-' + m.no] = 1; }); store(fixedKey(), JSON.stringify(f));
+  if (S.token && !S.guest && list.length) call('apiMarkFixed', S.token, list.map(function (m) { return { ch: m.ch, no: m.no }; })).catch(function () { });
+}
+function startDrill() {
+  var fx = fixedSet(), pool = (S.mist || []).filter(function (m) { return !fx[m.ch + '-' + m.no]; });
+  if (!pool.length) { toast('沒有未訂正的錯題'); return; }
+  S.drill = { qs: shuffle(pool).slice(0, 10).map(function (m) { return { m: m, order: shuffle([0, 1, 2, 3]) }; }), i: 0, right: 0, log: [] };
+  renderDrill();
+}
+function renderDrill() {
+  var D = S.drill, n = D.qs.length;
+  if (D.i >= n) {
+    view('<div class="scrollpanel drill" style="text-align:center"><h3 style="font:700 26px var(--f-title);letter-spacing:6px;margin:0 0 10px">重練結束</h3>' +
+      '<div class="bigseal" style="margin:10px auto">' + D.right + '/' + n + '<small>' + (D.right === n ? '全對' : D.right >= n * .6 ? '可也' : '再讀') + '</small></div>' +
+      '<p>' + (D.right ? '答對的 ' + D.right + ' 題已自動訂正。' : '') + (n - D.right ? '答錯的 ' + (n - D.right) + ' 題留在錯題本，建議回原文再讀一次。' : '') + '</p>' +
+      '<div class="mbtns" style="justify-content:center"><button class="btn ghost" id="dBook">回錯題本</button>' + ((S.mist || []).some(function (m) { return !fixedSet()[m.ch + '-' + m.no]; }) ? '<button class="btn" id="dAgain">再練一輪</button>' : '') + '</div></div>');
+    $('#dBook').onclick = function () { renderMistakes(); };
+    if ($('#dAgain')) $('#dAgain').onclick = startDrill;
+    Qin.sfx(D.right === n ? 'bell' : 'gong');
+    return;
+  }
+  var it = D.qs[D.i], m = it.m;
+  view('<div class="scrollpanel drill"><div class="dp"><span>錯題重練・第 ' + (D.i + 1) + '／' + n + ' 題</span><span>答對 ' + D.right + '</span></div><div class="dbar"><div style="width:' + (D.i / n * 100) + '%"></div></div>' +
+    '<div class="qh"><span class="chno sm">' + esc(m.num) + '</span><span class="tag ' + typeCls(m.type) + '">' + esc(m.type) + '</span></div><p class="stem">' + esc(m.stem) + '</p>' +
+    '<div class="opts">' + it.order.map(function (o, i) { return '<label class="opt" data-l="' + 'ABCD'[o] + '"><span class="L">' + 'ABCD'[i] + '</span><span>' + esc(m.opts[o]) + '</span></label>'; }).join('') + '</div>' +
+    '<div class="fb"></div><div class="mbtns"><button class="btn ghost" id="dQuit">結束重練</button><button class="btn hidden" id="dNext">' + (D.i + 1 < n ? '下一題' : '看結果') + '</button></div></div>');
+  $('#dQuit').onclick = function () { renderMistakes(); };
+  $('#dNext').onclick = function () { D.i++; renderDrill(); };
+  $$('.opt').forEach(function (o) {
+    o.onclick = function () {
+      if (D.answered === D.i) return; D.answered = D.i;
+      var ok = o.dataset.l === m.ans, fb = $('.fb');
+      $('.opt[data-l="' + m.ans + '"]').classList.add('right'); if (!ok) o.classList.add('wrong');
+      fb.className = 'fb show'; fb.innerHTML = '<span class="verdict ' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ 答對，已訂正' : '答錯了') + '</span>' + (m.exp ? '<div>' + esc(m.exp) + '</div>' : '') + (ok ? '' : '<div class="note">這題會留在錯題本。原文在' + esc(m.num) + '第 ' + m.para + ' 段。</div>');
+      if (ok) { D.right++; markFixed([m]); Qin.sfx('bell'); } else Qin.sfx('wood');
+      $('#dNext').classList.remove('hidden');
+    };
+  });
+}

@@ -1,0 +1,104 @@
+/* 作答。本檔是純 JavaScript，由 Index.html 的 include() 併入同一個 <script>。 */
+/* ================= 作答：每次從題庫抽 N 題，一題一題作答 ================= */
+function btOutcome(s, n) { return s === n ? ['全　對', '通讀全回，明察秋毫！'] : s >= n * .8 ? ['優　良', '大體讀通，細處再對照解析。'] : s >= n * .6 ? ['及　格', '仍有疏漏，回原文補一補。'] : ['再　讀', '對照解析，回原文再讀一回。']; }
+function btReplay(st) {
+  var N = st.qs.length; st.i = N; st.pick = null;
+  for (var k = 0; k < N; k++) if (!st.done[st.qs[k].no]) { st.i = k; break; }
+}
+function renderQuiz() {
+  var d = S.chap, box = $('#quiz'), st = S.bt;
+  if (!st && d.bt && d.bt.state === 'ongoing') { st = S.bt = { qs: d.bt.qs, done: d.bt.done || {}, ticket: null, gans: {}, phase: 'ask' }; btReplay(st); if (st.i >= st.qs.length) st.phase = 'end'; }
+  if (st) return renderBattle();
+  if (d.result) return renderResult();
+  var n = d.qn || 5, tries = d.save && d.save.tries;
+  box.innerHTML = '<div class="bt bt-intro"><h3>閱讀檢測</h3><div class="sub">共 ' + n + ' 題' + (tries ? '・已作答 ' + tries + ' 次' : '') + '</div>' +
+    '<p>先讀原文，再開始作答。每題作答後立即顯示正解與解析，作答時可隨時對照左側原文。</p>' +
+    (d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') +
+    '<div class="bt-act"><button class="btn" id="btGo">開始作答</button></div></div>';
+  $('#btGo').onclick = function () { btStart(this); };
+}
+function btStart(btn) {
+  if (btn) btn.disabled = true; Qin.sfx('gong');
+  (S.guest ? call('apiGuestBattleStart', S.chap.ch) : call('apiBattleStart', S.token, S.chap.ch)).then(function (v) {
+    S.chap.result = null; S.chap.bt = { state: 'ongoing' };
+    S.bt = { qs: v.qs, done: v.done || {}, ticket: v.ticket || null, gans: {}, phase: 'ask' }; btReplay(S.bt);
+    if (S.bt.i >= S.bt.qs.length) S.bt.phase = 'end';
+    renderQuiz(); $('#quiz').scrollTop = 0;
+    if (window.innerWidth <= 900) $('.mtabs .chip[data-p="quiz"]').click();
+  }).catch(function (e) { if (btn) btn.disabled = false; fail(e); });
+}
+function btDots(st) {
+  return '<div class="bt-dots">' + st.qs.map(function (q, k) {
+    var r = st.done[q.no]; return '<span class="' + (r ? (r.ok ? 'ok' : 'no') : '') + (k === st.i && st.phase !== 'end' ? ' now' : '') + '">' + (k + 1) + '</span>';
+  }).join('') + '</div>';
+}
+function renderBattle() {
+  var st = S.bt, d = S.chap, box = $('#quiz'), N = st.qs.length;
+  if (st.phase === 'end') {
+    box.innerHTML = '<div class="bt"><div class="bt-hd"><b>作答完畢</b><span>' + N + ' 題皆已作答</span></div>' + btDots(st) +
+      '<p>全部作答完畢，請交卷結算。</p><div class="bt-act"><button class="btn" id="btFin">交卷・結算</button></div></div>';
+    $('#btFin').onclick = function () { btFinish(this); }; return;
+  }
+  var q = st.qs[st.i], r = st.done[q.no], shown = st.phase === 'shown' && r;
+  var opts = q.opts.map(function (o, i) {
+    var L = 'ABCD'[i], cls = 'opt';
+    if (shown) { if (L === r.ans) cls += ' right'; else if (L === r.mine) cls += ' wrong'; else cls += ' dim'; }
+    else if (st.pick === L) cls += ' sel busy';
+    return '<div class="' + cls + '" data-l="' + L + '"><span class="L">' + L + '</span><span>' + esc(o) + '</span></div>';
+  }).join('');
+  var fb = shown ? '<div class="fb show"><span class="verdict ' + (r.ok ? 'ok">✓ 答對了' : 'no">✗ 正解為 ' + r.ans) + '</span>' +
+    (r.exp ? '<div>' + esc(r.exp) + '</div>' : '') + (q.para || r.para ? '<button class="link" data-para="' + (r.para || q.para) + '">看原文第 ' + (r.para || q.para) + ' 段</button>' : '') + '</div>' : '';
+  var last = st.i + 1 >= N;
+  box.innerHTML = '<div class="bt' + (shown ? ' shown' : '') + '"><div class="bt-hd"><b>第 ' + cnum(st.i + 1) + ' 題</b><span>' + (st.i + 1) + '／' + N + '</span></div>' + btDots(st) +
+    '<div class="q' + (shown ? ' locked' : '') + '"><div class="qh"><span class="tag ' + typeCls(q.type) + '">' + esc(q.type) + '</span></div><p class="stem">' + esc(q.stem) + '</p><div class="opts">' + opts + '</div>' + fb + '</div>' +
+    (shown ? '<div class="bt-act"><button class="btn" id="btNext">' + (last ? '交卷・結算' : '下一題') + '</button></div>' : '<div class="note">點選一個答案</div>') + '</div>';
+  if (!shown) {
+    $$('.opt', box).forEach(function (o) { o.onclick = function () { btAnswer(o.dataset.l); }; });
+  } else {
+    $$('.link', box).forEach(function (b) { b.onclick = function () { jumpPara(+b.dataset.para); }; });
+    $('#btNext').onclick = function () { Qin.sfx('wood'); if (last) { st.phase = 'end'; renderBattle(); } else { st.i++; st.phase = 'ask'; st.pick = null; renderBattle(); box.scrollTop = 0; } };
+    setTimeout(function () { var fb = $('.fb', box); if (fb && fb.scrollIntoView) fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 300);
+  }
+}
+function btAnswer(letter) {
+  var st = S.bt, q = st.qs[st.i]; if (st.busy || st.done[q.no]) return;
+  st.busy = true; st.pick = letter; Qin.sfx('wood');
+  $$('#quiz .opt').forEach(function (o) { o.classList.toggle('sel', o.dataset.l === letter); o.classList.toggle('busy', o.dataset.l === letter); o.classList.toggle('dim', o.dataset.l !== letter); });
+  (S.guest ? call('apiGuestBattleAnswer', st.ticket, q.no, letter) : call('apiBattleAnswer', S.token, S.chap.ch, q.no, letter)).then(function (r) {
+    st.busy = false; if (S.bt !== st) return;
+    st.done[q.no] = r; st.gans[q.no] = letter; st.phase = 'shown'; Qin.sfx(r.ok ? 'bell' : 'gong');
+    renderBattle();
+  }).catch(function (e) { st.busy = false; st.pick = null; renderBattle(); fail(e); });
+}
+function btFinish(btn) {
+  var st = S.bt; if (btn) btn.disabled = true; clearTimeout(S.draftTimer); S.draftTimer = null;
+  (S.guest ? call('apiGuestBattleFinish', st.ticket, st.gans) : call('apiBattleFinish', S.token, S.chap.ch, readPos(), S.spent || 0)).then(function (r) {
+    if (S.guest) { r.tries = null; r.best = null; }
+    S.chap.result = r; S.chap.bt = { state: 'done' }; S.chap.save = S.chap.save || {}; S.chap.save.tries = r.tries; S.chap.save.best = r.best; S.chap.save.submitted = true;
+    S.bt = null; Qin.sfx(r.score === r.total ? 'bell' : 'gong'); renderQuiz(); $('#quiz').scrollTop = 0;
+  }).catch(function (e) { if (btn) btn.disabled = false; fail(e); });
+}
+function renderResult() {
+  var d = S.chap, res = d.result, box = $('#quiz'), oc = btOutcome(res.score, res.total);
+  var head = '<div class="bt-end"><h3>' + oc[0] + '</h3><div>' + oc[1] + '</div></div>' +
+    '<div class="result"><div class="bigseal">' + res.score + '/' + res.total + '<small>' + (res.score === res.total ? '全對' : res.score >= res.total * .6 ? '可也' : '再讀') + '</small></div><div>' +
+    (res.score === res.total ? '通讀全回，明察秋毫！' : '對照解析，回原文找找答案所在之處。') + (d.guest ? '<div class="note">訪客成績不會記錄；登入後即可存檔、累積成績。</div>' : '') +
+    (res.best != null || (d.save && d.save.best != null) ? '<div class="note">本回最高：' + (res.best != null ? res.best : d.save.best) + ' 分</div>' : '') + '</div></div>';
+  head += summaryHTML(res.summary);
+  var rv = (res.review || []).map(function (it, qi) {
+    var opts = it.opts.map(function (o, i) {
+      var L = 'ABCD'[i], cls = 'opt'; if (L === it.ans) cls += ' right'; else if (L === it.mine) cls += ' wrong';
+      return '<div class="' + cls + '"><span class="L">' + L + '</span><span>' + esc(o) + '</span></div>';
+    }).join('');
+    return '<div class="q locked"><div class="qh"><span class="qn">第' + cnum(qi + 1) + '題</span><span class="tag ' + typeCls(it.type) + '">' + esc(it.type) + '</span></div>' +
+      '<p class="stem">' + esc(it.stem) + '</p><div class="opts">' + opts + '</div><div class="fb show"><span class="verdict ' + (it.ok ? 'ok">✓ 答對了' : 'no">✗ 正解為 ' + it.ans) + '</span>' +
+      (it.exp ? '<div>' + esc(it.exp) + '</div>' : '') + (it.para ? '<button class="link" data-para="' + it.para + '">看原文第 ' + it.para + ' 段</button>' : '') + '</div></div>';
+  }).join('');
+  var bar = '<div class="qbar"><span class="savest">' + (d.guest ? '訪客試玩' : '已交卷' + (d.save && d.save.lastTime ? '・' + esc(d.save.lastTime) : '')) + '</span>' +
+    (d.allowRetry ? '<button class="btn ghost" id="retry">再作答一次（抽新題）</button>' : '') + '<button class="btn" id="back2">回目錄</button></div>';
+  box.innerHTML = '<div class="bt">' + head + (rv ? '<h3>逐題檢討</h3>' + rv : '<p class="note">這是較早前的作答紀錄，沒有逐題檢討；再戰一次即可看到每題解析。</p>') + bar + '</div>';
+  $$('.link', box).forEach(function (b) { b.onclick = function () { jumpPara(+b.dataset.para); }; });
+  if ($('#dlCard')) $('#dlCard').onclick = downloadCard;
+  if ($('#retry')) $('#retry').onclick = function () { btStart(this); };
+  $('#back2').onclick = goHome;
+}

@@ -1,0 +1,211 @@
+/* 回末小結卡、後台段落分析、作答用時、說明頁、字型設定、書籤、閱讀位置。本檔是純 JavaScript，由 Index.html 的 include() 併入同一個 <script>。 */
+/* ================= 回末小結卡 ================= */
+function summaryHTML(sm) {
+  if (!sm) return '';
+  return '<div class="summ"><div class="summ-h">本回大事</div><ol>' + sm.events.map(function (e) {
+    var k = e.indexOf('：'); return '<li>' + (k > 0 ? '<b>' + esc(e.slice(0, k)) + '</b>' + esc(e.slice(k)) : esc(e)) + '</li>'; }).join('') + '</ol>' +
+    (sm.quote ? '<blockquote>「' + esc(sm.quote.replace(/[。]$/, '')) + '」</blockquote>' : '') +
+    (sm.think ? '<p class="think"><b>想一想</b>' + esc(sm.think) + '</p>' : '') +
+    '<button class="btn jade wide" id="dlCard">下載小結卡（圖片）</button></div>';
+}
+function wrapLines(ctx, text, maxW) {
+  var lines = [], cur = '';
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i], test = cur + ch;
+    if (ctx.measureText(test).width > maxW && cur) {
+      if ('，。、；：！？」』）'.indexOf(ch) >= 0) { cur += ch; continue; }
+      lines.push(cur); cur = ch;
+    } else cur = test;
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function downloadCard() {
+  var d = S.chap, sm = d.result && d.result.summary; if (!sm) return;
+  var W = 1080, H = 1440, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  var c = cv.getContext('2d');
+  var title = "'LXGW WenKai TC','標楷體',serif", body = "'Noto Serif TC','PMingLiU',serif";
+  Promise.all([document.fonts.load('48px "LXGW WenKai TC"'), document.fonts.load('32px "Noto Serif TC"')]).catch(function () { }).then(function () {
+    var g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#f8f0dc'); g.addColorStop(1, '#ead9b4');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    c.fillStyle = '#4e3220'; c.fillRect(0, 0, W, 34); c.fillRect(0, H - 34, W, 34);
+    c.strokeStyle = '#b08a4a'; c.lineWidth = 3; c.strokeRect(44, 70, W - 88, H - 140);
+    c.fillStyle = '#a8322a'; c.fillRect(90, 120, 190, 64);
+    c.fillStyle = '#fbeee0'; c.font = '700 34px ' + title; c.textAlign = 'center'; c.fillText(d.num, 185, 164);
+    c.textAlign = 'left'; c.fillStyle = '#2a2420'; c.font = '700 50px ' + title;
+    var t = d.title.split(/\s+/); c.fillText(t[0] || '', 90, 260); c.fillText(t[1] || '', 150, 330);
+    c.fillStyle = '#a8322a'; c.font = '700 36px ' + title; c.fillText('本回大事', 90, 420);
+    var y = 480; c.font = '32px ' + body;
+    sm.events.forEach(function (e, i) {
+      c.fillStyle = '#a8322a'; c.fillText((i + 1) + '.', 90, y);
+      c.fillStyle = '#2a2420';
+      wrapLines(c, e, W - 230).forEach(function (ln, k) { c.fillText(ln, 140, y + k * 48); y += 0; });
+      y += wrapLines(c, e, W - 230).length * 48 + 18;
+    });
+    if (sm.quote) {
+      y += 20; c.fillStyle = 'rgba(160,122,60,.12)'; var ql = wrapLines(c, '「' + sm.quote.replace(/[。]$/, '') + '」', W - 260);
+      c.font = '36px ' + title; ql = wrapLines(c, '「' + sm.quote.replace(/[。]$/, '') + '」', W - 260);
+      c.fillRect(90, y - 10, W - 180, ql.length * 54 + 40);
+      c.fillStyle = '#a07a3c'; c.fillRect(90, y - 10, 8, ql.length * 54 + 40);
+      c.fillStyle = '#5b4f45'; ql.forEach(function (ln, k) { c.fillText(ln, 130, y + 44 + k * 54); });
+      y += ql.length * 54 + 70;
+    }
+    if (sm.think) {
+      c.fillStyle = '#3e6a5a'; c.font = '700 32px ' + title; c.fillText('想一想', 90, y + 20);
+      c.fillStyle = '#2a2420'; c.font = '30px ' + body;
+      wrapLines(c, sm.think, W - 220).forEach(function (ln, k) { c.fillText(ln, 90, y + 70 + k * 44); });
+    }
+    var res = d.result;
+    c.save(); c.translate(W - 200, H - 250); c.rotate(-0.12);
+    c.strokeStyle = '#a8322a'; c.lineWidth = 6; c.strokeRect(-80, -80, 160, 160); c.lineWidth = 2; c.strokeRect(-68, -68, 136, 136);
+    c.fillStyle = '#a8322a'; c.textAlign = 'center'; c.font = '700 54px ' + title; c.fillText(res.score + '/' + res.total, 0, 10);
+    c.font = '700 26px ' + title; c.fillText(res.score === res.total ? '全　對' : '已　閱', 0, 52); c.restore();
+    c.textAlign = 'left'; c.fillStyle = '#8b7c6b'; c.font = '26px ' + title;
+    c.fillText((S.user ? (S.user.cls + ' ' + S.user.name) : '試閱讀者') + '・' + new Date().toLocaleDateString('zh-TW'), 90, H - 110);
+    c.fillText($('#siteTitle').textContent, 90, H - 150);
+    cv.toBlob(function (b) {
+      var url = URL.createObjectURL(b), a = document.createElement('a');
+      a.href = url; a.download = d.num + '小結卡.png'; a.target = '_self'; document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+      toast('已下載小結卡');
+    }, 'image/png');
+  });
+}
+
+/* ================= 後台：最需要講解的段落 ================= */
+function paraAnalysis(studs, ch, idx) {
+  var chap = S.tdata.chapters.filter(function (c) { return c.ch === ch; })[0]; if (!chap) return '';
+  var st = qStats(studs, ch, idx), groups = {};
+  chap.qs.forEach(function (q) {
+    var x = st[q.no]; if (!x || !x.n) return;
+    var g = groups[q.para] = groups[q.para] || { para: q.para, text: q.paraText, qs: [], max: 0 };
+    var rate = 1 - x.ok / x.n; g.qs.push({ no: q.no, type: q.type, rate: rate, n: x.n }); g.max = Math.max(g.max, rate);
+  });
+  var list = Object.keys(groups).map(function (k) { return groups[k]; }).sort(function (a, b) { return b.max - a.max; });
+  S.paraList = list;
+  if (!list.length) return '<p class="note">還沒有學生交卷。</p>';
+  return list.map(function (g, i) {
+    var pct = Math.round(g.max * 100);
+    return '<div class="pa" data-k="' + i + '"><div class="pa-h"><span class="pa-n">第 ' + g.para + ' 段</span><span class="pa-s">' + esc(g.text.slice(0, 46)) + '…</span>' +
+      '<b class="' + (pct >= 40 ? 'hot' : '') + '">答錯 ' + pct + '%</b></div><div class="track"><div class="fill' + (pct >= 40 ? ' low' : '') + '" style="width:' + pct + '%"></div></div>' +
+      '<div class="note">' + g.qs.map(function (q) { return '第' + cnum(q.no) + '題（' + q.type + '）答錯 ' + Math.round(q.rate * 100) + '%'; }).join('；') + '</div></div>';
+  }).join('');
+}
+
+/* ================= 作答用時 ================= */
+function fmtDur(s) { s = Math.round(s || 0); if (!s) return '—'; var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + '時' : '') + (h || m ? m + '分' : '') + (h ? '' : x + '秒'); }
+function mins(s) { return s ? Math.round(s / 6) / 10 : ''; }
+function shortTime(t) { return String(t || '').slice(5, 16); }
+['pointerdown', 'keydown', 'wheel', 'touchstart', 'mousemove'].forEach(function (ev) { document.addEventListener(ev, function () { S.lastAct = Date.now(); }, { passive: true, capture: true }); });
+document.addEventListener('scroll', function () { S.lastAct = Date.now(); }, { passive: true, capture: true });
+setInterval(function () {
+  if (!S.chap || !$('#txt') || document.hidden || S.guest) return;
+  if (Date.now() - (S.lastAct || 0) > 120000) return;   // 閒置超過 2 分鐘不計時
+  S.spent = (S.spent || 0) + 1;
+  if (S.spent - (S.spentSaved || 0) >= 60 && S.token && !S.draftTimer && !S.saving) saveDraft(false);
+}, 1000);
+
+/* ================= 製作與版權說明 ================= */
+$('#btnAbout').onclick = function () { flushDraft(); renderAbout(); };
+function renderAbout() {
+  var a = S.about || {}, y = new Date().getFullYear();
+  var lk = function (u, t) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(t || u) + '</a>'; };
+  view('<div class="about scrollpanel">' +
+    '<h2>製作與版權說明</h2>' +
+    '<h4>製　作</h4><p>' + (a.maker ? '網站規劃、題目命製與內容審訂：' + esc(a.maker) : '網站規劃與內容審訂：本站教師') + (a.contact ? '<br>聯絡方式：' + esc(a.contact) : '') + '</p>' +
+    '<p>程式撰寫與題目、註釋、人物小卡、回末小結的初稿，由 AI（Anthropic Claude）協作完成，並經教師審閱修訂。</p>' +
+    '<h4>原　文</h4><p>《三國演義》為元末明初羅貫中所著，本站採清代毛宗崗評改的一百二十回本系統，原著著作權已屬公共領域。</p>' +
+    '<ul><li>底本：' + (a.base ? (a.base.url ? lk(a.base.url, a.base.text) : esc(a.base.text)) : '好讀《三國演義》') + '</li>' +
+    '<li>參校：' + lk(a.refRoot || 'https://zh.wikisource.org/zh-hant/三國演義', '維基文庫〈三國演義〉') + '</li>' +
+    (a.note ? '<li>' + esc(a.note) + '</li>' : '') + '</ul>' +
+    '<h4>插圖・音樂・字型</h4><ul>' +
+    '<li>插圖：以 Google Gemini 生成，僅作為閱讀輔助，不代表歷史人物真實樣貌。</li>' +
+    '<li>背景琴音與音效：由瀏覽器即時合成，未使用外部音檔。</li>' +
+    '<li>字型：思源宋體 Noto Serif TC、思源黑體 Noto Sans TC、霞鶩文楷 LXGW WenKai TC，皆採 SIL Open Font License 授權，經 Google Fonts 載入。</li>' +
+    '<li>試算表匯出元件：SheetJS Community Edition（Apache License 2.0）。</li>' +
+    '<li>網站平台：Google Apps Script 與 Google 試算表。</li></ul>' +
+    '<h4>授　權</h4><p>' + esc(a.license || '本站原創內容僅供教學使用，轉載請先取得同意。') + '</p>' +
+    '<p class="note">© ' + y + ' ' + esc(a.maker || '') + '。原文屬公共領域；底本與參校本之整理成果歸原整理者所有。</p>' +
+    '<h4>資料與隱私</h4><p>學生的帳號、作答紀錄、作答時間與書籤，只儲存在任課教師的 Google 試算表中，僅供教學與學習評量使用，不提供給第三方。字型設定、錯題訂正紀錄與成就印章只存在使用者自己的瀏覽器。</p>' +
+    '<div class="mbtns" style="justify-content:flex-start"><button class="btn" id="aboutBack">返　回</button></div></div>');
+  $('#aboutBack').onclick = function () { if (S.teacher) renderTeacher(); else if (S.user || S.guest) goHome(); else renderLogin(); };
+}
+
+/* ---------- 閱讀設定與書籤 ---------- */
+function togglePop(id, draw) {
+  var el = $('#' + id), open = el.classList.contains('hidden');
+  $$('.pop').forEach(function (p) { p.classList.add('hidden'); });
+  if (open) { draw(el); el.classList.remove('hidden'); }
+}
+document.addEventListener('click', function (e) { if (!document.contains(e.target)) return; if (!e.target.closest('.pop') && !e.target.closest('#btnPref,#btnBm')) $$('.pop').forEach(function (p) { p.classList.add('hidden'); }); });
+function drawPref(el) {
+  var sizes = [[16, '小'], [18, '中'], [21, '大'], [24, '特大']];
+  el.innerHTML = '<h5>字　型</h5><div class="row">' + Object.keys(FONTS).map(function (k) {
+    return '<button class="chip' + (PREF.font === k ? ' on' : '') + '" data-font="' + k + '" style="font-family:' + FONTS[k].css.replace(/"/g, '&quot;') + '">' + FONTS[k].label + '</button>'; }).join('') + '</div>' +
+    '<h5>字　級　<span id="fsv" style="font-weight:400">' + PREF.fs + 'px</span></h5><div class="row">' + sizes.map(function (s) {
+    return '<button class="chip' + (PREF.fs === s[0] ? ' on' : '') + '" data-fs="' + s[0] + '">' + s[1] + '</button>'; }).join('') + '</div>' +
+    '<div class="row"><input type="range" min="14" max="30" step="1" value="' + PREF.fs + '" id="fsRange"></div>' +
+    '<h5>行　距</h5><div class="row">' + [[1.8, '緊密'], [2.05, '標準'], [2.4, '寬鬆']].map(function (s) {
+    return '<button class="chip' + (PREF.lh === s[0] ? ' on' : '') + '" data-lh="' + s[0] + '">' + s[1] + '</button>'; }).join('') + '</div>' +
+    '<h5>專名號</h5><div class="row"><button class="chip' + (PREF.pn ? ' on' : '') + '" data-pn="1">顯示</button><button class="chip' + (!PREF.pn ? ' on' : '') + '" data-pn="0">隱藏</button></div>' +
+    '<div class="preview">話說天下大勢，分久必合，合久必分：<span class="zm">周</span>末七國分爭，併入於<span class="zm">秦</span>。<span class="zm">漢朝</span>自<span class="zm">高祖</span>斬白蛇而起義。</div>' +
+    '<p class="note" style="margin:8px 0 0">設定會記在這台裝置，下次開啟自動套用。「標楷體」需電腦本身有安裝，沒有時以楷體代替。</p>';
+  $$('[data-font]', el).forEach(function (b) { b.onclick = function () { PREF.font = b.dataset.font; applyPref(); drawPref(el); }; });
+  $$('[data-fs]', el).forEach(function (b) { b.onclick = function () { PREF.fs = +b.dataset.fs; applyPref(); drawPref(el); }; });
+  $$('[data-lh]', el).forEach(function (b) { b.onclick = function () { PREF.lh = +b.dataset.lh; applyPref(); drawPref(el); }; });
+  $$('[data-pn]', el).forEach(function (b) { b.onclick = function () { PREF.pn = b.dataset.pn === '1'; applyPref(); drawPref(el); }; });
+  $('#fsRange', el).oninput = function () { PREF.fs = +this.value; applyPref(); $('#fsv', el).textContent = PREF.fs + 'px'; $$('[data-fs]', el).forEach(function (b) { b.classList.toggle('on', +b.dataset.fs === PREF.fs); }); };
+}
+function visiblePara() {
+  var tx = $('#txt'); if (!tx) return null;
+  var c = tx.getBoundingClientRect(), top = Math.max(c.top, 80), bottom = Math.min(c.bottom, innerHeight), left = Math.max(c.left, 0), right = Math.min(c.right, innerWidth);
+  var ps = $$('p[data-i]', tx);
+  for (var k = 0; k < ps.length; k++) {
+    var r = ps[k].getBoundingClientRect();
+    if (r.bottom > top + 10 && r.top < bottom && r.right > left && r.left < right) return ps[k];
+  }
+  return ps[0] || null;
+}
+function nowStr() { var d = new Date(), z = function (n) { return ('0' + n).slice(-2); }; return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); }
+function markBm() {
+  $$('#txt p.bm').forEach(function (p) { p.classList.remove('bm'); });
+  (S.bm || []).forEach(function (b) { var p = $('#txt p[data-i="' + b.i + '"]'); if (p) p.classList.add('bm'); });
+  var btn = $('#btnBm'); if (btn) btn.textContent = '書籤' + (S.bm && S.bm.length ? '（' + S.bm.length + '）' : '');
+}
+function saveBm() {
+  markBm();
+  if (S.guest) { store('sg_bm_guest_' + S.chap.ch, JSON.stringify(S.bm)); return; }
+  call('apiSaveBookmarks', S.token, S.chap.ch, S.bm, readPos()).catch(function () { toast('書籤儲存失敗，請檢查網路'); });
+}
+function drawBm(el) {
+  var list = (S.bm || []).slice().sort(function (a, b) { return a.i - b.i; });
+  el.innerHTML = '<h5>書　籤</h5><button class="btn wide" id="bmAdd" style="font-size:16px;padding:9px">在目前讀到的地方夾書籤</button>' +
+    (list.length ? '<ul class="bmlist" style="margin-top:10px">' + list.map(function (b) {
+      return '<li data-i="' + b.i + '"><span class="n">第' + b.i + '段</span><span class="s">' + esc(b.t) + '</span><small class="note">' + esc(b.at) + '</small><button class="x" data-del="' + b.i + '" title="移除">×</button></li>'; }).join('') + '</ul>'
+      : '<p class="bmempty">本回還沒有書籤。讀到想回頭再看的地方，按上面的按鈕夾一張。</p>') +
+    '<p class="note" style="margin:10px 0 0">' + (S.guest ? '試閱模式：書籤只存在這台裝置。' : '書籤跟著帳號走，換電腦也看得到。') + '</p>';
+  $('#bmAdd', el).onclick = function () {
+    var p = visiblePara(); if (!p) return;
+    var i = +p.dataset.i;
+    if (S.bm.some(function (b) { return b.i === i; })) { toast('這一段已經夾過書籤了'); return; }
+    S.bm.push({ i: i, t: p.textContent.replace(/\s+/g, '').slice(0, 24), at: nowStr() });
+    Qin.sfx('wood'); saveBm(); drawBm(el); toast('已在第 ' + i + ' 段夾上書籤');
+  };
+  $$('li[data-i]', el).forEach(function (li) {
+    li.onclick = function (e) {
+      if (e.target.dataset.del) { S.bm = S.bm.filter(function (b) { return b.i !== +e.target.dataset.del; }); saveBm(); drawBm(el); return; }
+      el.classList.add('hidden'); jumpPara(+li.dataset.i);
+    };
+  });
+}
+
+function readPos() {
+  var tx = $('#txt'); if (!tx) return 0;
+  if (tx.offsetParent === null) return S.lastPos || 0;   // 原文被隱藏時，沿用最後一次的閱讀位置
+  var v = readPos0(tx); S.lastPos = v; return v;
+}
+function readPos0(tx) {
+  if (window.innerWidth <= 900) return Math.max(0, Math.min(1, scrollY / Math.max(1, document.body.scrollHeight - innerHeight)));
+  if (tx.classList.contains('vert')) return 0;
+  return Math.max(0, Math.min(1, tx.scrollTop / Math.max(1, tx.scrollHeight - tx.clientHeight)));
+}

@@ -1,0 +1,222 @@
+/* 16-bit 像素引擎（人物、場景、頭像）。本檔是純 JavaScript，由 Index.html 的 include() 併入同一個 <script>。 */
+/* ================= 戰況面板：隨目前讀到的原文段落顯示雙方形勢（不受作答影響） ================= */
+/* ================= 16-bit 像素引擎：人物點陣（24×24）、場景背景（canvas） ================= */
+var PX = (function () {
+  var W = 24, H = 24;
+  /* 角色身體，16 欄×24 列，面向右；整體往右平移 4 欄放進 24 欄畫布 */
+  var BODY = [
+    '................',
+    '................',
+    '................',
+    '.....oooooo.....',
+    '....ohhhhhhoo...',
+    '...ohhHHhhhhho..',
+    '...ohhhhhhhhhho.',
+    '...ohhhkkkkkkko.',
+    '...ohhkkkkkekko.',
+    '....ohkkkkkkkko.',
+    '.....okkkkkkoo..',
+    '......oosskoo...',
+    '....oooaaaaooo..',
+    '...oBBaaaaaAAo..',
+    '..oBaaaggaaaAAo.',
+    '..okoaaggaaaAok.',
+    '..okoaaaaaaaAoo.',
+    '...ooccccccccoo.',
+    '....occCcccCco..',
+    '....occc..cccoo.',
+    '....oCCo..oCCo..',
+    '....obbo..obbbo.',
+    '...obbbo..obbbbo',
+    '...oooo....oooo.'
+  ];
+  /* 頭飾：覆蓋第 0~6 列（16 欄） */
+  var HEAD = {
+    helm: [ '......pp........', '.....oppp.......', '....ohhhhho.....', '...ohhhhhhho....', '..ohhHHhhhhoo...', '..ohhhhhhhhhho..', '..ohhhhhhhhhhho.' ],
+    band: [ '................', '.....oooooo.....', '....ohhhhhhoo...', '..pphhHHhhhhho..', '.pp.ohhhhhhhho..', '.p..ohhhhhhhhho.', '....ohhhhhhhhho.' ],
+    crown:[ '.....gg.........', '....oggoo.......', '...ohgghhoo.....', '...ohhHHhhhho...', '...ohhhhhhhhho..', '...ohhhhhhhhhho.', '...ohhhkkkkkkko.' ],
+    wild: [ '....o.oo.o......', '...ohohhohho....', '..ohhhHHhhhho...', '.ohhhhhhhhhhho..', '.ohhhhhhhhhhhho.', '.ohhhhhhhhhhhho.', '.ohhhhhkkkkkkko.' ],
+    cap:  [ '................', '....oooooo......', '...ogggggoo.....', '...ohhHHhhhho...', '...ohhhhhhhhho..', '...ohhhhhhhhhho.', '...ohhhkkkkkkko.' ]
+  };
+  /* 鬍鬚：疊在臉下方 */
+  var BEARD = {
+    none: [],
+    long: [[11, 9, 'd'], [12, 9, 'd'], [12, 10, 'd'], [11, 10, 'd'], [10, 10, 'd'], [12, 11, 'd'], [11, 11, 'd'], [12, 12, 'd'], [11, 12, 'd'], [12, 13, 'd'], [11, 13, 'd'], [12, 14, 'd'], [11, 14, 'd'], [11, 15, 'd'], [12, 15, 'D']],
+    bushy: [[8, 9, 'd'], [9, 9, 'd'], [10, 9, 'd'], [11, 9, 'd'], [12, 9, 'd'], [13, 9, 'd'], [9, 10, 'd'], [10, 10, 'd'], [11, 10, 'd'], [12, 10, 'd'], [10, 11, 'd'], [11, 11, 'd'], [12, 8, 'd'], [13, 8, 'd']],
+    must: [[11, 9, 'd'], [12, 9, 'd'], [13, 9, 'd'], [10, 10, 'd'], [11, 10, 'd']]
+  };
+  /* 武器（24 欄×24 列疊層）。每項為 [x, y, 字元] 的集合，由 rect/line 輔助組出 */
+  function line(a, x0, y0, x1, y1, c) {
+    var dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, er = dx - dy;
+    for (;;) { a.push([x0, y0, c]); if (x0 === x1 && y0 === y1) break; var e2 = 2 * er; if (e2 > -dy) { er -= dy; x0 += sx; } if (e2 < dx) { er += dx; y0 += sy; } }
+  }
+  function weapon(kind, atk) {
+    var a = [], i;
+    if (kind === 'sword') {            // 單刀／雙股劍
+      if (!atk) { for (i = 4; i <= 14; i++) { a.push([19, i, 'm']); a.push([20, i, 'M']); } a.push([19, 3, 'm']); a.push([18, 15, 'g']); a.push([19, 15, 'g']); a.push([20, 15, 'g']); a.push([19, 16, 'w']); }
+      else { for (i = 16; i <= 23; i++) { a.push([i, 14, 'm']); a.push([i, 15, 'M']); } a.push([15, 14, 'g']); a.push([15, 15, 'g']); a.push([15, 16, 'g']); a.push([14, 15, 'w']); }
+    } else if (kind === 'spear') {      // 長矛
+      if (!atk) { line(a, 15, 20, 22, 8, 'w'); a.push([22, 7, 'm']); a.push([23, 6, 'm']); a.push([22, 6, 'M']); a.push([23, 7, 'M']); }
+      else { line(a, 12, 16, 21, 15, 'w'); a.push([22, 15, 'm']); a.push([23, 15, 'm']); a.push([22, 14, 'M']); a.push([22, 16, 'M']); }
+    } else if (kind === 'guandao') {    // 青龍偃月刀
+      if (!atk) { for (i = 8; i <= 23; i++) a.push([20, i, 'w']); [[19, 1], [20, 1], [21, 1], [22, 1], [19, 2], [20, 2], [21, 2], [22, 2], [23, 2], [21, 3], [22, 3], [23, 3], [22, 4], [23, 4], [23, 5]].forEach(function (p) { a.push([p[0], p[1], 'm']); });
+        [[19, 3], [20, 3], [21, 4], [22, 5], [22, 6]].forEach(function (p) { a.push([p[0], p[1], 'M']); }); a.push([19, 7, 'g']); a.push([20, 7, 'g']); a.push([21, 7, 'g']); a.push([19, 8, 'G']); a.push([19, 9, 'G']); }
+      else { line(a, 12, 16, 22, 14, 'w'); [[20, 11], [21, 11], [22, 11], [23, 11], [20, 12], [21, 12], [22, 12], [23, 12], [21, 13], [22, 13], [23, 13]].forEach(function (p) { a.push([p[0], p[1], 'm']); }); a.push([20, 13, 'M']); a.push([19, 13, 'g']); }
+    } else if (kind === 'halberd') {    // 戟
+      if (!atk) { for (i = 6; i <= 23; i++) a.push([20, i, 'w']); a.push([20, 5, 'm']); a.push([20, 4, 'm']); a.push([19, 7, 'm']); a.push([19, 8, 'M']); a.push([21, 7, 'm']); a.push([21, 8, 'M']); a.push([20, 3, 'M']); }
+      else { line(a, 12, 16, 21, 14, 'w'); a.push([22, 14, 'm']); a.push([23, 14, 'm']); a.push([21, 13, 'm']); a.push([21, 15, 'm']); }
+    } else if (kind === 'fan') {        // 羽扇（謀士）
+      if (!atk) { a.push([18, 11, 'g']); a.push([19, 10, 'p']); a.push([20, 9, 'p']); a.push([19, 9, 'p']); a.push([21, 10, 'p']); a.push([20, 10, 'p']); a.push([19, 11, 'p']); a.push([20, 11, 'p']); }
+      else { a.push([17, 13, 'g']); a.push([18, 12, 'p']); a.push([19, 11, 'p']); a.push([20, 12, 'p']); a.push([19, 12, 'p']); a.push([21, 11, 'p']); a.push([20, 11, 'p']); a.push([19, 13, 'p']); }
+    }
+    return a;
+  }
+  function hex(c) { return c; }
+  function palOf(p) {
+    return {
+      o: '#17101f', h: p.h, H: p.H || lighten(p.h), p: p.p || '#d8412f', k: p.s || '#f0c29a', s: shade(p.s || '#f0c29a'), e: '#17101f',
+      d: p.d || '#1b1620', D: p.D || '#2e2536', a: p.a, A: shade(p.a), B: lighten(p.a), c: p.c || shade(p.a), C: shade(p.c || shade(p.a)),
+      g: '#f3cf4a', G: '#b98f1f', b: p.b || '#4a3424', m: '#e6ebf5', M: '#8d97b0', w: '#8a5a2b'
+    };
+  }
+  function parse(c) { c = c.replace('#', ''); if (c.length === 3) c = c.replace(/./g, '$&$&'); return [parseInt(c.substr(0, 2), 16), parseInt(c.substr(2, 2), 16), parseInt(c.substr(4, 2), 16)]; }
+  function toHex(r) { return '#' + r.map(function (v) { v = Math.max(0, Math.min(255, Math.round(v))); return (v < 16 ? '0' : '') + v.toString(16); }).join(''); }
+  function shade(c) { return toHex(parse(c).map(function (v) { return v * .66; })); }
+  function lighten(c) { return toHex(parse(c).map(function (v) { return v + (255 - v) * .34; })); }
+  var cache = {};
+  /** 畫一個人物到 24×24 畫布。frame：0/1 待機、'atk' 出招、'hurt' 受創（白閃） */
+  function drawUnit(cv, spec, frame) {
+    var ctx = cv.getContext('2d'); cv.width = W; cv.height = H; ctx.clearRect(0, 0, W, H);
+    var key = JSON.stringify(spec) + '|' + frame, grid = cache[key];
+    if (!grid) {
+      var P = palOf(spec.pal), atk = frame === 'atk', hd = HEAD[spec.head] || HEAD.helm, body = BODY.slice();
+      for (var r = 0; r < 7; r++) body[r] = hd[r];
+      var g = []; for (var y = 0; y < H; y++) { g.push([]); for (var x = 0; x < W; x++) g[y].push(null); }
+      body.forEach(function (row, y) { for (var x = 0; x < 16; x++) { var ch = row.charAt(x); if (ch !== '.' && ch !== ' ') g[y][x + 4 - (atk ? 0 : 0)] = P[ch]; } });
+      (BEARD[spec.beard || 'none'] || []).forEach(function (b) { if (b[0] + 4 < W) g[b[1]][b[0] + 4] = P[b[2]]; });
+      // 注意：鬍鬚座標以 16 欄計，因此 x+4 已對位
+      weapon(spec.weapon || 'sword', atk).forEach(function (w) { if (w[0] >= 0 && w[0] < W && w[1] >= 0 && w[1] < H) g[w[1]][w[0]] = P[w[2]]; });
+      grid = cache[key] = g;
+    }
+    var dy = frame === 1 ? -1 : 0, dx = frame === 'atk' ? 2 : 0;
+    for (var yy = 0; yy < H; yy++) for (var xx = 0; xx < W; xx++) { var c = grid[yy][xx]; if (!c) continue; ctx.fillStyle = frame === 'hurt' ? '#ffffff' : c; ctx.fillRect(xx + dx, yy + (yy < 21 ? dy : 0), 1, 1); }
+  }
+  /* 小兵（8×11，面向右） */
+  var SOL = ['..hhh...', '.hhhhh..', '.hkkkk..', '..kkek..', '..aaaa.m', '.aaaaaam', '.kaaaakm', '..aaaa.m', '..cccc.m', '..b..b..', '.bb..bb.'];
+  function drawSoldier(ctx, x, y, P, flip, step) {
+    for (var r = 0; r < SOL.length; r++) for (var c = 0; c < 8; c++) {
+      var ch = SOL.charAt ? '' : ''; ch = SOL[r].charAt(c); if (ch === '.') continue;
+      var col = ch === 'h' ? P.h : ch === 'k' ? '#f0c29a' : ch === 'e' ? '#17101f' : ch === 'a' ? P.a : ch === 'c' ? P.c || shade(P.a) : ch === 'b' ? '#4a3424' : ch === 'm' ? '#d8dde8' : '#fff';
+      var px = flip ? x + (7 - c) : x + c, py = y + r + ((step && r >= 9) ? 0 : 0);
+      ctx.fillStyle = col; ctx.fillRect(px, py, 1, 1);
+    }
+  }
+  /* ---------- 場景背景 ---------- */
+  var SW = 192, SH = 84;
+  function rnd(seed) { var s = seed >>> 0; return function () { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+  function rect(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x | 0, y | 0, w | 0, h | 0); }
+  function sky(ctx, bands, h) {   // 色階＋抖動過渡
+    var n = bands.length, bh = h / n;
+    for (var i = 0; i < n; i++) {
+      rect(ctx, 0, i * bh, SW, bh + 1, bands[i]);
+      if (i < n - 1) { for (var y = 0; y < 2; y++) for (var x = 0; x < SW; x += 2) { ctx.fillStyle = bands[i + 1]; ctx.fillRect(x + ((y + (i % 2)) % 2), Math.floor((i + 1) * bh) - 2 + y, 1, 1); } }
+    }
+  }
+  function mountains(ctx, base, col, col2, amp, seed, step) {
+    var r = rnd(seed), x = 0, y = base - amp * .5, pts = [];
+    while (x <= SW + step * 2) { pts.push([x, y]); x += step * (.6 + r() * .8); y = base - amp * (.25 + r() * .75); }
+    pts.forEach(function (p, i) {
+      var nx = pts[i + 1]; if (!nx) return;
+      for (var x2 = Math.floor(p[0]); x2 < nx[0] && x2 < SW; x2++) {
+        var t = (x2 - p[0]) / (nx[0] - p[0]), yy = Math.round(p[1] + (nx[1] - p[1]) * (0.5 - Math.cos(t * Math.PI) / 2));
+        rect(ctx, x2, yy, 1, base - yy + 1, col);
+        if ((x2 + yy) % 2 === 0) rect(ctx, x2, yy + 1, 1, 1, col2);
+        rect(ctx, x2, yy, 1, 1, col2);
+      }
+    });
+  }
+  function cloud(ctx, x, y, c1, c2) { rect(ctx, x + 3, y, 10, 2, c1); rect(ctx, x, y + 2, 18, 2, c1); rect(ctx, x + 2, y + 4, 14, 1, c2); }
+  function ground(ctx, top, c1, c2, c3, seed) {
+    var r = rnd(seed); rect(ctx, 0, top, SW, SH - top, c1);
+    for (var y = top; y < SH; y++) for (var x = 0; x < SW; x++) { if ((x + y * 2) % 7 === 0 && r() < .5) rect(ctx, x, y, 1, 1, c2); }
+    rect(ctx, 0, top, SW, 1, c3);
+    for (var i = 0; i < 38; i++) { var gx = Math.floor(r() * SW), gy = top + 3 + Math.floor(r() * (SH - top - 4)); rect(ctx, gx, gy, 1, 2, c3); rect(ctx, gx + 2, gy + 1, 1, 1, c3); }
+  }
+  function banner(ctx, x, y, c) { rect(ctx, x, y, 1, 22, '#4a3424'); rect(ctx, x + 1, y + 1, 8, 6, c); rect(ctx, x + 1, y + 7, 6, 1, c); rect(ctx, x + 3, y + 3, 3, 2, '#fff2c0'); }
+  function tree(ctx, x, y, leaf, leaf2, pink) {
+    rect(ctx, x + 3, y + 8, 3, 12, '#5a3a22'); rect(ctx, x + 4, y + 8, 1, 12, '#7a4f2e');
+    [[0, 4, 10, 5], [2, 1, 6, 4], [-1, 6, 12, 4]].forEach(function (b) { rect(ctx, x + b[0], y + b[1], b[2], b[3], leaf); rect(ctx, x + b[0] + 1, y + b[1], b[2] - 3, 1, leaf2); });
+    if (pink) { [[1, 5], [5, 3], [8, 7], [3, 8], [10, 5]].forEach(function (p) { rect(ctx, x + p[0], y + p[1], 1, 1, '#fff0f4'); }); }
+  }
+  function drawScene(cv, kind, sa, sb, seed) {
+    cv.width = SW; cv.height = SH; var ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    var night = kind === '謀略', calm = kind === '平時', top = 52;
+    if (night) {
+      sky(ctx, ['#0c0f2e', '#141a48', '#1f2a66', '#33407f', '#5a4a7a'], top);
+      var r = rnd(seed || 7); for (var i = 0; i < 40; i++) rect(ctx, r() * SW, r() * 30, 1, 1, r() < .3 ? '#ffffff' : '#9fb0e8');
+      rect(ctx, 150, 8, 9, 9, '#fff3c0'); rect(ctx, 152, 8, 7, 9, '#fff3c0'); rect(ctx, 153, 9, 5, 7, '#ffe48a'); rect(ctx, 154, 10, 3, 2, '#f2d06a');
+      mountains(ctx, top, '#1a2050', '#26306a', 24, 11, 18); mountains(ctx, top, '#10143a', '#1a2050', 14, 5, 14);
+      ground(ctx, top, '#2a3a24', '#34482c', '#3f5a34', 3);
+      [[8, 36], [176, 38]].forEach(function (t) { rect(ctx, t[0], t[1], 2, 16, '#4a3424'); rect(ctx, t[0] - 1, t[1] - 4, 4, 4, '#ff9a2a'); rect(ctx, t[0], t[1] - 6, 2, 2, '#ffd24a'); });
+    } else if (calm) {
+      sky(ctx, ['#7ec8f0', '#98d4f4', '#b4e0f6', '#d2ecf8', '#f6efd0'], top);
+      cloud(ctx, 20, 8, '#ffffff', '#dcecf6'); cloud(ctx, 110, 14, '#ffffff', '#dcecf6'); cloud(ctx, 160, 5, '#ffffff', '#dcecf6');
+      mountains(ctx, top, '#7ea8c8', '#9cc0d8', 22, 21, 20); mountains(ctx, top, '#5f9a6a', '#78b080', 12, 9, 14);
+      ground(ctx, top, '#5fb04a', '#6fc258', '#8fd870', 4);
+      tree(ctx, 10, 30, '#e8789a', '#f6a4bc', true); tree(ctx, 162, 28, '#e8789a', '#f6a4bc', true); tree(ctx, 36, 34, '#4f9a45', '#6cb85c');
+    } else {
+      sky(ctx, ['#5a78c8', '#7a94d8', '#e0a070', '#f2b878', '#f8d890'], top);
+      cloud(ctx, 28, 10, '#f6d0a8', '#d89a78'); cloud(ctx, 120, 6, '#f6d0a8', '#d89a78');
+      rect(ctx, 86, 30, 20, 10, '#ffe9a8'); rect(ctx, 89, 28, 14, 14, '#ffe9a8'); rect(ctx, 91, 32, 10, 6, '#fff6d0');
+      mountains(ctx, top, '#8a6a98', '#a08ab0', 24, 31, 22); mountains(ctx, top, '#5e4a74', '#7a6490', 14, 17, 15);
+      ground(ctx, top, '#8a7a3c', '#9a8a48', '#b0a05a', 6);
+      banner(ctx, 6, 28, '#c0392b'); banner(ctx, 178, 28, '#2f5fc8');
+    }
+    var pairs = [[sa, 0], [sb, 1]];
+    if (kind === '軍陣') pairs.forEach(function (pr) { crowd(ctx, pr[0], pr[1], seed || 1); });
+    if (kind === '單挑') { for (var d = 0; d < 26; d++) { var rr = rnd(d + 5); rect(ctx, 60 + rr() * 72, 70 + rr() * 8, 3, 1, 'rgba(255,240,200,.35)'); } }
+  }
+  function crowd(ctx, side, flip, seed) {
+    if (!side) return; var n = { '佔優': 24, '相持': 15, '潰敗': 6 }[side.state] || 14, P = soldierPal(side), r = rnd(seed * 7 + flip * 13), flee = side.state === '潰敗';
+    for (var i = 0; i < n; i++) {
+      var col = i % 6, row = Math.floor(i / 6), x = flee ? 44 + r() * 34 : 48 + col * 5 + (row % 2) * 2, y = 51 + row * 7 + r() * 2;
+      if (flip) x = SW - 8 - x;
+      drawSoldier(ctx, x | 0, y | 0, P, flip, 0);
+    }
+  }
+  function soldierPal(side) {
+    var k = (side.name || '') + '|' + (side.units || []).join('');
+    if (/黃巾|賊|張角|張寶|張梁|程遠志|鄧茂/.test(k)) return { h: '#e0b030', a: '#b89228', c: '#8a6e1c' };
+    if (/義軍|義士|涿郡/.test(k)) return { h: '#3f8f57', a: '#3f8f57', c: '#2a6a3c' };
+    if (/曹/.test(k)) return { h: '#c0392b', a: '#4a4a62', c: '#303048' };
+    return { h: '#8aa6e8', a: '#4a6ac8', c: '#324a98' };
+  }
+  return { drawUnit: drawUnit, drawScene: drawScene, soldierPal: soldierPal, W: W, H: H };
+})();
+
+/** 依人名、其次依軍名，挑 16-bit 人物造型 */
+function specFor(unit, side) {
+  var k = unit + '|' + side;
+  if (unit === '劉備') return { pal: { h: '#2a2f6a', a: '#3a5fd0', c: '#2a3f98' }, head: 'crown', weapon: 'sword' };
+  if (unit === '關羽') return { pal: { h: '#1f7a40', a: '#2f9e5c', c: '#1f7a40' }, head: 'cap', beard: 'long', weapon: 'guandao' };
+  if (unit === '張飛') return { pal: { h: '#1b1b22', a: '#4a5bd0', c: '#2a2f70' }, head: 'wild', beard: 'bushy', weapon: 'spear' };
+  if (unit === '曹操') return { pal: { h: '#222', a: '#c0392b', c: '#7a2018' }, head: 'crown', beard: 'must', weapon: 'sword' };
+  if (unit === '董卓') return { pal: { h: '#3b3a46', a: '#6a58a8', c: '#44366e' }, head: 'crown', beard: 'bushy', weapon: 'halberd' };
+  if (/張角/.test(unit)) return { pal: { h: '#e0b030', a: '#b89228', c: '#8a6e1c' }, head: 'band', beard: 'must', weapon: 'fan' };
+  if (/黃巾|太平道|張寶|張梁|程遠志|鄧茂|賊/.test(k)) return { pal: { h: '#e0b030', a: '#b89228', c: '#8a6e1c' }, head: 'band', weapon: /鄧茂|程遠志/.test(unit) ? 'halberd' : 'sword' };
+  if (/涿郡|義軍|義士|結義|玄德|劉關張/.test(k)) return { pal: { h: '#3f8f57', a: '#3f9d57', c: '#2a6a3c' }, head: 'cap', weapon: 'sword' };
+  if (/盧植|皇甫嵩|朱儁|劉焉|鄒靖/.test(unit)) return { pal: { h: '#9aa8c8', p: '#d8412f', a: '#4a6ac8', c: '#324a98' }, head: 'helm', beard: 'must', weapon: 'halberd' };
+  if (/官軍|漢軍|守軍|朝廷|幽州|騎都尉/.test(k)) return { pal: { h: '#9aa8c8', p: '#d8412f', a: '#4a6ac8', c: '#324a98' }, head: 'helm', weapon: 'halberd' };
+  return { pal: { h: '#8a7a6a', a: '#8a7a6a', c: '#5a4a3a' }, head: 'helm', weapon: 'sword' };
+}
+var BF_PCT = { '佔優': 92, '相持': 58, '潰敗': 16 }, BF_CLS = { '佔優': 'st-勝', '相持': 'st-平', '潰敗': 'st-敗' };
+/** 依段落與段內位置，排出整回的戰況時間軸 */
+function bfPrepare(d) {
+  var rows = (d.bf || []).map(function (r, k) {
+    var t = (d.paras[r.para - 1] || {}).t || '', at = 0;
+    if (r.anchor) { var j = t.indexOf(r.anchor); at = j < 0 ? 0 : j / Math.max(1, t.length); }
+    return Object.assign({}, r, { at: at, o: k });
+  });
+  rows.sort(function (x, y) { return x.para - y.para || x.at - y.at || x.o - y.o; });
+  return rows;
+}

@@ -1,0 +1,313 @@
+/* 教師後台。本檔是純 JavaScript，由 Index.html 的 include() 併入同一個 <script>。 */
+/* ================= 教師後台 ================= */
+function renderTeacher() {
+  loading('調閱名冊');
+  call('apiTeacherData', S.teacher).then(function (d) { S.tdata = d; drawTeacher(); }).catch(fail);
+}
+function natural(a, b) { return String(a).localeCompare(String(b), 'zh-Hant', { numeric: true }); }
+function tIndex() {
+  var d = S.tdata, map = {};
+  d.saves.forEach(function (s) { (map[s.account.toLowerCase()] = map[s.account.toLowerCase()] || {})[s.ch] = s; });
+  return map;
+}
+function classList() {
+  var o = {}; S.tdata.roster.forEach(function (r) { o[r.cls || '（未填班級）'] = 1; });
+  return Object.keys(o).sort(natural);
+}
+function studentsOf(cls) {
+  return S.tdata.roster.filter(function (r) { return cls === '__all' || (r.cls || '（未填班級）') === cls; })
+    .sort(function (a, b) { return natural(a.cls, b.cls) || natural(a.seat, b.seat) || natural(a.account, b.account); });
+}
+function tTabs() {
+  var t = S.tTab || 'ov';
+  return '<div class="ttabs">' + [['ov', '成績總覽'], ['ann', '公告與必讀'], ['qb', '題庫管理'], ['wd', '學生提問詞語']].map(function (x) {
+    return '<button class="chip' + (t === x[0] ? ' on' : '') + '" data-tt="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
+}
+function bindTTabs() {
+  $$('[data-tt]').forEach(function (b) {
+    b.onclick = function () {
+      var was = S.tTab || 'ov'; S.tTab = b.dataset.tt;
+      if (S.tTab === 'ov' && S.tStale) { S.tStale = false; return renderTeacher(); }
+      if (was !== S.tTab) drawTeacher();
+    };
+  });
+}
+function drawTeacher() {
+  if (S.tTab === 'ann') return drawAnn();
+  if (S.tTab === 'qb') return drawQB();
+  if (S.tTab === 'wd') return drawWords();
+  var d = S.tdata, classes = classList();
+  var cls = S.tCls && (S.tCls === '__all' || classes.indexOf(S.tCls) >= 0) ? S.tCls : (classes[0] || '__all');
+  var ch = S.tCh || (d.chapters[0] && d.chapters[0].ch) || 1;
+  S.tCls = cls; S.tCh = ch;
+  var idx = tIndex(), studs = studentsOf(cls);
+  var opt = '<option value="__all"' + (cls === '__all' ? ' selected' : '') + '>全部班級</option>' + classes.map(function (c) { return '<option' + (c === cls ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('');
+  var chopt = d.chapters.map(function (c) { return '<option value="' + c.ch + '"' + (c.ch === ch ? ' selected' : '') + '>' + esc(c.num) + '　' + esc(c.title) + '</option>'; }).join('');
+  // KPI
+  var subs = 0, sumBest = 0, sumQ = 0, active = 0, cur = 0;
+  var chMap = {}; d.chapters.forEach(function (c) { chMap[c.ch] = c; });
+  studs.forEach(function (s) {
+    var m = idx[s.account.toLowerCase()] || {}, any = false;
+    Object.keys(m).forEach(function (k) { var v = m[k]; if (v.submitted) { subs++; any = true; sumBest += v.best; sumQ += nAns(v, chMap[k]); } });
+    if (any) active++; if (m[ch] && m[ch].submitted) cur++;
+  });
+  var thead = '<tr><th>班級</th><th>座號</th><th>姓名</th><th>帳號</th>' + d.chapters.map(function (c) { return '<th title="' + esc(c.title) + '">' + esc(c.num) + '</th>'; }).join('') + '<th>完成</th><th>總分</th></tr>';
+  var tbody = studs.map(function (s) {
+    var m = idx[s.account.toLowerCase()] || {}, n = 0, tot = 0;
+    var cells = d.chapters.map(function (c) {
+      var v = m[c.ch], mode = S.tMode || 'score';
+      var tip = v ? ' title="' + (v.submitted ? '首次 ' + v.first + '・最近 ' + v.last + '・' + v.tries + ' 次・交卷 ' + esc(v.lastTime) + '・' : '') + '用時 ' + fmtDur(v.spent) + (v.opened ? '・開始 ' + esc(v.opened) : '') + '"' : '';
+      if (v && v.submitted) n++, tot += v.best;
+      if (mode === 'time') return v && v.submitted ? '<td' + tip + ' class="tm">' + esc(shortTime(v.lastTime)) + '</td>' : v ? '<td class="scd"' + tip + '>未交</td>' : '<td>—</td>';
+      if (mode === 'dur') return v && v.spent ? '<td' + tip + ' class="tm">' + fmtDur(v.spent) + '</td>' : v ? '<td class="scd"' + tip + '>—</td>' : '<td>—</td>';
+      if (v && v.submitted) return '<td' + tip + '><span class="sc sc' + Math.round(v.best / nAns(v, c) * 5) + '">' + v.best + '</span>' + (v.tries > 1 ? '<sup>×' + v.tries + '</sup>' : '') + '</td>';
+      if (v) return '<td class="scd"' + tip + '>存</td>';
+      return '<td>—</td>';
+    }).join('');
+    return '<tr class="clk" data-a="' + esc(s.account) + '"><td>' + esc(s.cls) + '</td><td>' + esc(s.seat) + '</td><td class="l">' + esc(s.name) + (s.kind === '自行註冊' ? ' <small style="color:#a07a3c">外</small>' : '') + '</td><td class="l">' + esc(s.account) + '</td>' + cells + '<td>' + n + '</td><td>' + tot + '</td></tr>';
+  }).join('');
+  // 該回各題答對率
+  var chap = chMap[ch], stat = qStats(studs, ch, idx);
+  var bars = chap ? chap.qs.map(function (q) {
+    var st = stat[q.no] || { n: 0, ok: 0, pick: {} }, rate = st.n ? Math.round(st.ok / st.n * 100) : 0;
+    return '<div class="b"><span>第' + cnum(q.no) + '題 <span class="tag ' + typeCls(q.type) + '">' + esc(q.type) + '</span></span><div class="track"><div class="fill' + (rate < 60 ? ' low' : '') + '" style="width:' + rate + '%"></div></div><b>' + (st.n ? rate + '%' : '—') + '</b>' +
+      '<div class="dist">' + esc(q.stem.slice(0, 44)) + (q.stem.length > 44 ? '…' : '') + '<br>正解 ' + q.ans + '｜' + 'ABCD'.split('').map(function (L) { return L + '：' + (st.pick[L] || 0) + '人'; }).join('　') + '（共 ' + st.n + ' 人）</div></div>';
+  }).join('') : '';
+  view(tTabs() + '<div class="homehead"><div><h2>教師後台</h2><p>資料時間：' + esc(d.time) + '（點學生列可看各回作答）</p></div></div>' +
+    '<div class="tctrl"><select id="selCls">' + opt + '</select><select id="selCh">' + chopt + '</select>' +
+    '<select id="selMode">' + [['score', '格內顯示：最高分'], ['time', '格內顯示：最近交卷時間'], ['dur', '格內顯示：累計作答用時']].map(function (o) {
+      return '<option value="' + o[0] + '"' + ((S.tMode || 'score') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
+    '<button class="btn ghost" id="tRefresh">重新整理</button><button class="btn" id="tXlsx">下載 Excel</button><button class="btn jade" id="tDrive">另存到雲端硬碟</button></div>' +
+    '<div class="kpis"><div class="kpi"><span>名單人數</span><b>' + studs.length + '</b></div><div class="kpi"><span>已有作答</span><b>' + active + '</b></div>' +
+    '<div class="kpi"><span>交卷回次</span><b>' + subs + '</b></div><div class="kpi"><span>平均答對率（最高分）</span><b>' + (sumQ ? Math.round(sumBest / sumQ * 100) + '%' : '—') + '</b></div>' +
+    '<div class="kpi"><span>' + esc(chap ? chap.num : '') + ' 完成人數</span><b>' + cur + '</b></div></div>' +
+    '<h4 class="sec">班級總表（' + ({ score: '格內為最高分', time: '格內為最近交卷時間', dur: '格內為累計閱讀作答用時' })[S.tMode || 'score'] + '；滑鼠移到格子上看詳細）</h4><div class="tablewrap"><table class="grid"><thead>' + thead + '</thead><tbody>' + (tbody || '<tr><td colspan="99">此班尚無名單</td></tr>') + '</tbody></table></div>' +
+    '<h4 class="sec">' + esc(chap ? chap.num + '　' + chap.title : '') + '・各題答對率（以最近一次作答計）</h4><div class="scrollpanel bars">' + (bars || '無題目') + '</div>' +
+    '<h4 class="sec">' + esc(chap ? chap.num : '') + '・最需要講解的段落（依答錯率排序，點一下看原文）</h4><div class="scrollpanel bars">' + paraAnalysis(studs, ch, idx) + '</div>');
+  $$('.pa').forEach(function (el) {
+    el.onclick = function () {
+      var g = S.paraList[+el.dataset.k];
+      modal('<h3>第 ' + g.para + ' 段</h3><p style="line-height:2;text-indent:2em">' + esc(g.text) + '</p><div class="note">' +
+        g.qs.map(function (q) { var qq = chap.qs.filter(function (x) { return x.no === q.no; })[0]; return '<p>第' + cnum(q.no) + '題（答錯 ' + Math.round(q.rate * 100) + '%，' + q.n + ' 人作答）：' + esc(qq ? qq.stem : '') + '</p>'; }).join('') +
+        '</div><div class="mbtns"><button class="btn" onclick="closeModal()">關閉</button></div>');
+    };
+  });
+  bindTTabs();
+  $('#selCls').onchange = function () { S.tCls = this.value; drawTeacher(); };
+  $('#selCh').onchange = function () { S.tCh = +this.value; drawTeacher(); };
+  $('#selMode').onchange = function () { S.tMode = this.value; drawTeacher(); };
+  $('#tRefresh').onclick = renderTeacher;
+  $('#tXlsx').onclick = downloadXlsx;
+  $('#tDrive').onclick = exportDrive;
+  $$('tr.clk').forEach(function (tr) { tr.onclick = function () { studentDetail(tr.dataset.a); }; });
+}
+
+
+/* ---------- 教師：學生提問詞語 → 加註 ---------- */
+function drawWords() {
+  if (!S.tw) {
+    view(tTabs() + '<div class="loading">整理學生提問</div>'); bindTTabs();
+    return call('apiTeacherWords', S.teacher).then(function (r) { S.tw = r; drawWords(); }).catch(fail);
+  }
+  var W = S.tw, f = S.twCh || 0, chName2 = function (c) { var x = W.chapters.filter(function (y) { return y.ch === c; })[0]; return x ? x.num : '第' + cnum(c) + '回'; };
+  var list = W.words.filter(function (x) { return !f || x.ch === f; });
+  var todo = list.filter(function (x) { return !x.noted; }).length;
+  var rows = list.map(function (x, i) {
+    return '<div class="scrollpanel titem" data-i="' + i + '"><div><b>' + esc(x.w) + '</b>　<span class="note">' + esc(chName2(x.ch)) + (x.paras.length ? '・第 ' + x.paras.join('、') + ' 段' : '') + '</span>' +
+      (x.noted ? '　<span class="tag t2">已加註</span>' : '') +
+      '<div class="meta">' + x.n + ' 人標記看不懂' + (x.cls.length ? '・' + esc(x.cls.join('、')) : '') + '・最近 ' + esc(shortTime(x.last)) + '</div>' +
+      '<div class="addnote hidden" style="margin-top:10px"><div class="tform" style="padding:0;gap:8px"><div class="row"><label>注音（選填）<input type="text" class="zy" placeholder="例：ㄐㄧ ㄈㄣˇ"></label></div>' +
+      '<label>解釋<textarea class="ex" style="min-height:56px"></textarea></label><div class="mbtns" style="justify-content:flex-start;margin:0"><button class="btn ghost cx">取消</button><button class="btn sv">儲存註釋</button></div></div></div></div>' +
+      '<div class="acts"><a class="btn ghost" style="font-size:14px;padding:4px 10px;text-decoration:none" target="_blank" rel="noopener" href="' + DICT_URL + encodeURIComponent(x.w) + '">查辭典</a>' +
+      '<button class="btn ghost an">' + (x.noted ? '修改註釋' : '加註') + '</button></div></div>';
+  }).join('');
+  view(tTabs() + '<div class="homehead"><div><h2>學生提問詞語</h2><p>學生在原文中選取詞語、按「看不懂，告訴老師」，會彙整在這裡。按「加註」寫好解釋，學生端立即出現虛線註釋。</p></div></div>' +
+    '<div class="tctrl"><select id="twCh"><option value="0">全部回次</option>' + W.chapters.map(function (c) { return '<option value="' + c.ch + '"' + (c.ch === f ? ' selected' : '') + '>' + esc(c.num) + '</option>'; }).join('') + '</select>' +
+    '<span class="note">共 ' + list.length + ' 個詞語，' + todo + ' 個尚未加註</span><button class="btn ghost" id="twRe">重新整理</button></div>' +
+    '<div class="tlist">' + (rows || '<p class="note">目前還沒有學生提問。</p>') + '</div>');
+  bindTTabs();
+  $('#twCh').onchange = function () { S.twCh = +this.value; drawWords(); };
+  $('#twRe').onclick = function () { S.tw = null; drawWords(); };
+  $$('.titem[data-i]').forEach(function (box) {
+    var x = list[+box.dataset.i], form = $('.addnote', box);
+    $('.an', box).onclick = function () { form.classList.toggle('hidden'); $('.ex', box).focus(); };
+    $('.cx', box).onclick = function () { form.classList.add('hidden'); };
+    $('.sv', box).onclick = function () {
+      var btn = this, exp = $('.ex', box).value.trim(); if (!exp) return toast('請填解釋');
+      btn.disabled = true;
+      call('apiTeacherAddNote', S.teacher, { ch: x.ch, w: x.w, zy: $('.zy', box).value.trim(), exp: exp }).then(function (r) { S.tw = r; toast('已加註「' + x.w + '」'); drawWords(); }).catch(function (e) { btn.disabled = false; fail(e); });
+    };
+  });
+}
+
+/* ---------- 教師：公告與必讀 ---------- */
+function annDone(a) {
+  var idx = tIndex(), to = a.to.split(/[,，、\s]+/).filter(String);
+  var studs = S.tdata.roster.filter(function (r) { return a.to === '全部' || to.indexOf('全部') >= 0 || to.indexOf(r.cls) >= 0; });
+  if (!studs.length || !a.chs.length) return '';
+  return a.chs.map(function (c) {
+    var n = studs.filter(function (s) { var v = (idx[s.account.toLowerCase()] || {})[c]; return v && v.submitted; }).length;
+    var nm = S.tdata.chapters.filter(function (x) { return x.ch === c; })[0];
+    return (nm ? nm.num : '第' + cnum(c) + '回') + ' 已完成 ' + n + '／' + studs.length + ' 人';
+  }).join('；');
+}
+function drawAnn() {
+  var d = S.tdata, e = S.annEdit || {}, classes = classList();
+  var list = (d.anns || []).slice().sort(function (x, y) { return (y.pin - x.pin) || (y.time > x.time ? 1 : -1); }).map(function (a) {
+    return '<div class="scrollpanel titem"><div><b>' + (a.pin ? '【置頂】' : '') + esc(a.title) + '</b><div class="meta">對象：' + esc(a.to) + (a.due ? '・截止 ' + esc(a.due) : '') + '・' + esc(a.time.slice(0, 16)) + '</div>' +
+      (a.body ? '<div style="margin-top:6px;line-height:1.7">' + esc(a.body).replace(/\n/g, '<br>') + '</div>' : '') + '<div class="done-rate">' + esc(annDone(a)) + '</div></div>' +
+      '<div class="acts"><button class="btn ghost" data-ea="' + esc(a.id) + '">編輯</button><button class="btn ghost" data-da="' + esc(a.id) + '">刪除</button></div></div>';
+  }).join('');
+  var chk = d.chapters.map(function (c) { return '<label><input type="checkbox" value="' + c.ch + '"' + ((e.chs || []).indexOf(c.ch) >= 0 ? ' checked' : '') + '>' + esc(c.num) + '</label>'; }).join('');
+  view(tTabs() + '<div class="homehead"><div><h2>公告與必讀</h2><p>公告會出現在學生首頁；勾選必讀回次，學生的回目卡會標上「必讀」，你可在這裡看完成人數。</p></div></div>' +
+    '<h4 class="sec">' + (e.id ? '編輯公告' : '新增公告') + '</h4><div class="scrollpanel tform" id="annForm">' +
+    '<label>標題<input type="text" id="aTitle" maxlength="60" value="' + esc(e.title || '') + '" placeholder="例：本週必讀第三回"></label>' +
+    '<label>內容（選填）<textarea id="aBody" maxlength="1000" placeholder="給學生的說明">' + esc(e.body || '') + '</textarea></label>' +
+    '<div class="row"><label>對象班級<input type="text" id="aTo" list="clsList" value="' + esc(e.to || '全部') + '" placeholder="全部，或 301,302"><datalist id="clsList"><option>全部</option>' + classes.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('') + '</datalist></label>' +
+    '<label>截止日期（選填）<input type="date" id="aDue" value="' + esc((e.due || '').replace(/\//g, '-')) + '"></label>' +
+    '<label>置頂<span class="ansr"><label><input type="checkbox" id="aPin"' + (e.pin ? ' checked' : '') + '>置頂（過了截止日仍顯示）</label></span></label></div>' +
+    '<label>必讀回次（選填）<div class="chs" id="aChs">' + chk + '</div></label>' +
+    '<div class="mbtns" style="justify-content:flex-start">' + (e.id ? '<button class="btn ghost" id="aCancel">取消編輯</button>' : '') + '<button class="btn" id="aSave">' + (e.id ? '儲存修改' : '發布公告') + '</button></div></div>' +
+    '<h4 class="sec">已發布（' + (d.anns || []).length + '）</h4><div class="tlist">' + (list || '<p class="note">尚無公告。</p>') + '</div>');
+  bindTTabs();
+  if ($('#aCancel')) $('#aCancel').onclick = function () { S.annEdit = null; drawAnn(); };
+  $('#aSave').onclick = function () {
+    var btn = this, a = { id: e.id || '', title: $('#aTitle').value.trim(), body: $('#aBody').value, to: $('#aTo').value.trim() || '全部',
+      due: $('#aDue').value.replace(/-/g, '/'), pin: $('#aPin').checked, chs: $$('#aChs input:checked').map(function (x) { return +x.value; }) };
+    if (!a.title) { toast('請填標題'); return; }
+    btn.disabled = true;
+    call('apiTeacherSaveAnn', S.teacher, a).then(function (r) { d.anns = r; S.annEdit = null; toast('已' + (a.id ? '儲存' : '發布')); drawAnn(); }).catch(function (er) { btn.disabled = false; fail(er); });
+  };
+  $$('[data-ea]').forEach(function (b) { b.onclick = function () { S.annEdit = d.anns.filter(function (a) { return a.id === b.dataset.ea; })[0]; drawAnn(); window.scrollTo(0, 0); }; });
+  $$('[data-da]').forEach(function (b) {
+    b.onclick = function () {
+      modal('<h3>刪除這則公告？</h3><div class="mbtns"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn" id="okDel">刪除</button></div>');
+      $('#okDel').onclick = function () { this.disabled = true; call('apiTeacherDelAnn', S.teacher, b.dataset.da).then(function (r) { d.anns = r; closeModal(); drawAnn(); }).catch(fail); };
+    };
+  });
+}
+
+/* ---------- 教師：題庫管理 ---------- */
+function drawQB() {
+  var d = S.tdata, ch = S.qbCh || S.tCh || (d.chapters[0] && d.chapters[0].ch) || 1;
+  S.qbCh = ch;
+  if (!S.qb || S.qb.ch !== ch) {
+    view(tTabs() + '<div class="loading">翻閱題庫</div>'); bindTTabs();
+    return call('apiTeacherQs', S.teacher, ch).then(function (r) { S.qb = r; S.qEdit = null; drawQB(); }).catch(fail);
+  }
+  var Q = S.qb, e = S.qEdit || { type: '文意理解', opts: ['', '', '', ''], ans: '' };
+  var chopt = d.chapters.map(function (c) { return '<option value="' + c.ch + '"' + (c.ch === ch ? ' selected' : '') + '>' + esc(c.num) + '　' + esc(c.title) + '</option>'; }).join('');
+  var list = Q.qs.map(function (q, i) {
+    return '<div class="scrollpanel titem"><div><b>第' + cnum(i + 1) + '題</b>　<span class="tag ' + typeCls(q.type) + '">' + esc(q.type) + '</span><span class="note">　題號 ' + q.no + (q.para ? '・對應第 ' + q.para + ' 段' : '') + '</span>' +
+      '<div style="margin-top:6px;line-height:1.7">' + esc(q.stem) + '</div><div class="meta">' + q.opts.map(function (o, k) { return ('ABCD'[k] === q.ans ? '✔' : '') + 'ABCD'[k] + '. ' + esc(o); }).join('　') + '</div></div>' +
+      '<div class="acts"><button class="btn ghost" data-eq="' + q.no + '">編輯</button><button class="btn ghost" data-dq="' + q.no + '">刪除</button></div></div>';
+  }).join('');
+  view(tTabs() + '<div class="homehead"><div><h2>題庫管理</h2><p>新增、修改或刪除題目，學生端立即生效。已交卷的學生，舊成績不會重算；修改後重新作答才會依新題目計分。</p></div></div>' +
+    '<div class="tctrl"><select id="qbCh">' + chopt + '</select><span class="note">本回共 ' + Q.qs.length + ' 題・原文 ' + Q.nParas + ' 段</span></div>' +
+    '<h4 class="sec">' + (e.no ? '編輯題號 ' + e.no : '新增題目') + '</h4><div class="scrollpanel tform">' +
+    '<div class="row"><label>類型<select id="qType">' + ['文意理解', '人物', '概念', '劇情', '意象', '修辭'].map(function (t) { return '<option' + (e.type === t ? ' selected' : '') + '>' + t + '</option>'; }).join('') + '</select></label>' +
+    '<label>對應原文段落（1～' + Q.nParas + '，選填）<input type="number" id="qPara" min="1" max="' + Q.nParas + '" value="' + (e.para || '') + '"></label></div>' +
+    '<label>題幹<textarea id="qStem">' + esc(e.stem || '') + '</textarea></label>' +
+    '<label>選項（點左邊字母設為正確答案）<div class="opt4">' + [0, 1, 2, 3].map(function (k) {
+      var L = 'ABCD'[k]; return '<span class="ansr"><label><input type="radio" name="qAns" value="' + L + '"' + (e.ans === L ? ' checked' : '') + '>' + L + '</label></span><input type="text" class="qOpt" value="' + esc(e.opts[k] || '') + '">'; }).join('') + '</div></label>' +
+    '<label>解析<textarea id="qExp">' + esc(e.exp || '') + '</textarea></label>' +
+    '<div class="mbtns" style="justify-content:flex-start">' + (e.no ? '<button class="btn ghost" id="qCancel">取消編輯</button>' : '') + '<button class="btn" id="qSave">' + (e.no ? '儲存修改' : '新增題目') + '</button></div></div>' +
+    '<h4 class="sec">' + esc(Q.num) + '　' + esc(Q.title) + '</h4><div class="tlist">' + (list || '<p class="note">本回還沒有題目。</p>') + '</div>');
+  bindTTabs();
+  $('#qbCh').onchange = function () { S.qbCh = +this.value; S.qb = null; drawQB(); };
+  if ($('#qCancel')) $('#qCancel').onclick = function () { S.qEdit = null; drawQB(); };
+  $('#qSave').onclick = function () {
+    var btn = this, a = $('input[name="qAns"]:checked');
+    var q = { ch: ch, no: e.no || 0, type: $('#qType').value, para: +$('#qPara').value || '', stem: $('#qStem').value.trim(),
+      opts: $$('.qOpt').map(function (x) { return x.value.trim(); }), ans: a ? a.value : '', exp: $('#qExp').value.trim() };
+    if (!q.stem) return toast('請填題幹');
+    if (q.opts.some(function (o) { return !o; })) return toast('四個選項都要填');
+    if (!q.ans) return toast('請點選正確答案');
+    btn.disabled = true;
+    call('apiTeacherSaveQ', S.teacher, q).then(function (r) { S.qb = r; S.qEdit = null; S.tStale = true; toast(q.no ? '已儲存' : '已新增'); drawQB(); }).catch(function (er) { btn.disabled = false; fail(er); });
+  };
+  $$('[data-eq]').forEach(function (b) { b.onclick = function () { S.qEdit = JSON.parse(JSON.stringify(Q.qs.filter(function (q) { return q.no === +b.dataset.eq; })[0])); drawQB(); window.scrollTo(0, 0); }; });
+  $$('[data-dq]').forEach(function (b) {
+    b.onclick = function () {
+      modal('<h3>刪除這一題？</h3><p>學生在這題的舊作答紀錄會保留在試算表，但不再計分。</p><div class="mbtns"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn" id="okDel">刪除</button></div>');
+      $('#okDel').onclick = function () { this.disabled = true; call('apiTeacherDelQ', S.teacher, ch, +b.dataset.dq).then(function (r) { S.qb = r; S.tStale = true; closeModal(); drawQB(); }).catch(fail); };
+    };
+  });
+}
+
+function nAns(v, c) {
+  var n = v && v.lastAns ? Object.keys(v.lastAns).filter(function (k) { return String(v.lastAns[k] || '').trim(); }).length : 0;
+  return n || (c && (c.qn || c.qs.length)) || 5;
+}
+function qStats(studs, ch, idx) {
+  var o = {};
+  studs.forEach(function (s) {
+    var v = (idx[s.account.toLowerCase()] || {})[ch]; if (!v || !v.submitted || !v.lastAns) return;
+    var chap = S.tdata.chapters.filter(function (c) { return c.ch === ch; })[0]; if (!chap) return;
+    chap.qs.forEach(function (q) {
+      var a = String(v.lastAns[q.no] || '').toUpperCase(); if (!a) return;   // 沒被抽到的題不計
+      var st = o[q.no] = o[q.no] || { n: 0, ok: 0, pick: {} };
+      st.n++; if (a === q.ans) st.ok++; st.pick[a] = (st.pick[a] || 0) + 1;
+    });
+  });
+  return o;
+}
+function studentDetail(acc) {
+  var s = S.tdata.roster.filter(function (r) { return r.account === acc; })[0], m = tIndex()[acc.toLowerCase()] || {};
+  var html = '<h3>' + esc(s.cls) + ' ' + esc(s.seat) + ' ' + esc(s.name) + '</h3><p class="note">帳號 ' + esc(s.account) + '・' + esc(s.kind) + (s.school ? '・' + esc(s.school) : '') + '・最近登入 ' + esc(s.last || '—') + '</p>';
+  html += S.tdata.chapters.map(function (c) {
+    var v = m[c.ch];
+    if (!v || !v.submitted) return '<p><b>' + esc(c.num) + '</b>　' + (v ? '已開始、未交卷（用時 ' + fmtDur(v.spent) + (v.opened ? '，開始於 ' + esc(v.opened) : '') + '）' : '未作答') + '</p>';
+    var row = c.qs.filter(function (q) { return String((v.lastAns || {})[q.no] || ''); }).map(function (q) { var a = String((v.lastAns || {})[q.no] || ''); return '<span class="sc ' + (a === q.ans ? 'sc5' : 'sc1') + '" title="正解 ' + q.ans + '">' + cnum(q.no) + '：' + (a || '—') + '</span>'; }).join(' ');
+    return '<p><b>' + esc(c.num) + '</b>　首次 ' + v.first + '・最高 ' + v.best + '・最近 ' + v.last + '（' + v.tries + ' 次）<br>' + row + '<br><small class="note">開始 ' + esc(v.opened || '—') + '・首次交卷 ' + esc(v.firstTime || '—') + '・最近交卷 ' + esc(v.lastTime) + '・累計用時 ' + fmtDur(v.spent) + '</small></p>';
+  }).join('');
+  modal(html + '<div class="mbtns"><button class="btn" onclick="closeModal()">關閉</button></div>');
+}
+function exportSheets() {
+  var d = S.tdata, cls = S.tCls, studs = studentsOf(cls), idx = tIndex();
+  var h1 = ['班級', '座號', '姓名', '帳號', '身分', '學校'];
+  d.chapters.forEach(function (c) { h1.push(c.num + '首次', c.num + '最高', c.num + '次數', c.num + '首次交卷時間', c.num + '最近交卷時間', c.num + '用時（分）'); });
+  h1.push('完成回數', '最高分總和');
+  var r1 = [h1], r2 = [['班級', '座號', '姓名', '帳號', '回', '題號', '類型', '學生作答（最近）', '正確答案', '對錯', '首次得分', '最高得分', '作答次數', '開始時間', '首次交卷時間', '最近交卷時間', '累計用時（分）']];
+  studs.forEach(function (s) {
+    var m = idx[s.account.toLowerCase()] || {}, row = [s.cls, s.seat, s.name, s.account, s.kind, s.school], n = 0, tot = 0;
+    d.chapters.forEach(function (c) {
+      var v = m[c.ch];
+      if (v && v.submitted) {
+        n++; tot += v.best; row.push(v.first, v.best, v.tries, v.firstTime, v.lastTime, mins(v.spent));
+        c.qs.forEach(function (q) { var a = String((v.lastAns || {})[q.no] || ''); if (!a) return; r2.push([s.cls, s.seat, s.name, s.account, c.num, q.no, q.type, a, q.ans, a === q.ans ? '○' : '×', v.first, v.best, v.tries, v.opened || '', v.firstTime, v.lastTime, mins(v.spent)]); });
+      } else row.push(v ? '未交卷' : '', '', '', '', '', v ? mins(v.spent) : '');
+    });
+    row.push(n, tot); r1.push(row);
+  });
+  var r3 = [['回', '題號', '類型', '題幹', '正確答案', '作答人數', '答對人數', '答對率', '選A', '選B', '選C', '選D']];
+  d.chapters.forEach(function (c) {
+    var st = qStats(studs, c.ch, idx);
+    c.qs.forEach(function (q) { var x = st[q.no] || { n: 0, ok: 0, pick: {} }; r3.push([c.num, q.no, q.type, q.stem, q.ans, x.n, x.ok, x.n ? Math.round(x.ok / x.n * 1000) / 10 + '%' : '', x.pick.A || 0, x.pick.B || 0, x.pick.C || 0, x.pick.D || 0]); });
+  });
+  var name = '三國演義閱讀檢測_' + (cls === '__all' ? '全部班級' : cls.replace(/[\\\/:*?"<>|【】]/g, '')) + '_' + d.time.slice(0, 10).replace(/\//g, '');
+  return { name: name, sheets: [{ name: '班級總表', rows: r1 }, { name: '作答明細', rows: r2 }, { name: '各題答對率', rows: r3 }] };
+}
+function downloadXlsx() {
+  var x = exportSheets();
+  if (typeof XLSX === 'undefined') { toast('Excel 元件載入失敗，改用雲端硬碟匯出'); return exportDrive(); }
+  try {
+    var wb = XLSX.utils.book_new();
+    x.sheets.forEach(function (s) {
+      var ws = XLSX.utils.aoa_to_sheet(s.rows);
+      ws['!cols'] = s.rows[0].map(function (h, i) { return { wch: s.name === '各題答對率' && i === 3 ? 60 : Math.max(6, String(h).length * 2 + 2) }; });
+      XLSX.utils.book_append_sheet(wb, ws, s.name);
+    });
+    var buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    var url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    var a = document.createElement('a'); a.href = url; a.download = x.name + '.xlsx'; a.target = '_self'; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    toast('已下載 ' + x.name + '.xlsx');
+  } catch (e) { toast('瀏覽器擋下下載，改用雲端硬碟匯出'); exportDrive(); }
+}
+function exportDrive() {
+  var x = exportSheets(); toast('正在雲端硬碟建立檔案…', 4000);
+  call('apiTeacherExportDrive', S.teacher, x.sheets, x.name).then(function (r) {
+    modal('<h3>匯出完成</h3><p>檔案已存到你的雲端硬碟。</p><div class="mbtns"><a class="btn ghost" href="' + esc(r.sheetUrl) + '" target="_blank">開啟試算表</a><a class="btn" href="' + esc(r.url) + '" target="_blank">下載 xlsx</a></div>');
+  }).catch(fail);
+}

@@ -1,0 +1,392 @@
+/* 閱讀頁、註釋與人物小卡、進度成就、錯題本、公告、跳段與草稿存檔。本檔是純 JavaScript，由 Index.html 的 include() 併入同一個 <script>。 */
+/* ================= 閱讀＋作答 ================= */
+function openChapter(ch) {
+  S.bt = null;
+  loading('展開第' + cnum(ch) + '回');
+  if (S.guest) return call('apiGuestChapter', ch).then(function (d) {
+    S.chap = d; var g = null; try { g = JSON.parse(store('sg_guest_' + ch) || 'null'); } catch (e) { }
+    S.ans = (g && g.ans) || {}; if (g) d.save = { draft: g }; renderChapter();
+  }).catch(fail);
+  call('apiChapter', S.token, ch).then(function (d) {
+    S.chap = d; S.ans = (d.save && d.save.draft && d.save.draft.ans) || {}; renderChapter();
+    if (S.pendingJump) { var j = S.pendingJump; S.pendingJump = null; setTimeout(function () { jumpPara(j); }, 300); }
+  }).catch(fail);
+}
+function placeholderSVG(title) {
+  return '<svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="畫卷待展">' +
+    '<defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#efe3c6"/><stop offset="1" stop-color="#e2d2ad"/></linearGradient>' +
+    '<filter id="bl"><feGaussianBlur stdDeviation="6"/></filter></defs>' +
+    '<rect width="1600" height="900" fill="url(#sk)"/><circle cx="1180" cy="230" r="90" fill="#b5463a" opacity=".75"/>' +
+    '<path d="M0 560 Q200 360 380 520 T760 470 Q900 330 1080 500 T1600 430 V900 H0Z" fill="#6f6658" opacity=".35" filter="url(#bl)"/>' +
+    '<path d="M0 650 Q180 480 360 620 T700 600 Q860 470 1020 610 T1380 560 Q1500 520 1600 600 V900 H0Z" fill="#4b443b" opacity=".55" filter="url(#bl)"/>' +
+    '<path d="M0 760 Q240 640 520 740 T1100 720 Q1350 660 1600 740 V900 H0Z" fill="#2c2722" opacity=".7"/>' +
+    '<text x="800" y="410" text-anchor="middle" font-family="LXGW WenKai TC, serif" font-size="84" fill="#3a3129" letter-spacing="20">' + esc(title) + '</text>' +
+    '<text x="800" y="500" text-anchor="middle" font-family="LXGW WenKai TC, serif" font-size="40" fill="#7a6b5a" letter-spacing="16">畫卷待展</text></svg>';
+}
+function renderChapter() {
+  var d = S.chap, t = d.title.split(/\s+/), ill = {};
+  d.ill.forEach(function (x) { (ill[x.after] = ill[x.after] || []).push(x); });
+  var mk = buildMarkup(d);
+  var text = d.paras.map(function (p, k) {
+    var txt = p.t, cls = '', h = '';
+    var isPoem = function (x) { return x && x.t.indexOf('〔詩〕') === 0 && x.t.length <= 63; };
+    if (txt.indexOf('〔詩〕') === 0) { txt = txt.slice(3); cls = txt.length > 60 ? ' class="quote"' : ' class="poem"'; }
+    var body = markup(esc(txt), mk);
+    if (cls === ' class="poem"') body = body.replace(/([。！？；])(?=[^<])/g, '$1<br>');
+    if (isPoem(p) && !isPoem(d.paras[k - 1])) h += '<div class="poemgrp">';
+    h += '<p data-i="' + p.i + '"' + cls + '>' + body + '</p>';
+    if (isPoem(p) && !isPoem(d.paras[k + 1])) h += '</div>';
+    (ill[p.i] || []).forEach(function (x) {
+      var cm = x.talk && x.talk.length;
+      h += '<figure class="painting' + (cm ? ' comic' : '') + '"><div class="mount" data-src="' + esc(x.url) + '">' +
+        (cm ? '<div class="panel"><svg class="tails" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>' : '') +
+        (x.url && x.url.indexOf('embed:') === 0 ? '<img data-embed="' + esc(x.url) + '" alt="' + esc(x.title) + '" style="opacity:0;transition:opacity .8s">'
+          : x.url ? '<img loading="lazy" src="' + esc(x.url) + '" alt="' + esc(x.title) + '">' : placeholderSVG(x.title)) +
+        (cm ? x.talk.map(function (b) {
+          return '<div class="bub k-' + esc(b.k) + '" style="left:' + b.x + '%;top:' + b.y + '%;width:' + b.w + '%" data-tx="' + b.tx + '" data-ty="' + b.ty + '">' +
+            (b.who ? '<span class="who">' + esc(b.who) + '</span><br>' : '') + esc(b.t) + '</div>';
+        }).join('') + '<span class="no">' + esc(x.no) + '</span></div>' : '') +
+        '</div><figcaption><b>' + esc(x.title) + '</b>' + esc(x.caption) + '</figcaption></figure>';
+    });
+    return h;
+  }).join('') + '<p class="endnote">— 本回完 —</p>' + sourceHTML(d.source);
+  view('<div class="reader"><div class="rhead"><div class="chno">' + esc(d.num) + '</div><h2 class="couplet"><span>' + esc(t[0] || '') + '</span><span>' + esc(t[1] || '') + '</span></h2>' +
+    '<div class="rtools"><span class="vgrp" role="group" aria-label="顯示內容"><b>顯示</b><button class="chip" data-v="txt">原文</button><button class="chip" data-v="bf">戰況畫面</button><button class="chip" data-v="quiz">閱讀檢測</button></span><button class="chip ' + (S.vert ? 'on' : '') + '" id="tgVert">直排</button><button class="chip" id="btnPref">字型・字級</button><button class="chip" id="btnBm">書籤</button><button class="chip" id="toHome">回目錄</button></div>' +
+    '<div class="pop hidden" id="popPref"></div><div class="pop hidden" id="popBm"></div></div>' +
+    '<div class="mtabs"><button class="chip on" data-p="txt">原文</button><button class="chip" data-p="quiz">試題</button></div>' +
+    '<div class="cols"><div id="bf" class="bf pane on" style="display:none"></div><article class="scrollpanel text pane on' + (S.vert ? ' vert' : '') + '" id="txt">' + text + '</article>' +
+    '<aside class="scrollpanel quiz pane" id="quiz"></aside></div></div>');
+  renderQuiz();
+  S.mobTab = 'txt';
+  var tx = $('#txt');
+  bfInit(d);
+  viewBind(); applyView();
+  $('#tgVert').onclick = function () { S.vert = PREF.vert = !S.vert; applyPref(); this.classList.toggle('on', S.vert); tx.classList.toggle('vert', S.vert); if (S.vert) tx.scrollLeft = tx.scrollWidth; setTimeout(bfUpdate, 60); };
+  $('#btnPref').onclick = function (e) { e.stopPropagation(); togglePop('popPref', drawPref); };
+  $('#btnBm').onclick = function (e) { e.stopPropagation(); togglePop('popBm', drawBm); };
+  S.bm = (d.save && d.save.draft && d.save.draft.bm) || [];
+  S.spent = (d.save && d.save.spent) || 0; S.spentSaved = S.spent; S.lastAct = Date.now();
+  if (S.guest) { try { S.bm = JSON.parse(store('sg_bm_guest_' + d.ch) || '[]'); } catch (e) { S.bm = []; } }
+  markBm();
+  bindTextTips(tx);
+  $('#toHome').onclick = goHome;
+  $$('.mtabs .chip').forEach(function (b) { b.onclick = function () { S.mobTab = b.dataset.p; applyView(); window.scrollTo(0, 0); }; });
+  $$('img[data-embed]').forEach(function (im) {
+    var key = im.dataset.embed;
+    var hit = S.imgCache && S.imgCache[key];
+    var show = function (src) { im.src = src; im.parentNode.dataset.src = src; im.style.opacity = 1; };
+    if (hit) return show(hit);
+    call('apiImage', key).then(function (src) { (S.imgCache = S.imgCache || {})[key] = src; show(src); }).catch(function () { im.parentNode.innerHTML = placeholderSVG(im.alt); });
+  });
+  var relayout = function () { layoutBubbles(tx); };
+  if (window.ResizeObserver) { var ro = new ResizeObserver(relayout); $$('.panel').forEach(function (p) { ro.observe(p); }); }
+  setTimeout(relayout, 300);
+  $$('.mount').forEach(function (m) {
+    m.onclick = function () {
+      var src = m.dataset.src, pn = m.querySelector('.panel');
+      if (pn) { modal('<div class="lightbox comic"><div class="mount" style="cursor:default">' + pn.outerHTML.replace(/ style="opacity:0[^"]*"/, '') + '</div></div><div class="mbtns"><button class="btn" onclick="closeModal()">收起</button></div>'); setTimeout(function () { layoutBubbles(document.querySelector('.lightbox')); }, 50); return; }
+      if (src) modal('<div class="lightbox"><img src="' + esc(src) + '"></div><div class="mbtns"><button class="btn" onclick="closeModal()">收起</button></div>');
+    };
+  });
+  // 回到上次閱讀位置
+  var pos = d.save && d.save.draft && d.save.draft.pos;
+  if (pos && !S.vert) setTimeout(function () { tx.scrollTop = pos * (tx.scrollHeight - tx.clientHeight); if (window.innerWidth <= 900) window.scrollTo(0, pos * (document.body.scrollHeight - innerHeight)); }, 60);
+  tx.addEventListener('scroll', function () { S.posDirty = true; });
+}
+
+/* 氣泡尾巴：依氣泡實際大小，從最近的邊畫向指定位置（百分比座標） */
+function layoutBubbles(root) {
+  (root || document).querySelectorAll('.panel').forEach(function (p) {
+    var W = p.clientWidth, H = p.clientHeight; if (!W || !H) return;
+    var svg = p.querySelector('.tails'), out = '';
+    p.querySelectorAll('.bub').forEach(function (b) {
+      b.style.top = b.dataset.y0 || (b.dataset.y0 = b.style.top); b.style.left = b.dataset.x0 || (b.dataset.x0 = b.style.left);
+      if (b.offsetTop + b.offsetHeight > H - 2) b.style.top = Math.max(2, H - 2 - b.offsetHeight) + 'px';
+      if (b.offsetLeft + b.offsetWidth > W - 2) b.style.left = Math.max(2, W - 2 - b.offsetWidth) + 'px';
+    });
+    p.querySelectorAll('.bub').forEach(function (b) {
+      var tx = +b.dataset.tx, ty = +b.dataset.ty;
+      if (b.classList.contains('k-白') || (!tx && !ty)) return;
+      var L = b.offsetLeft / W * 100, T = b.offsetTop / H * 100, w = b.offsetWidth / W * 100, h = b.offsetHeight / H * 100;
+      var cx = L + w / 2, cy = T + h / 2, bx, by, ax, ay, bw = Math.min(4.2, w * 0.28);
+      var below = ty > T + h, above = ty < T;
+      if (below || above) { by = below ? T + h - 1.2 : T + 1.2; bx = Math.max(L + bw + 2, Math.min(L + w - bw - 2, (cx + tx) / 2)); ax = bx - bw; ay = by; var cxp = bx + bw, cyp = by; out += pathT(ax, ay, cxp, cyp, tx, ty, b); }
+      else { bx = tx < L ? L + 1.2 : L + w - 1.2; by = Math.max(T + 3, Math.min(T + h - 3, ty)); out += pathT(bx, by - 2.2, bx, by + 2.2, tx, ty, b); }
+    });
+    svg.innerHTML = out;
+  });
+}
+function pathT(x1, y1, x2, y2, tx, ty, b) {
+  if (b.classList.contains('k-想')) {
+    var mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    return [[.62, 1.5], [.34, 1.0], [.12, .6]].map(function (q) { return '<ellipse cx="' + (mx + (tx - mx) * q[0]) + '" cy="' + (my + (ty - my) * q[0]) + '" rx="' + q[1] + '" ry="' + (q[1] * 1.7) + '" fill="#f6f1ff" stroke="#2a1d12" stroke-width=".35"/>'; }).join('');
+  }
+  return '<polygon points="' + x1 + ',' + y1 + ' ' + x2 + ',' + y2 + ' ' + tx + ',' + ty + '" fill="#fffaf0" stroke="#2a1d12" stroke-width=".4" stroke-linejoin="round"/>';
+}
+function sourceHTML(s) {
+  if (!s) return '';
+  function lk(x) { return !x ? '' : x.url ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener">' + esc(x.text) + '</a>' : esc(x.text); }
+  var parts = [];
+  if (s.base) parts.push('底本：' + lk(s.base));
+  if (s.ref) parts.push('參校：' + lk(s.ref));
+  if (s.note) parts.push(esc(s.note));
+  return parts.length ? '<div class="source">【出處】' + parts.join('；') + '</div>' : '';
+}
+/* ================= 註釋與人物小卡 ================= */
+function buildMarkup(d) {
+  var map = {}, put = function (k, t, v) { if (!k) return; (map[k] = map[k] || {})[t] = v; };
+  (d.names || []).forEach(function (n) { if (n.w && n.w.length >= 2) put(n.w, 'k', n); });
+  (d.people || []).forEach(function (p) { [p.name].concat(p.alias || []).forEach(function (k) { if (k && !(map[k] && map[k].p)) put(k, 'p', p); }); });
+  (d.notes || []).forEach(function (n) { put(n.w, 'n', n); });
+  var keys = Object.keys(map).sort(function (a, b) { return b.length - a.length; });
+  S.noteMap = {}; S.peopleMap = {}; S.nameMap = {};
+  (d.notes || []).forEach(function (n) { S.noteMap[n.w] = n; });
+  (d.people || []).forEach(function (p) { S.peopleMap[p.name] = p; });
+  (d.names || []).forEach(function (n) { S.nameMap[n.w] = n; });
+  return { re: keys.length ? new RegExp(keys.map(function (k) { return k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|'), 'g') : null, map: map, used: {} };
+}
+function markup(html, mk) {
+  if (!mk || !mk.re) return html;
+  return html.replace(mk.re, function (m) {
+    var x = mk.map[m];
+    if (x.n && !mk.used[m]) { mk.used[m] = 1; return '<span class="nt" data-w="' + m + '">' + m + '</span>'; }
+    if (x.p) return '<span class="ps zm" data-n="' + esc(x.p.name) + '">' + m + '</span>';
+    if (x.k) return '<span class="zm' + (x.k.k === '書名' ? ' bk' : '') + (x.k.note ? ' pk' : '') + '" data-k="' + m + '">' + m + '</span>';
+    return m;
+  });
+}
+function showTip(el, html) {
+  var tip = $('#tip'); if (!tip) { tip = document.createElement('div'); tip.id = 'tip'; document.body.appendChild(tip); }
+  tip.innerHTML = html + '<button class="tipx" aria-label="關閉">×</button>'; tip.className = 'show';
+  var r = el.getBoundingClientRect(), w = Math.min(340, innerWidth - 20);
+  tip.style.width = w + 'px';
+  var left = Math.min(Math.max(10, r.left + r.width / 2 - w / 2), innerWidth - w - 10);
+  tip.style.left = left + 'px'; tip.style.top = '0px';
+  var h = tip.offsetHeight, top = r.bottom + 8;
+  if (top + h > innerHeight - 10) top = Math.max(10, r.top - h - 8);
+  tip.style.top = top + 'px';
+  $('.tipx', tip).onclick = hideTip;
+}
+function hideTip() { var t = $('#tip'); if (t) t.className = ''; }
+document.addEventListener('click', function (e) { if (!e.target.closest('#tip') && !e.target.closest('.nt,.ps,.pk')) hideTip(); });
+var DICT_URL = 'https://dict.revised.moe.edu.tw/search.jsp?md=1&word=';
+function selInfo(tx) {
+  var sel = window.getSelection && window.getSelection(); if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  var r = sel.getRangeAt(0); if (!tx.contains(r.commonAncestorContainer)) return null;
+  var w = sel.toString().replace(/[\s，。、；：？！「」『』（）—…]/g, '');
+  if (!w || w.length > 12) return null;
+  var node = r.startContainer.nodeType === 1 ? r.startContainer : r.startContainer.parentNode, p = node.closest && node.closest('p[data-i]');
+  return { w: w, para: p ? +p.dataset.i : 0, rect: r.getBoundingClientRect() };
+}
+function bindSelection(tx) {
+  var bar = $('#selbar'); if (!bar) { bar = document.createElement('div'); bar.id = 'selbar'; document.body.appendChild(bar); }
+  var show = function () {
+    var x = selInfo(tx); if (!x) { bar.className = ''; return; }
+    bar.innerHTML = '<a href="' + DICT_URL + encodeURIComponent(x.w) + '" target="_blank" rel="noopener">查教育部辭典「' + esc(x.w) + '」</a>' +
+      (S.token && !S.guest ? '<button type="button" id="selAsk">看不懂，告訴老師</button>' : '');
+    bar.className = 'show';
+    var bw = bar.offsetWidth, left = Math.min(Math.max(8, x.rect.left + x.rect.width / 2 - bw / 2), innerWidth - bw - 8);
+    var top = x.rect.top - bar.offsetHeight - 10; if (top < 8) top = x.rect.bottom + 10;
+    bar.style.left = left + 'px'; bar.style.top = top + 'px';
+    var ask = $('#selAsk', bar);
+    if (ask) ask.onmousedown = ask.ontouchstart = function (e) {
+      e.preventDefault(); e.stopPropagation();
+      call('apiAskWord', S.token, S.chap.ch, x.para, x.w).then(function (r) { toast(r.dup ? '這個詞你已經告訴老師了' : '已告訴老師「' + x.w + '」看不懂'); }).catch(fail);
+      bar.className = ''; try { window.getSelection().removeAllRanges(); } catch (er) { }
+    };
+  };
+  var t = null, later = function () { clearTimeout(t); t = setTimeout(show, 260); };
+  document.onselectionchange = later;
+  tx.addEventListener('scroll', function () { bar.className = ''; });
+}
+function bindTextTips(tx) {
+  bindSelection(tx);
+  tx.addEventListener('click', function (e) {
+    var n = e.target.closest('.nt'), p = e.target.closest('.ps'), k = e.target.closest('.pk');
+    if (k && !n && !p) {
+      var z = S.nameMap[k.dataset.k]; if (!z || !z.note) return;
+      Qin.sfx('wood');
+      showTip(k, '<div class="tiph"><b>' + esc(z.w) + '</b><span class="camp">' + esc(z.k) + '</span></div><div class="tipb">' + esc(z.note) + '</div>');
+      return;
+    }
+    if (n) {
+      var x = S.noteMap[n.dataset.w]; if (!x) return;
+      Qin.sfx('wood');
+      showTip(n, '<div class="tiph"><b>' + esc(x.w) + '</b><span class="zy">' + esc(x.zy) + '</span></div><div class="tipb">' + esc(x.exp) + '</div>');
+    } else if (p) {
+      var c = S.peopleMap[p.dataset.n]; if (!c) return;
+      Qin.sfx('wood');
+      var al = (c.alias || []).filter(function (a) { return a !== c.name; });
+      showTip(p, '<div class="tiph"><b>' + esc(c.name) + '</b>' + (c.camp ? '<span class="camp">' + esc(c.camp) + '</span>' : '') + '</div>' +
+        (al.length ? '<div class="tipa">又稱：' + esc(al.join('、')) + '</div>' : '') +
+        '<div class="tipb">' + esc(c.intro) + '</div>' +
+        (c.deeds && c.deeds.length ? '<div class="tipd"><b>到目前為止</b>' + c.deeds.map(function (d) { return '<p><span>第' + cnum(d.ch) + '回</span>' + esc(d.t) + '</p>'; }).join('') + '</div>' : ''));
+    }
+  });
+  tx.addEventListener('scroll', hideTip);
+}
+
+/* ================= 進度與成就 ================= */
+var ACH = [
+  { id: 'first', name: '初出茅廬', seal: '初出', tip: '完成任一回', test: function (c) { return c.done >= 1; } },
+  { id: 'peach', name: '桃園之義', seal: '桃園', tip: '第一回全對', test: function (c) { return c.perfect[1]; } },
+  { id: 'ace', name: '百步穿楊', seal: '穿楊', tip: '任一回全對', test: function (c) { return c.nPerfect >= 1; } },
+  { id: 'three', name: '三英聚首', seal: '三英', tip: '三回全對', test: function (c) { return c.nPerfect >= 3; } },
+  { id: 'wine', name: '溫酒斬將', seal: '斬將', tip: '第五回全對', test: function (c) { return c.perfect[5]; } },
+  { id: 'five', name: '過關斬將', seal: '過關', tip: '連續完成第一到第五回', test: function (c) { return c.streak >= 5; } },
+  { id: 'fix', name: '知錯能改', seal: '能改', tip: '在錯題本訂正三題', test: function (c) { return c.fixed >= 3; } },
+  { id: 'all', name: '手不釋卷', seal: '釋卷', tip: '完成所有開放的回目', test: function (c) { return c.total > 0 && c.done >= c.total; } }
+];
+function fixedKey() { return 'sg_fixed_' + (S.user ? S.user.account : 'guest'); }
+function fixedSet() { try { return JSON.parse(store(fixedKey()) || '{}'); } catch (e) { return {}; } }
+function achCtx(h) {
+  var c = { done: 0, perfect: {}, nPerfect: 0, streak: 0, fixed: Object.keys(fixedSet()).length, total: h.chapters.length };
+  h.chapters.forEach(function (ch) {
+    var p = h.progress[ch.ch];
+    if (p && p.submitted) { c.done++; if (p.best >= ch.qn && ch.qn) { c.perfect[ch.ch] = true; c.nPerfect++; } }
+  });
+  for (var i = 1; h.progress[i] && h.progress[i].submitted; i++) c.streak = i;
+  return c;
+}
+function progressHTML(h) {
+  if (S.guest) return '<div class="progress scrollpanel"><p class="note" style="margin:0">登入後可記錄閱讀進度、收集成就印章，並使用錯題本。</p></div>';
+  var c = achCtx(h), TOTAL = 120;
+  var nodes = h.chapters.map(function (ch) {
+    var p = h.progress[ch.ch] || {}, cls = p.submitted ? (c.perfect[ch.ch] ? 'done perfect' : 'done') : p.hasDraft ? 'draft' : '';
+    return '<span class="node ' + cls + '" title="' + esc(ch.num + ' ' + ch.title) + '">' + cnum(ch.ch) + '</span>';
+  }).join('<i></i>');
+  var achs = ACH.map(function (a) {
+    var ok = a.test(c);
+    return '<div class="ach' + (ok ? ' got' : '') + '" data-tip="' + esc(a.name + '：' + a.tip + (ok ? '（已獲得）' : '（尚未獲得）')) + '"><span class="seal2">' + a.seal + '</span><small>' + a.name + '</small></div>';
+  }).join('');
+  var got = ACH.filter(function (a) { return a.test(c); }).length;
+  return '<div class="progress scrollpanel"><div class="pg-top"><b>閱讀進度</b><span>已讀 ' + c.done + ' 回／開放 ' + c.total + ' 回・全書 ' + TOTAL + ' 回</span></div>' +
+    '<div class="pg-bar"><div style="width:' + (c.done / TOTAL * 100).toFixed(2) + '%"></div></div>' +
+    '<div class="pg-nodes">' + nodes + '</div>' +
+    '<div class="pg-top" style="margin-top:14px"><b>成就印章</b><span>' + got + '／' + ACH.length + '</span></div><div class="achs">' + achs + '</div></div>';
+}
+function checkNewAch(h) {
+  if (S.guest || !S.user) return;
+  var key = 'sg_ach_' + S.user.account, c = achCtx(h), now = ACH.filter(function (a) { return a.test(c); }).map(function (a) { return a.id; });
+  var old = store(key);
+  store(key, JSON.stringify(now));
+  if (old === null) return;
+  try { old = JSON.parse(old); } catch (e) { old = []; }
+  var fresh = ACH.filter(function (a) { return now.indexOf(a.id) >= 0 && old.indexOf(a.id) < 0; });
+  if (fresh.length) { Qin.sfx('bell'); toast('獲得印章：' + fresh.map(function (a) { return a.name; }).join('、'), 3200); }
+}
+
+/* ================= 錯題本 ================= */
+function openMistakes() {
+  flushDraft();
+  loading('翻開錯題本');
+  call('apiMistakes', S.token).then(function (list) { S.mist = list; var f = fixedSet(), add = []; list.forEach(function (m) { var k = m.ch + '-' + m.no; if (m.fixed) f[k] = 1; else if (f[k]) add.push(m); }); store(fixedKey(), JSON.stringify(f)); if (add.length) markFixed(add); S.mistFilter = S.mistFilter || 'todo'; renderMistakes(); }).catch(fail);
+}
+function renderMistakes() {
+  var fx = fixedSet(), all = S.mist || [];
+  var list = all.filter(function (m) { return S.mistFilter === 'all' || !fx[m.ch + '-' + m.no]; });
+  var nFixed = all.filter(function (m) { return fx[m.ch + '-' + m.no]; }).length;
+  var body = list.length ? list.map(function (m) {
+    var k = m.ch + '-' + m.no, done = !!fx[k];
+    return '<div class="mq scrollpanel' + (done ? ' fixed' : '') + '" data-k="' + k + '"><div class="qh"><span class="chno sm">' + esc(m.num) + '</span><span class="qn">第' + cnum(m.no) + '題</span>' +
+      '<span class="tag ' + typeCls(m.type) + '">' + esc(m.type) + '</span>' + (done ? '<span class="okmark">已訂正</span>' : '') + '</div>' +
+      '<p class="stem">' + esc(m.stem) + '</p><div class="opts">' + m.opts.map(function (o, i) {
+        return '<label class="opt" data-l="' + 'ABCD'[i] + '"><span class="L">' + 'ABCD'[i] + '</span><span>' + esc(o) + '</span></label>'; }).join('') + '</div>' +
+      '<div class="fb"></div><div class="mbar"><span class="note">上次你選 ' + (m.mine || '—') + '</span><button class="link" data-go="' + m.ch + '" data-para="' + m.para + '">回原文第 ' + m.para + ' 段</button></div></div>';
+  }).join('') : '<div class="scrollpanel" style="text-align:center;padding:40px"><p style="font:20px var(--f-title)">' + (all.length ? '錯題都訂正完了，了不起！' : '目前沒有錯題。交卷後答錯的題目會收進這裡。') + '</p></div>';
+  view('<div class="homehead"><div><h2>錯題本</h2><p>重新作答答錯過的題目，答對就算訂正。共 ' + all.length + ' 題，已訂正 ' + nFixed + ' 題。</p></div>' +
+    '<div class="rtools">' + (all.length - nFixed ? '<button class="btn" id="mDrill" style="padding:6px 16px;font-size:16px">錯題重練（' + Math.min(10, all.length - nFixed) + ' 題）</button>' : '') + '<button class="chip' + (S.mistFilter === 'todo' ? ' on' : '') + '" data-f="todo">未訂正</button><button class="chip' + (S.mistFilter === 'all' ? ' on' : '') + '" data-f="all">全部</button><button class="chip" id="mBack">回目錄</button></div></div>' +
+    '<div class="mlist">' + body + '</div>');
+  $$('[data-f]').forEach(function (b) { b.onclick = function () { S.mistFilter = b.dataset.f; renderMistakes(); }; });
+  $('#mBack').onclick = goHome;
+  if ($('#mDrill')) $('#mDrill').onclick = function () { Qin.sfx('wood'); startDrill(); };
+  $$('.mq').forEach(function (box) {
+    var m = all.filter(function (x) { return x.ch + '-' + x.no === box.dataset.k; })[0], tries = 0;
+    $$('.opt', box).forEach(function (o) {
+      o.onclick = function () {
+        if (box.classList.contains('solved')) return;
+        var L = o.dataset.l, fb = $('.fb', box);
+        if (L === m.ans) {
+          box.classList.add('solved'); o.classList.add('right'); Qin.sfx('bell');
+          markFixed([m]);
+          fb.className = 'fb show'; fb.innerHTML = '<span class="verdict ok">✓ 訂正成功</span>' + (m.exp ? '<div>' + esc(m.exp) + '</div>' : '');
+          if (!$('.okmark', box)) $('.qh', box).insertAdjacentHTML('beforeend', '<span class="okmark">已訂正</span>');
+        } else {
+          tries++; o.classList.add('wrong'); Qin.sfx('wood');
+          fb.className = 'fb show';
+          if (tries >= 2) {
+            box.classList.add('solved'); $('.opt[data-l="' + m.ans + '"]', box).classList.add('right');
+            fb.innerHTML = '<span class="verdict no">正解是 ' + m.ans + '</span>' + (m.exp ? '<div>' + esc(m.exp) + '</div>' : '') + '<div class="note">建議回原文再讀一次，下次再來訂正。</div>';
+          } else fb.innerHTML = '<span class="verdict no">再想想</span><div class="note">提示：回原文第 ' + m.para + ' 段找找線索。</div>';
+        }
+      };
+    });
+  });
+  $$('[data-go]').forEach(function (b) { b.onclick = function () { S.pendingJump = +b.dataset.para; openChapter(+b.dataset.go); }; });
+}
+
+
+/* ================= 公告・必讀・班級挑戰 ================= */
+function mustSet(h) { var o = {}; (h.ann || []).forEach(function (a) { a.chs.forEach(function (c) { o[c] = 1; }); }); return o; }
+function chName(h, ch) { var c = (h.chapters || []).filter(function (x) { return x.ch === ch; })[0]; return c ? c.num : '第' + cnum(ch) + '回'; }
+function annHTML(h) {
+  if (S.guest || !h.ann || !h.ann.length) return '';
+  return h.ann.map(function (a) {
+    var chs = a.chs.map(function (c) {
+      var done = h.progress[c] && h.progress[c].submitted;
+      return '<button class="chip' + (done ? ' on' : '') + '" data-goch="' + c + '">' + esc(chName(h, c)) + (done ? '　✓ 已完成' : '') + '</button>';
+    }).join('');
+    return '<div class="ann scrollpanel' + (a.pin ? ' pin' : '') + '"><div class="ah"><b>' + (a.pin ? '<small>置頂</small>' : '') + esc(a.title) + '</b><span>' +
+      (a.due ? '截止 ' + esc(a.due) : '') + '</span></div>' + (a.body ? '<p>' + esc(a.body).replace(/\n/g, '<br>') + '</p>' : '') +
+      (chs ? '<div class="anch">必讀：' + chs + '</div>' : '') + '</div>';
+  }).join('');
+}
+function boardHTML(h) {
+  var b = h.board; if (S.guest || !b) return '';
+  var c = b.challenge, pct = c.goal ? Math.min(100, c.done / c.goal * 100) : 0;
+  var row = function (m) {
+    return '<div class="rk' + (m.me ? ' me' : '') + '"><span class="no">' + m.rank + '</span><span class="nm">' + esc(m.name) + (m.me ? '（你）' : '') + '</span>' +
+      '<span>完成 ' + m.done + ' 回</span><span>答對 ' + m.best + ' 題</span><span class="pf">' + (m.perfect ? '全對 ' + m.perfect + ' 回' : '') + '</span></div>';
+  };
+  var inTop = b.top.some(function (m) { return m.me; });
+  return '<div class="board scrollpanel"><div class="pg-top"><b>班級挑戰・' + esc(b.cls) + '</b><span>全班已完成 ' + c.done + ' 回次／目標 ' + c.goal + ' 回次（' + b.n + ' 人，完成率 ' + c.target + '%）</span></div>' +
+    '<div class="pg-bar"><div style="width:' + pct.toFixed(1) + '%;background:linear-gradient(90deg,var(--jade),var(--gold))"></div></div>' +
+    (c.goal && c.done >= c.goal ? '<p class="goal">全班達標！再接再厲，挑戰全員讀完。</p>' : '<p class="goal" style="color:var(--mute)">還差 ' + Math.max(0, c.goal - c.done) + ' 回次達標，一起讀吧。</p>') +
+    '<div class="pg-top" style="margin-top:14px"><b>排行榜</b><span>依完成回數、答對題數排序</span></div>' +
+    '<div class="rank">' + (b.top.length ? b.top.map(row).join('') : '<p class="note">還沒有人交卷，搶頭香吧！</p>') +
+    (!inTop && b.me ? '<div class="rk gap">⋯</div>' + row(b.me) : '') + '</div></div>';
+}
+
+
+function jumpPara(i) {
+  var p = $('#txt p[data-i="' + i + '"]'); if (!p) return; if (p.parentNode.classList.contains('poemgrp')) p = p.parentNode;
+  if (window.innerWidth <= 900) $('.mtabs .chip[data-p="txt"]').click();
+  var tx = $('#txt');
+  if (window.innerWidth > 900 && !tx.classList.contains('vert')) tx.scrollTo({ top: p.offsetTop - tx.clientHeight / 3, behavior: 'smooth' });
+  else p.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+  p.classList.add('flash'); setTimeout(function () { p.classList.remove('flash'); }, 2200);
+}
+function queueDraft() { clearTimeout(S.draftTimer); $('#savest') && ($('#savest').textContent = '研墨中…'); S.draftTimer = setTimeout(function () { saveDraft(false); }, 1200); }
+function saveDraft(manual) {
+  clearTimeout(S.draftTimer); S.draftTimer = null;
+  if (!S.chap || (S.chap.result && (S.guest || S.spent === S.spentSaved))) return Promise.resolve();
+  var ch = S.chap.ch;
+  if (S.guest) {
+    store('sg_guest_' + ch, JSON.stringify({ ans: S.ans, pos: readPos() })); S.posDirty = false;
+    if ($('#savest')) $('#savest').textContent = '訪客模式：答案暫存在這台裝置';
+    if (manual) toast('已暫存在這台裝置');
+    return Promise.resolve();
+  }
+  var sp = S.spent || 0; S.saving = true;
+  return call('apiSaveDraft', S.token, ch, S.ans, readPos(), S.bm || [], sp).then(function (r) {
+    S.saving = false; if (S.chap && S.chap.ch === ch) S.spentSaved = sp;
+    if (S.chap && S.chap.ch === ch && $('#savest')) $('#savest').textContent = '墨跡已乾・已存檔 ' + r.time.slice(11, 16);
+    if (manual) toast('已存檔');
+    S.posDirty = false;
+  }).catch(function (e) { S.saving = false; if ($('#savest')) $('#savest').textContent = '存檔失敗，請檢查網路'; if (manual) fail(e); });
+}
+function flushDraft() {
+  if (S.chap && (S.token || S.guest) && ((!S.chap.result && (S.draftTimer || S.posDirty)) || (S.token && S.spent !== S.spentSaved))) saveDraft(false);
+}
+window.addEventListener('beforeunload', flushDraft);
+document.addEventListener('visibilitychange', function () { if (document.hidden) flushDraft(); });
