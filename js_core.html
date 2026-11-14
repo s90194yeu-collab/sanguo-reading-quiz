@@ -129,6 +129,15 @@ function applyPref() {
 applyPref();
 var CN = '〇一二三四五六七八九十';
 function cnum(n) { if (n <= 10) return CN[n]; if (n < 20) return '十' + (n % 10 ? CN[n % 10] : ''); var t = Math.floor(n / 10), u = n % 10; if (n < 100) return CN[t] + '十' + (u ? CN[u] : ''); return String(n); }
+var SANGUO_ARCS = [
+  { id: 'hero', n: '一', title: '群雄逐鹿', sub: '桃園結義・討董呂布', from: 1, to: 20, seal: '逐鹿' },
+  { id: 'guandu', n: '二', title: '官渡爭鋒', sub: '煮酒英雄・掃平河北', from: 21, to: 33, seal: '官渡' },
+  { id: 'chibi', n: '三', title: '三顧赤壁', sub: '臥龍出山・火燒連環', from: 34, to: 50, seal: '赤壁' },
+  { id: 'tripod', n: '四', title: '鼎足稱尊', sub: '取川漢中・魏蜀並立', from: 51, to: 80, seal: '鼎足' },
+  { id: 'north', n: '五', title: '征吳北伐', sub: '夷陵託孤・星落五丈', from: 81, to: 104, seal: '北伐' },
+  { id: 'jin', n: '六', title: '三分歸晉', sub: '高平陵變・天下歸一', from: 105, to: 120, seal: '歸晉' }
+];
+function arcOf(ch) { for (var i = 0; i < SANGUO_ARCS.length; i++) if (ch >= SANGUO_ARCS[i].from && ch <= SANGUO_ARCS[i].to) return SANGUO_ARCS[i]; return SANGUO_ARCS[SANGUO_ARCS.length - 1]; }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function $(s, el) { return (el || document).querySelector(s); }
 function $$(s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); }
@@ -299,26 +308,114 @@ function goHome() {
   loading('翻回目錄');
   call('apiHome', S.token).then(function (h) { S.home = h; renderHome(); }).catch(fail);
 }
+function cardHTML(c, h, isT, mustMap) {
+  var p = h.progress[c.ch] || {}, stamp = '', st = '未讀';
+  if (isT) {
+    var unpub = c.status && c.status !== '上架';
+    if (unpub || c.open === false) stamp = '<div class="stamp tea">' + esc(unpub ? c.status : '未開放') + '</div>';
+    st = '共 ' + c.qn + ' 題・全解鎖';
+  } else {
+    if (p.submitted) { stamp = '<div class="stamp">' + p.best + '/' + c.qn + '<br>已閱</div>'; st = '作答 ' + p.tries + ' 次'; }
+    else if (p.hasDraft) { stamp = '<div class="stamp draft">存檔<br>中</div>'; st = '尚未交卷'; }
+  }
+  var lock = S.guest && !c.guest;
+  if (S.guest) { stamp = c.guest ? '<div class="stamp draft">試讀</div>' : ''; st = c.guest ? '免登入' : '登入後閱讀'; }
+  var t = c.title.split(/\s+/), must = !S.guest && !isT && mustMap[c.ch] && !p.submitted;
+  return '<div class="card' + (lock ? ' locked' : '') + '" data-ch="' + c.ch + '">' + (must ? '<div class="must">必讀</div>' : '') + '<div class="no">' + esc(c.num) + '</div><div class="vt"><span>' + esc(t[0] || '') +
+    '</span><span>' + esc(t[1] || '') + '</span></div>' + stamp + '<div class="st' + (stamp ? '' : ' c') + '">' + st + '</div></div>';
+}
+function catalogHTML(h, isT) {
+  var chs = h.chapters || [];
+  if (!chs.length) return '<div class="cards"><p>老師尚未開放任何回目。</p></div>';
+  var mustMap = mustSet(h), byArc = {}, nextCh = 0;
+  SANGUO_ARCS.forEach(function (a) { byArc[a.id] = []; });
+  chs.forEach(function (c) {
+    byArc[arcOf(c.ch).id].push(c);
+    var p = h.progress[c.ch];
+    if (!nextCh && (!isT && (!p || !p.submitted) && (!S.guest || c.guest))) nextCh = c.ch;
+  });
+  var cur = S.homeArc || 'all';
+  if (cur !== 'all' && !(byArc[cur] && byArc[cur].length)) cur = 'all';
+  var tabs = '<button type="button" class="chip' + (cur === 'all' ? ' on' : '') + '" data-arc-filter="all">全書回目（' + chs.length + '）</button>' +
+    SANGUO_ARCS.filter(function (a) { return byArc[a.id].length > 0; }).map(function (a) {
+      return '<button type="button" class="chip' + (cur === a.id ? ' on' : '') + '" data-arc-filter="' + a.id + '">' + esc(a.n + '・' + a.title) + '（' + byArc[a.id].length + '）</button>';
+    }).join('');
+  var resumeBtn = nextCh ? '<button type="button" class="chip on" data-goch="' + nextCh + '">' + (S.guest ? '試讀' : '續讀') + '：' + esc(chName(h, nextCh)) + ' →</button>' : '';
+  var fold = S.arcFold || (S.arcFold = {});
+  var secs = SANGUO_ARCS.filter(function (a) { return byArc[a.id].length && (cur === 'all' || cur === a.id); }).map(function (a) {
+    var list = byArc[a.id], doneN = 0, pubN = 0;
+    list.forEach(function (c) {
+      if (h.progress[c.ch] && h.progress[c.ch].submitted) doneN++;
+      if (!(c.status && c.status !== '上架') && c.open !== false) pubN++;
+    });
+    var folded = cur === 'all' && !!fold[a.id];
+    var statTxt = isT ? ('開放 ' + pubN + '／建置 ' + list.length + ' 回') : (S.guest ? ('本卷 ' + list.length + ' 回') : ('已讀 ' + doneN + '／' + list.length + ' 回'));
+    var ctrl = (cur === 'all'
+      ? '<button type="button" class="pg-more" data-arc-filter="' + a.id + '">只看本卷</button><button type="button" class="pg-more" data-arc-fold="' + a.id + '">' + (folded ? '展開 ▾' : '收合 ▴') + '</button>'
+      : '<button type="button" class="pg-more" data-arc-filter="all">← 返回全書</button>');
+    return '<section class="arc-sec"><div class="arc-head"><div><h3>第' + esc(a.n) + '卷・' + esc(a.title) + '<span>第 ' + a.from + '–' + a.to + ' 回｜' + esc(a.sub) + '</span></h3></div>' +
+      '<div class="arc-meta"><span>' + statTxt + '</span>' + ctrl + '</div></div>' +
+      (folded ? '' : '<div class="cards">' + list.map(function (c) { return cardHTML(c, h, isT, mustMap); }).join('') + '</div>') + '</section>';
+  }).join('');
+  var missing = SANGUO_ARCS.filter(function (a) { return byArc[a.id].length < (a.to - a.from + 1); });
+  var tail = (cur === 'all' && missing.length)
+    ? '<div class="arc-tail">全書百二十回大劇本・後續建置：' + missing.map(function (a) {
+      var have = byArc[a.id].length, full = a.to - a.from + 1;
+      return '第' + a.n + '卷《' + a.title + '》（' + (have ? '尚缺 ' + (full - have) + ' 回' : '第 ' + a.from + '–' + a.to + ' 回待開放') + '）';
+    }).join('・') + '</div>' : '';
+  return '<div class="arc-bar"><div class="arc-tabs">' + tabs + '</div>' + (resumeBtn ? '<div>' + resumeBtn + '</div>' : '') + '</div>' +
+    '<div class="arc-groups">' + secs + '</div>' + tail;
+}
+function bindGoch(root) { $$('[data-goch]', root).forEach(function (b) { b.onclick = function () { Qin.sfx('wood'); openChapter(+b.dataset.goch); }; }); }
+function bindProgress(h) {
+  var wrap = $('#pgWrap'); if (!wrap) return;
+  bindGoch(wrap);
+  $$('[data-pg-arc]', wrap).forEach(function (b) {
+    b.onclick = function () {
+      S.pgArc = b.dataset.pgArc; Qin.sfx('wood');
+      wrap.innerHTML = progressHTML(h); bindProgress(h);
+    };
+  });
+  $$('[data-arc-filter]', wrap).forEach(function (b) {
+    b.onclick = function () {
+      S.homeArc = b.dataset.arcFilter; if (S.arcFold) S.arcFold[S.homeArc] = false;
+      Qin.sfx('wood');
+      var cat = $('#catWrap'); if (cat) { cat.innerHTML = catalogHTML(h, !!S.teacher); bindCatalog(h); cat.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    };
+  });
+  if ($('#btnAchToggle', wrap)) $('#btnAchToggle', wrap).onclick = function () { S.achAll = !S.achAll; Qin.sfx('wood'); wrap.innerHTML = progressHTML(h); bindProgress(h); };
+  $$('.ach[data-tip]', wrap).forEach(function (a) { a.onclick = function () { toast(a.dataset.tip, 2600); }; });
+}
+function bindCatalog(h) {
+  var wrap = $('#catWrap'); if (!wrap) return;
+  bindGoch(wrap);
+  $$('[data-arc-filter]', wrap).forEach(function (b) {
+    b.onclick = function () {
+      S.homeArc = b.dataset.arcFilter; if (S.arcFold) S.arcFold[S.homeArc] = false;
+      Qin.sfx('wood'); wrap.innerHTML = catalogHTML(h, !!S.teacher); bindCatalog(h);
+    };
+  });
+  $$('[data-arc-fold]', wrap).forEach(function (b) {
+    b.onclick = function () {
+      var id = b.dataset.arcFold; S.arcFold = S.arcFold || {}; S.arcFold[id] = !S.arcFold[id];
+      Qin.sfx('wood'); wrap.innerHTML = catalogHTML(h, !!S.teacher); bindCatalog(h);
+    };
+  });
+  $$('.card', wrap).forEach(function (c) {
+    c.onclick = function () {
+      if (c.classList.contains('locked')) { toast('本回需登入才能閱讀'); return; }
+      Qin.sfx('wood'); openChapter(+c.dataset.ch);
+    };
+  });
+}
 function renderHome() {
   var h = S.home, done = 0, sum = 0, tot = 0, isT = !!S.teacher;
-  var cards = h.chapters.map(function (c) {
-    var p = h.progress[c.ch] || {}, stamp = '', st = '未讀';
-    if (isT) {
-      var unpub = c.status && c.status !== '上架';
-      if (unpub || c.open === false) stamp = '<div class="stamp tea">' + esc(unpub ? c.status : '未開放') + '</div>';
-      st = '共 ' + c.qn + ' 題・全解鎖';
-    } else {
-      if (p.submitted) { done++; sum += p.best; tot += c.qn; stamp = '<div class="stamp">' + p.best + '/' + c.qn + '<br>已閱</div>'; st = '作答 ' + p.tries + ' 次'; }
-      else if (p.hasDraft) { stamp = '<div class="stamp draft">存檔<br>中</div>'; st = '尚未交卷'; }
-    }
-    var lock = S.guest && !c.guest;
-    if (S.guest) { stamp = c.guest ? '<div class="stamp draft">試讀</div>' : ''; st = c.guest ? '免登入' : '登入後閱讀'; }
-    var t = c.title.split(/\s+/), must = !S.guest && !isT && mustSet(h)[c.ch] && !p.submitted;
-    return '<div class="card' + (lock ? ' locked' : '') + '" data-ch="' + c.ch + '">' + (must ? '<div class="must">必讀</div>' : '') + '<div class="no">' + esc(c.num) + '</div><div class="vt"><span>' + esc(t[0] || '') +
-      '</span><span>' + esc(t[1] || '') + '</span></div>' + stamp + '<div class="st' + (stamp ? '' : ' c') + '">' + st + '</div></div>';
-  }).join('');
+  h.chapters.forEach(function (c) {
+    var p = h.progress[c.ch] || {};
+    if (!isT && p.submitted) { done++; sum += p.best; tot += c.qn; }
+  });
   var subDesc = isT ? '教師全解鎖模式：已開啟所有回目（含未上架與未開放）、完整圖鑑與輿圖；閱讀與測驗不記入學生統計。'
-    : S.guest ? '訪客可試讀標有「試讀」的回目；其餘回目請登入後閱讀。' : '點選一回，展卷閱讀並作答，答案會自動存檔。';
+    : S.guest ? '訪客可試讀標有「試讀」的回目；其餘回目請登入後閱讀。' : '依全書六大卷展開閱讀並作答，答案會自動存檔。';
   var statHTML = isT
     ? '<div class="stat"><div><button class="btn" id="btnToTea">教師後台</button></div><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>'
     : S.guest
@@ -326,19 +423,13 @@ function renderHome() {
       : '<div class="stat"><div><b>' + done + '</b>已完成回數</div><div><b>' + (tot ? Math.round(sum / tot * 100) : 0) + '%</b>最佳答對率</div>' +
         '<div><button class="btn ghost" id="btnMist">錯題本</button></div><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>';
   view('<div class="homehead"><div><h2>回目</h2><p>' + subDesc + '</p></div>' + statHTML + '</div>' +
-    annHTML(h) + progressHTML(h) + boardHTML(h) +
-    '<div class="cards">' + (cards || '<p>老師尚未開放任何回目。</p>') + '</div>');
+    annHTML(h) + '<div id="pgWrap">' + progressHTML(h) + '</div>' + boardHTML(h) + '<div id="catWrap">' + catalogHTML(h, isT) + '</div>');
   if ($('#btnToTea')) $('#btnToTea').onclick = function () { Qin.sfx('wood'); renderTeacher(); };
   if ($('#btnMist')) $('#btnMist').onclick = function () { Qin.sfx('wood'); openMistakes(); };
   if ($('#btnAtlas')) $('#btnAtlas').onclick = function () { Qin.sfx('wood'); openAtlas(); };
   if ($('#btnCodex')) $('#btnCodex').onclick = function () { Qin.sfx('wood'); openCodex(); };
-  $$('[data-goch]').forEach(function (b) { b.onclick = function () { Qin.sfx('wood'); openChapter(+b.dataset.goch); }; });
-  $$('.ach[data-tip]').forEach(function (a) { a.onclick = function () { toast(a.dataset.tip, 2600); }; });
-  if (S.user) checkNewAch(h);
-  $$('.card').forEach(function (c) {
-    c.onclick = function () {
-      if (c.classList.contains('locked')) { toast('本回需登入才能閱讀'); return; }
-      Qin.sfx('wood'); openChapter(+c.dataset.ch);
-    };
-  });
+  bindGoch(document);
+  bindProgress(h);
+  bindCatalog(h);
+  if (S.user && !isT) checkNewAch(h);
 }

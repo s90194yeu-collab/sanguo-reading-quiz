@@ -11,7 +11,13 @@ function openAtlas() {
 }
 function renderAtlas() {
   var d = S.atlas, up = S.atUpTo;
-  var opts = d.chapters.filter(function (c) { return c.ch <= d.reach; }).map(function (c) { return '<option value="' + c.ch + '"' + (c.ch === up ? ' selected' : '') + '>顯示到' + esc(c.num) + '</option>'; }).join('');
+  var visCh = d.chapters.filter(function (c) { return c.ch <= d.reach; });
+  var opts = SANGUO_ARCS.map(function (a) {
+    var gs = visCh.filter(function (c) { return c.ch >= a.from && c.ch <= a.to; });
+    if (!gs.length) return '';
+    return '<optgroup label="第' + esc(a.n + '卷・' + a.title) + '（' + a.from + '–' + a.to + '）">' +
+      gs.map(function (c) { return '<option value="' + c.ch + '"' + (c.ch === up ? ' selected' : '') + '>顯示到' + esc(c.num) + '</option>'; }).join('') + '</optgroup>';
+  }).join('');
   view('<div class="homehead"><div><h2>人物・地圖</h2><p>' + (d.allUnlocked ? '教師模式：已解鎖目前所有回目的人物關係與地理時間軸（可用右側選單篩選回次）。' : '只顯示你讀到' + esc(chName(d, d.reach)) + '為止的人物與事件，不會劇透。' + (S.guest ? '' : '讀得越多，解鎖越多。')) + '</p></div>' +
     '<div class="rtools"><button class="chip' + (S.atTab === 'rel' ? ' on' : '') + '" data-at="rel">人物關係圖</button><button class="chip' + (S.atTab === 'map' ? ' on' : '') + '" data-at="map">地圖與時間軸</button>' +
     '<select class="chip" id="atUp">' + opts + '</select><button class="chip" id="atBack">回目錄</button></div></div>' +
@@ -153,11 +159,12 @@ function drawMap() {
       '<text x="' + lx + '" y="' + (q[1] + 12 + dy) + '" text-anchor="' + an + '" class="glab" style="font:12px var(--f-title)">' + nums + '</text></g>';
   }).join('');
   svg.innerHTML = bg + halos + rpath + '<g id="pulse"></g>' + marks + legend + '<text x="985" y="755" text-anchor="end" style="font:12px var(--f-title)" fill="#8b7c6b">示意圖：位置為約略，河道依今日地形簡化' + (S.atZoom === 'c' ? '（洛陽周邊放大）' : '') + '</text>';
-  var chs = d.chapters.filter(function (c) { return c.ch <= up; });
+  var chs = d.chapters.filter(function (c) { return c.ch <= up; }), lastArc = '';
   $('#tl').innerHTML = '<div class="rtools" style="margin-bottom:8px"><button class="chip' + (S.atZoom !== 'c' ? ' on' : '') + '" data-z="all">全圖</button><button class="chip' + (S.atZoom === 'c' ? ' on' : '') + '" data-z="c">放大洛陽周邊</button></div>' +
     '<p class="note" style="margin-top:0">點回目看該回路線，點事件在地圖上標出位置。</p>' + chs.map(function (c) {
+    var a = arcOf(c.ch), hd = a.id !== lastArc ? '<div class="tl-arc">第' + esc(a.n) + '卷・' + esc(a.title) + '</div>' : ''; lastArc = a.id;
     var es = evs.filter(function (e) { return e.ch === c.ch; });
-    return '<div class="tl-ch"><h4 data-c="' + c.ch + '" class="' + (c.ch === S.atCh ? 'on' : '') + '">' + esc(c.num) + '　' + esc(c.title.split(/\s+/)[0] || '') + '</h4>' + es.map(function (e) {
+    return hd + '<div class="tl-ch"><h4 data-c="' + c.ch + '" class="' + (c.ch === S.atCh ? 'on' : '') + '">' + esc(c.num) + '　' + esc(c.title.split(/\s+/)[0] || '') + '</h4>' + es.map(function (e) {
       return '<div class="tl-ev" data-k="' + e.k + '"><b>' + e.k + '</b><div>' + esc(e.event) + '<small>' + esc(e.year) + '・' + esc(e.place) + '</small></div></div>';
     }).join('') + '</div>';
   }).join('');

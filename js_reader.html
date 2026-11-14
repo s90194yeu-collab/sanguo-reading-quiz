@@ -232,44 +232,111 @@ function bindTextTips(tx) {
 /* ================= 進度與成就 ================= */
 var ACH = [
   { id: 'first', name: '初出茅廬', seal: '初出', tip: '完成任一回', test: function (c) { return c.done >= 1; } },
-  { id: 'peach', name: '桃園之義', seal: '桃園', tip: '第一回全對', test: function (c) { return c.perfect[1]; } },
+  { id: 'peach', name: '桃園之義', seal: '桃園', tip: '第一回全對', test: function (c) { return !!c.perfect[1]; } },
   { id: 'ace', name: '百步穿楊', seal: '穿楊', tip: '任一回全對', test: function (c) { return c.nPerfect >= 1; } },
-  { id: 'three', name: '三英聚首', seal: '三英', tip: '三回全對', test: function (c) { return c.nPerfect >= 3; } },
-  { id: 'wine', name: '溫酒斬將', seal: '斬將', tip: '第五回全對', test: function (c) { return c.perfect[5]; } },
-  { id: 'five', name: '過關斬將', seal: '過關', tip: '連續完成第一到第五回', test: function (c) { return c.streak >= 5; } },
+  { id: 'three', name: '三英聚首', seal: '三英', tip: '累計三回全對', test: function (c) { return c.nPerfect >= 3; } },
+  { id: 'wine', name: '溫酒斬將', seal: '斬將', tip: '第五回全對', test: function (c) { return !!c.perfect[5]; } },
+  { id: 'five', name: '過關斬將', seal: '過關', tip: '連續完成第 1 至 5 回', test: function (c) { return c.streak >= 5; } },
   { id: 'fix', name: '知錯能改', seal: '能改', tip: '在錯題本訂正三題', test: function (c) { return c.fixed >= 3; } },
-  { id: 'all', name: '手不釋卷', seal: '釋卷', tip: '完成所有開放的回目', test: function (c) { return c.total > 0 && c.done >= c.total; } }
+  { id: 'tenpf', name: '錦囊妙計', seal: '錦囊', tip: '累計十回全對', test: function (c) { return c.nPerfect >= 10; } },
+  { id: 'arc_hero', name: '群雄逐鹿', seal: '逐鹿', tip: '讀完第一卷《群雄逐鹿》（1–20 回）', test: function (c) { return c.arc.hero.open >= 20 && c.arc.hero.done >= c.arc.hero.open; } },
+  { id: 'arc_guandu', name: '官渡破敵', seal: '官渡', tip: '讀完第二卷《官渡爭鋒》（21–33 回）', test: function (c) { return c.arc.guandu.open >= 13 && c.arc.guandu.done >= c.arc.guandu.open; } },
+  { id: 'arc_chibi', name: '赤壁借風', seal: '赤壁', tip: '讀完第三卷《三顧赤壁》（34–50 回）', test: function (c) { return c.arc.chibi.open >= 17 && c.arc.chibi.done >= c.arc.chibi.open; } },
+  { id: 'arc_tripod', name: '三分鼎足', seal: '鼎足', tip: '讀完第四卷《鼎足稱尊》（51–80 回）', test: function (c) { return c.arc.tripod.open >= 30 && c.arc.tripod.done >= c.arc.tripod.open; } },
+  { id: 'arc_north', name: '秋風五丈', seal: '北伐', tip: '讀完第五卷《征吳北伐》（81–104 回）', test: function (c) { return c.arc.north.open >= 24 && c.arc.north.done >= c.arc.north.open; } },
+  { id: 'arc_jin', name: '三分歸晉', seal: '歸晉', tip: '讀完第六卷《三分歸晉》（105–120 回）', test: function (c) { return c.arc.jin.open >= 16 && c.arc.jin.done >= c.arc.jin.open; } },
+  { id: 'halfbook', name: '縱橫半壁', seal: '半壁', tip: '累計完成六十回', test: function (c) { return c.done >= 60; } },
+  { id: 'all', name: '手不釋卷', seal: '釋卷', tip: '完成目前所有開放的回目', test: function (c) { return c.total > 0 && c.done >= c.total; } }
 ];
 function fixedKey() { return 'sg_fixed_' + (S.user ? S.user.account : 'guest'); }
 function fixedSet() { try { return JSON.parse(store(fixedKey()) || '{}'); } catch (e) { return {}; } }
 function achCtx(h) {
-  var c = { done: 0, perfect: {}, nPerfect: 0, streak: 0, fixed: Object.keys(fixedSet()).length, total: h.chapters.length };
-  h.chapters.forEach(function (ch) {
-    var p = h.progress[ch.ch];
-    if (p && p.submitted) { c.done++; if (p.best >= ch.qn && ch.qn) { c.perfect[ch.ch] = true; c.nPerfect++; } }
+  var c = { done: 0, perfect: {}, nPerfect: 0, streak: 0, fixed: Object.keys(fixedSet()).length, total: (h.chapters || []).length, arc: {}, pubTotal: 0 };
+  SANGUO_ARCS.forEach(function (a) { c.arc[a.id] = { open: 0, done: 0, perfect: 0, draft: 0, pub: 0, full: a.to - a.from + 1, list: [] }; });
+  (h.chapters || []).forEach(function (ch) {
+    var a = c.arc[arcOf(ch.ch).id], p = h.progress[ch.ch];
+    a.open++; a.list.push(ch);
+    if (!(ch.status && ch.status !== '上架') && ch.open !== false) { a.pub++; c.pubTotal++; }
+    if (p && p.submitted) {
+      c.done++; a.done++;
+      if (p.best >= ch.qn && ch.qn) { c.perfect[ch.ch] = true; c.nPerfect++; a.perfect++; }
+    } else if (p && p.hasDraft) a.draft++;
   });
   for (var i = 1; h.progress[i] && h.progress[i].submitted; i++) c.streak = i;
   return c;
 }
+function pickPgArc(c, isT) {
+  if (S.pgArc && c.arc[S.pgArc] && c.arc[S.pgArc].open > 0) return S.pgArc;
+  var i, st;
+  if (!isT) {
+    for (i = 0; i < SANGUO_ARCS.length; i++) {
+      st = c.arc[SANGUO_ARCS[i].id];
+      if (st.open > 0 && st.done < st.open) return SANGUO_ARCS[i].id;
+    }
+  }
+  for (i = 0; i < SANGUO_ARCS.length; i++) if (c.arc[SANGUO_ARCS[i].id].open > 0) return SANGUO_ARCS[i].id;
+  return 'hero';
+}
+function arcRailHTML(c, curId, isT) {
+  return '<div class="arc-rail">' + SANGUO_ARCS.map(function (a) {
+    var st = c.arc[a.id], empty = st.open === 0, active = a.id === curId;
+    var pct = isT ? Math.min(100, st.open / st.full * 100) : (st.open ? Math.min(100, st.done / st.open * 100) : 0);
+    var complete = !isT && st.open >= st.full && st.done >= st.open;
+    var sub = empty ? ('第' + a.from + '–' + a.to + '回・未開放')
+      : isT ? ('建置 ' + st.open + '/' + st.full + ' 回')
+      : (complete ? ('✓ 全卷 ' + st.done + '/' + st.open) : ('已讀 ' + st.done + '/' + st.open + ' 回'));
+    return '<button type="button" class="arc-pill' + (active ? ' on' : '') + (complete ? ' done' : '') + (empty ? ' empty' : '') + '"' +
+      (empty ? ' disabled' : ' data-pg-arc="' + a.id + '"') + '><b>' + esc(a.n + '・' + a.title) + '</b><span>' + esc(sub) + '</span><i><u style="width:' + pct.toFixed(0) + '%"></u></i></button>';
+  }).join('') + '</div>';
+}
 function progressHTML(h) {
-  if (S.guest) return '<div class="progress scrollpanel"><p class="note" style="margin:0">登入後可記錄閱讀進度、收集成就印章，並使用錯題本。</p></div>';
-  var c = achCtx(h), TOTAL = 120;
-  var nodes = h.chapters.map(function (ch) {
+  if (S.guest) return '<div class="progress scrollpanel"><p class="note" style="margin:0">全書一百二十回依六大劇本分卷排列；登入後可記錄個人閱讀進度、收集全書十六枚成就印章，並使用錯題本。</p></div>';
+  var c = achCtx(h), TOTAL = 120, isT = !!(S.teacher || h.teacher);
+  var curId = pickPgArc(c, isT), curArc = SANGUO_ARCS.filter(function (a) { return a.id === curId; })[0] || SANGUO_ARCS[0];
+  var curList = c.arc[curId].list;
+  var rail = arcRailHTML(c, curId, isT);
+  if (isT) {
+    var draftN = c.total - c.pubTotal;
+    var tNodes = curList.map(function (ch) {
+      var unpub = ch.status && ch.status !== '上架', closed = unpub || ch.open === false;
+      var cls = closed ? 'tea-draft' : 'done';
+      var tip = ch.num + ' ' + ch.title + '（' + (unpub ? ch.status : ch.open === false ? '未開放' : '已上架開放') + '）';
+      return '<button type="button" class="node ' + cls + '" data-goch="' + ch.ch + '" title="' + esc(tip) + '">' + ch.ch + '</button>';
+    }).join('');
+    return '<div class="progress scrollpanel">' +
+      '<div class="pg-top"><b>百二十回大劇本・課程總覽</b><span>已建置 ' + c.total + '／' + TOTAL + ' 回（開放 ' + c.pubTotal + ' 回' + (draftN ? '・草稿／未開放 ' + draftN + ' 回' : '') + '）</span></div>' +
+      '<div class="pg-bar"><div style="width:' + Math.min(100, c.total / TOTAL * 100).toFixed(2) + '%;background:linear-gradient(90deg,var(--jade),var(--gold))"></div></div>' +
+      rail +
+      '<div class="pg-focus"><div class="pg-fhead"><div><b>第' + esc(curArc.n) + '卷・' + esc(curArc.title) + '</b><small>第 ' + curArc.from + '–' + curArc.to + ' 回｜' + esc(curArc.sub) + '（點回次可預覽）</small></div>' +
+      '<button type="button" class="pg-more" data-arc-filter="' + curArc.id + '">篩選本卷回目 ↓</button></div>' +
+      '<div class="pg-nodes">' + (tNodes || '<span class="note">本卷尚未建置回目。</span>') + '</div></div></div>';
+  }
+  var nextUnread = curList.filter(function (ch) { return !(h.progress[ch.ch] && h.progress[ch.ch].submitted); })[0];
+  var nodes = curList.map(function (ch) {
     var p = h.progress[ch.ch] || {}, cls = p.submitted ? (c.perfect[ch.ch] ? 'done perfect' : 'done') : p.hasDraft ? 'draft' : '';
-    return '<span class="node ' + cls + '" title="' + esc(ch.num + ' ' + ch.title) + '">' + cnum(ch.ch) + '</span>';
-  }).join('<i></i>');
-  var achs = ACH.map(function (a) {
+    var st = p.submitted ? '已讀（最佳 ' + p.best + '/' + ch.qn + '）' : p.hasDraft ? '作答存檔中' : '未讀（點擊展卷）';
+    return '<button type="button" class="node ' + cls + '" data-goch="' + ch.ch + '" title="' + esc(ch.num + ' ' + ch.title + '・' + st) + '">' + ch.ch + '</button>';
+  }).join('');
+  var gotList = [], todoList = [];
+  ACH.forEach(function (a) { if (a.test(c)) gotList.push(a); else todoList.push(a); });
+  var showList = S.achAll ? ACH : (gotList.length >= 8 ? gotList : gotList.concat(todoList).slice(0, 8));
+  var achs = showList.map(function (a) {
     var ok = a.test(c);
     return '<div class="ach' + (ok ? ' got' : '') + '" data-tip="' + esc(a.name + '：' + a.tip + (ok ? '（已獲得）' : '（尚未獲得）')) + '"><span class="seal2">' + a.seal + '</span><small>' + a.name + '</small></div>';
   }).join('');
-  var got = ACH.filter(function (a) { return a.test(c); }).length;
   return '<div class="progress scrollpanel"><div class="pg-top"><b>閱讀進度</b><span>已讀 ' + c.done + ' 回／開放 ' + c.total + ' 回・全書 ' + TOTAL + ' 回</span></div>' +
-    '<div class="pg-bar"><div style="width:' + (c.done / TOTAL * 100).toFixed(2) + '%"></div></div>' +
-    '<div class="pg-nodes">' + nodes + '</div>' +
-    '<div class="pg-top" style="margin-top:14px"><b>成就印章</b><span>' + got + '／' + ACH.length + '</span></div><div class="achs">' + achs + '</div></div>';
+    '<div class="pg-bar"><div style="width:' + Math.min(100, c.done / TOTAL * 100).toFixed(2) + '%"></div></div>' +
+    rail +
+    '<div class="pg-focus"><div class="pg-fhead"><div><b>第' + esc(curArc.n) + '卷・' + esc(curArc.title) + '</b><small>第 ' + curArc.from + '–' + curArc.to + ' 回｜' + esc(curArc.sub) + '</small></div>' +
+    '<div class="pg-topr">' + (nextUnread ? '<button type="button" class="chip on" data-goch="' + nextUnread.ch + '">續讀第 ' + nextUnread.ch + ' 回 →</button>' : '') +
+    '<button type="button" class="pg-more" data-arc-filter="' + curArc.id + '">只看本卷卡片 ↓</button></div></div>' +
+    '<div class="pg-nodes">' + (nodes || '<span class="note">本卷尚未開放回目。</span>') + '</div></div>' +
+    '<div class="pg-top" style="margin-top:14px"><b>成就印章</b><div class="pg-topr"><span>已獲 ' + gotList.length + '／' + ACH.length + '</span>' +
+    (ACH.length > 8 ? '<button type="button" class="pg-more" id="btnAchToggle">' + (S.achAll ? '精簡顯示 ▴' : '展開全部 ' + ACH.length + ' 枚 ▾') + '</button>' : '') +
+    '</div></div><div class="achs">' + achs + '</div></div>';
 }
 function checkNewAch(h) {
-  if (S.guest || !S.user) return;
+  if (S.guest || !S.user || S.teacher || h.teacher) return;
   var key = 'sg_ach_' + S.user.account, c = achCtx(h), now = ACH.filter(function (a) { return a.test(c); }).map(function (a) { return a.id; });
   var old = store(key);
   store(key, JSON.stringify(now));
