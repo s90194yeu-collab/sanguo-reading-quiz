@@ -132,7 +132,13 @@ python3 tools/epub_extract.py 三國演義.epub 6 --compare packs/第六回.json
 
 ### 7.3 目前線上狀態
 
-2026-11-13 已部署第 11 版，內容對應 GitHub 提交 55a46e6。之後每次改程式，請在版本說明寫上對應的提交編號。
+- 線上網站已改由學校帳號的 Apps Script 專案提供，以 `clasp` 部署（`.clasp.json` 已綁定）。
+  - 編輯器：`https://script.google.com/d/1KR0rgo31DAknss6NSNpTf-ZUsRBAi1sVh6HGrr21tnY_qWx0EEAsbO3M/edit`
+  - Script ID：`1KR0rgo31DAknss6NSNpTf-ZUsRBAi1sVh6HGrr21tnY_qWx0EEAsbO3M`
+  - 正式版網址（網址固定，更新部署時沿用同一個 Deployment）：`https://script.google.com/macros/s/AKfycbzvM0xQbG5rCua7cbI0r4VsSvZK0yjfPbBYRh3tSZAkIQJAEB5lN4D4_7S1pETciLaS/exec`
+- 2026-11-14 部署 `@8`，對應提交 `abad2ae`（展示模式修正與新內容導覽）。
+- 更新流程：`main` 有新提交 → `clasp push` → `clasp deploy -i <上列 Deployment ID>`（沿用原網址）→ 教師後台「系統設定 → 清除網站快取」。
+- 舊的個人帳號專案（`1vOse2Wk…`，第 11 版）已不再是正式網址，不要再部署到那裡。
 
 ## 8. 已知問題與待辦
 
