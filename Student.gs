@@ -1,6 +1,10 @@
 /* 三國演義閱讀檢測：學生端內容、存檔、登入、目錄（Apps Script 會把所有 .gs 合在同一個全域範圍執行） */
 /* ---------- 內容 ---------- */
 function openChapters_() {
+  if ('open' in MEMO_) return MEMO_.open;
+  return (MEMO_.open = openChapters0_());
+}
+function openChapters0_() {
   var s = getSettings_()['開放回數'] || '全部', o = null;
   if (!(s === '全部' || s === '')) { o = {}; s.split(/[,，、\s]+/).forEach(function (x) { if (x) o[Number(x)] = true; }); }
   var st = chapterStatus_(), hidden = Object.keys(st).filter(function (k) { return st[k].status !== '上架'; });
@@ -24,7 +28,7 @@ function catalog_() {
   var dn = drawN_(getSettings_());
   list.forEach(function (x) { x.qn = Math.min(qn[x.ch] || 0, dn); });
   list.sort(function (a, b) { return a.ch - b.ch; });
-  cachePut_('catalog', list, 600);
+  cachePut_('catalog', list, 21600);   // 目錄只在匯入、改題、清快取時變動（皆會清除），可放長
   return list;
 }
 function imgUrl_(v) {

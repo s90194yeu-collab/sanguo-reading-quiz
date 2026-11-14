@@ -219,7 +219,13 @@ function ensureSetup_() {
   try { c.put('setup_ok', '1', 3600); } catch (e) { }
 }
 
+/* 同一次伺服器呼叫內的小型記憶：設定、回目狀態、開放回目常被逐回查詢（120 回 × 每次讀快取再解析），記住一次即可。
+   寫入或清快取時務必呼叫 memoReset_()。 */
+var MEMO_ = {};
+function memoReset_() { MEMO_ = {}; }
+
 function clearContentCache() {
+  memoReset_();
   var c = CacheService.getScriptCache();
   var keys = CACHE_KEYS.concat(['setup_ok']);
   for (var i = 1; i <= 120; i++) keys.push('ch_' + i);
@@ -241,12 +247,13 @@ function str_(v) {
 function now_() { return Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy/MM/dd HH:mm:ss'); }
 
 function getSettings_() {
+  if (MEMO_.settings) return MEMO_.settings;
   var hit = cacheGet_('settings');
-  if (hit) return hit;
+  if (hit) return (MEMO_.settings = hit);
   var o = {};
   rows_(SHEET.SET).forEach(function (r) { if (str_(r[0])) o[str_(r[0])] = str_(r[1]); });
   cachePut_('settings', o, 300);
-  return o;
+  return (MEMO_.settings = o);
 }
 function yes_(v) { return /^(是|y|yes|true|1|開)$/i.test(str_(v)); }
 

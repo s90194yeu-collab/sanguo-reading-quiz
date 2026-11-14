@@ -25,7 +25,8 @@ module.exports = async function (cb, vw, vh) {
   const html = assemble(SRC);
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: vw || 1366, height: vh || 768 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errs.push(m.text()); });
-  await p.exposeFunction('__gas', (k, a) => { try { const v = ctx[k](...JSON.parse(a)); return JSON.stringify({ v: v === undefined ? null : v }); } catch (e) { return JSON.stringify({ err: e.message }); } });
+  await p.exposeFunction('__gas', (k, a) => { try { if (ctx.memoReset_) ctx.memoReset_();   // 真實 Apps Script 每次呼叫都是新的執行環境
+    const v = ctx[k](...JSON.parse(a)); return JSON.stringify({ v: v === undefined ? null : v }); } catch (e) { return JSON.stringify({ err: e.message }); } });
   await p.route('**/*', r => {
     const u = r.request().url();
     if (u.startsWith('http://app/inner')) return r.fulfill({ body: html.replace('<head>', '<head>' + shim), contentType: 'text/html' });

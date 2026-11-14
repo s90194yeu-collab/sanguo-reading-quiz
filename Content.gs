@@ -16,15 +16,16 @@ var CH_STATUS = ['草稿', '待審', '上架', '下架'];
 /* ================= 回目狀態（審核上架） ================= */
 /** { 回: { status, imported, reviewed, note } }；表上沒有的回＝視為上架（相容舊資料） */
 function chapterStatus_() {
+  if (MEMO_.status) return MEMO_.status;
   var hit = cacheGet_('status');
-  if (hit) return hit;
+  if (hit) return (MEMO_.status = hit);
   var o = {};
   rows_(SHEET.STAT).forEach(function (r) {
     var ch = Number(r[0]); if (!ch) return;
     o[ch] = { status: CH_STATUS.indexOf(str_(r[1])) >= 0 ? str_(r[1]) : '草稿', imported: str_(r[2]), reviewed: str_(r[3]), note: str_(r[4]) };
   });
   cachePut_('status', o, 600);
-  return o;
+  return (MEMO_.status = o);
 }
 function setChapterStatus_(ch, status, note, imported) {
   var sh = sh_(SHEET.STAT); if (!sh) { setupSheets(); sh = sh_(SHEET.STAT); }
@@ -33,7 +34,7 @@ function setChapterStatus_(ch, status, note, imported) {
   var old = row ? data[row - 2] : [ch, '', '', '', ''];
   var vals = [ch, status, imported ? t : str_(old[2]), imported ? '' : t, note === undefined ? str_(old[4]) : note];
   if (row) sh.getRange(row, 1, 1, 5).setValues([vals]); else sh.appendRow(vals);
-  CacheService.getScriptCache().removeAll(['status', 'catalog', 'codex']);
+  memoReset_(); CacheService.getScriptCache().removeAll(['status', 'catalog', 'codex']);
 }
 
 /* ================= 人物造型與勢力（前端 16-bit 畫面用） ================= */
