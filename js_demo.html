@@ -20,13 +20,30 @@ function startDemo() {
     return moveTo(el).then(function () { var c = $('#dCur'); c.classList.remove('click'); void c.offsetWidth; c.classList.add('click'); return sleep(350); }).then(function () { if (el) el.click(); });
   };
   var waitFor = function (sel, ms) { var t0 = Date.now(); return new Promise(function (ok, no) { (function chk() { if (D.abort) return no('abort'); if ($(sel)) return ok($(sel)); if (Date.now() - t0 > (ms || 12000)) return no('timeout ' + sel); setTimeout(chk, 150); })(); }); };
-  var scrollRow = function (r) {
-    var tx = $('#txt'), p = $('#txt p[data-i="' + r.para + '"]'); if (!p) return sleep(300);
-    var t = (S.chap.paras[r.para - 1] || {}).t || '', j = r.anchor ? t.indexOf(r.anchor) : 0, at = j < 0 ? 0 : j / Math.max(1, t.length) + .003;
+  // 讓閱讀線（與 readLine() 同一套量法）落在該幕錨句上；捲完再校正一次，避免插圖載入後版面位移
+  var rowTarget = function (r) {
+    var tx = $('#txt'), p = $('#txt p[data-i="' + r.para + '"]'); if (!tx || !p) return null;
+    var t = (S.chap.paras[r.para - 1] || {}).t || '', j = r.anchor ? t.indexOf(r.anchor) : 0, at = j < 0 ? 0 : j / Math.max(1, t.length);
+    var pr = p.getBoundingClientRect(), off = pr.height * at + 6;
     if (window.innerWidth <= 900) {
-      var line = topH() + innerHeight * .25 + ($('#bf') ? $('#bf').offsetHeight : 0), y = p.getBoundingClientRect().top + scrollY + p.offsetHeight * at - line + 2; window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
-    } else tx.scrollTo({ top: Math.max(0, p.offsetTop + p.offsetHeight * at - tx.clientHeight * .3 + 2), behavior: 'smooth' });
-    return sleep(1500);
+      var line = topH() + ($('#bf') && $('#bf').offsetParent ? $('#bf').offsetHeight : 0) + innerHeight * .25;
+      return { win: true, top: Math.max(0, scrollY + pr.top + off - line) };
+    }
+    var rr = tx.getBoundingClientRect();
+    return { win: false, top: Math.max(0, tx.scrollTop + pr.top + off - (rr.top + rr.height * .3)) };
+  };
+  var goTop = function (g, smooth) { var o = { top: g.top, behavior: smooth ? 'smooth' : 'auto' }; if (g.win) window.scrollTo(o); else $('#txt').scrollTo(o); };
+  var scrollRow = function (r) {
+    var g = rowTarget(r); if (!g) return sleep(300);
+    goTop(g, true);
+    return sleep(1300).then(function () { goTop(rowTarget(r) || g, false); S.demoPos = S.bfs ? S.bfs.rows.indexOf(r) : null; bfUpdate(); return sleep(200); });
+  };
+  var showComic = function (fig) {
+    var tx = $('#txt');
+    if (window.innerWidth <= 900) fig.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    else tx.scrollTo({ top: Math.max(0, tx.scrollTop + fig.getBoundingClientRect().top - tx.getBoundingClientRect().top - 20), behavior: 'smooth' });
+    return sleep(1400).then(function () { return moveTo(fig.querySelector('.mount') || fig); })
+      .then(function () { return cap('<b>連環畫</b>每回配五格連環畫與對白，插在對應的段落旁；點一下可放大，對白框會跟著圖排好。', 5200); });
   };
   var seenScene = {};
   var EXPLAIN = {
@@ -36,13 +53,18 @@ function startDemo() {
     '謀略': '謀略：記錄計策與伏兵，雙方形勢依原文而變。'
   };
   var run = function () {
-    return loadHome().then(function () { return cap('<b>展示模式</b>電腦自動示範一整回的閱讀、戰況與作答；<br>不登入、不記錄成績。', 4200); })
+    return loadHome().then(function () { return cap('<b>展示模式</b>電腦自動示範目錄、一整回的閱讀、戰況與作答，以及圖鑑；<br>不登入、不記錄成績。', 4200); })
+      .then(function () { var a = $('.arc-tabs') || $('.arc-head'); return a ? moveTo(a) : sleep(200); })
+      .then(function () { var n = (S.home && S.home.chapters || []).length; return cap('<b>全書目錄</b>一百二十回分成六卷（群雄逐鹿、官渡爭鋒、三顧赤壁、鼎足稱尊、征吳北伐、三分歸晉）；' + (n ? '目前開放 ' + n + ' 回，' : '') + '可依卷篩選或收合。', 5600); })
       .then(function () { var c = $('.card[data-ch="1"]'); return click(c); })
       .then(function () { return waitFor('#bf .bf-title', 15000); })
       .then(function () { S.game = { mx: 0, ev: [], pd: {} }; S.bfs.cur = undefined; bfUpdate(); if (S.vert) { $('#tgVert').click(); } return cap('<b>第一回</b>左上是「戰況面板」，隨著原文往下讀，雙方形勢會跟著改變；面板下方的色條是本回各幕，點一下可跳過去。', 4600); })
       .then(function () {
         var rows = S.bfs ? S.bfs.rows : [], chain = Promise.resolve();
+        var fig = $('#txt figure.comic') || $('#txt figure.painting'), figAfter = 0, figDone = false;
+        if (fig) { var pv = fig.previousElementSibling; while (pv && !(pv.dataset && pv.dataset.i)) pv = pv.previousElementSibling; figAfter = pv ? +pv.dataset.i : 0; }
         rows.forEach(function (r, k) {
+          if (fig && !figDone && r.para > figAfter) { figDone = true; chain = chain.then(function () { uncap(); return showComic(fig); }); }
           chain = chain.then(function () { S.demoPd = !!(r.pq && r.title === '大興山對陣'); return scrollRow(r); }).then(function () {
             var ex = !seenScene[r.scene]; seenScene[r.scene] = 1;
             return cap('<b>第 ' + r.para + ' 段</b>' + (ex ? EXPLAIN[r.scene] + '<br>' : '') + esc(r.title) + '：' + esc(r.note), ex ? 6200 : 3400);
@@ -67,7 +89,7 @@ function startDemo() {
         });
         return chain;
       })
-      .then(function () { uncap(); var q = $('.mtabs .chip[data-p="quiz"]'); if (window.innerWidth <= 900 && q) q.click(); return cap('<b>答題</b>與戰況分開：題目每次從題庫隨機抽出，對錯只計成績，不影響戰況。', 4800); })
+      .then(function () { S.demoPos = null; uncap(); var q = $('.mtabs .chip[data-p="quiz"]'); if (window.innerWidth <= 900 && q) q.click(); return cap('<b>答題</b>與戰況分開：題目每次從題庫隨機抽出，對錯只計成績，不影響戰況。', 4800); })
       .then(function () { return click($('#btGo')); })
       .then(function () { return waitFor('.bt .opt', 12000); })
       .then(function () {
@@ -86,17 +108,41 @@ function startDemo() {
       .then(function () { return click($('#btFin')); })
       .then(function () { return waitFor('.bt-end', 8000); })
       .then(function () { return cap('<b>結算</b>顯示成績與逐題檢討；登入後成績才會存檔，老師後台可看全班統計。', 5200); })
+      .then(function () {
+        // 展示不存檔：借用本次展示讀到的進度暫時打開圖鑑，畫完立即還原訪客原有的本機紀錄
+        uncap(); S.cxTab = 'people';
+        var rows = (S.bfs && S.bfs.rows) || [], key = 'sg_game_guest_1', old = store(key), g = S.game || {};
+        var mx = rows.length ? rows[rows.length - 1].para + 1 : 0;
+        store(key, JSON.stringify({ mx: Math.max(mx, g.mx || 0), ev: g.ev || [], pd: g.pd || {} }));
+        openCodex();
+        return waitFor('#cxBody .cx-card', 15000).then(function () { store(key, old); }, function (e) { store(key, old); throw e; });
+      })
+      .then(function () { return cap('<b>圖鑑</b>讀到哪裡，人物就解鎖到哪裡；還沒讀到的人物只顯示「？？？」，不劇透。', 5000); })
+      .then(function () { return click($('[data-cx="battle"]')); })
+      .then(function () { return sleep(900); })
+      .then(function () { return cap('<b>戰役圖鑑</b>讀過的每一幕戰況都收在這裡；用「找依據」點對原文句子的戰役會蓋上✓。', 5000); })
+      .then(function () { return click($('[data-cx="card"]')); })
+      .then(function () { return sleep(1200); })
+      .then(function () { return cap('<b>戰報卡</b>每一回讀過的戰役與雙方形勢，可以下載成一張戰報卡圖片分享。', 4600); })
+      .then(function () { uncap(); S.atTab = 'rel'; openAtlas(); return waitFor('#graph', 15000); })
+      .then(function () { return sleep(1200).then(function () { return cap('<b>人物・地圖</b>人物關係圖與地圖時間軸也只顯示讀到的範圍；地圖依勢力著色。', 5000); }); })
+      .then(function () { var b = $('[data-at="map"]'); return b ? click(b).then(function () { return sleep(1800); }) : sleep(300); })
       .then(function () { uncap(); return sleep(300); });
   };
   var loadHome = function () { S.guest = true; goHome(); return waitFor('.card[data-ch="1"]', 15000).then(function () { return sleep(800); }); };
   run().then(function () { endDemo(false); }).catch(function (e) { if (e !== 'abort') { try { console.error(e); } catch (x) { } endDemo(false); } });
+}
+function stopDemo() {
+  var D = S.demo; if (!D) return; D.abort = true; S.demo = null; S.demoPos = null; S.demoPd = false;
+  if (S.viewSaved) { try { PREF.view = JSON.parse(S.viewSaved); } catch (e) { } S.viewSaved = null; applyView(); }
+  ['dTag', 'dX', 'dBar', 'dCur', 'dEnd'].forEach(function (id) { var e = $('#' + id); if (e) e.remove(); });
 }
 function endDemo(quit) {
   var D = S.demo; if (!D) return; D.abort = true; S.demo = null; S.demoPos = null;
   if (S.viewSaved) { try { PREF.view = JSON.parse(S.viewSaved); } catch (e) { } S.viewSaved = null; applyView(); }
   ['dTag', 'dX', 'dBar', 'dCur'].forEach(function (id) { var e = $('#' + id); if (e) e.remove(); });
   if (quit) { S.guest = false; S.token ? goHome() : renderLogin(); return; }
-  document.body.insertAdjacentHTML('beforeend', '<div class="demo-end" id="dEnd"><div><h3>展示結束</h3><p>這是電腦自動示範的流程，沒有記錄任何成績。<br>戰況面板會隨閱讀位置變化，答題對錯只計成績。</p><div class="bt-act"><button class="btn" id="dAgain">重新展示</button><button class="btn ghost" id="dHome">回首頁</button></div></div></div>');
+  document.body.insertAdjacentHTML('beforeend', '<div class="demo-end" id="dEnd"><div><h3>展示結束</h3><p>這是電腦自動示範的流程，沒有記錄任何成績。<br>戰況面板會隨閱讀位置變化，答題對錯只計成績；<br>圖鑑與人物・地圖隨閱讀進度解鎖。</p><div class="bt-act"><button class="btn" id="dAgain">重新展示</button><button class="btn ghost" id="dHome">回首頁</button></div></div></div>');
   $('#dAgain').onclick = function () { $('#dEnd').remove(); startDemo(); };
   $('#dHome').onclick = function () { $('#dEnd').remove(); S.guest = false; S.token ? goHome() : renderLogin(); };
 }
