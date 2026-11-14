@@ -79,9 +79,22 @@ function startDemo() {
               .then(function () { return cap('<b>找依據</b>按「找依據」，再到原文點出支持這個畫面的句子。', 3800); })
               .then(function () {
                 var t = evTarget(r); if (!t) return sleep(200);
-                var rg = textRange(t.p, t.s0, t.s1), rc = rg && rg.getClientRects()[0]; if (!rc) return sleep(200);
-                var c = $('#dCur'); c.style.left = (rc.left + Math.min(rc.width / 2, 60)) + 'px'; c.style.top = (rc.top + rc.height / 2) + 'px';
-                return sleep(1100).then(function () { c.classList.remove('click'); void c.offsetWidth; c.classList.add('click'); evCheckAt(rc.left + Math.min(rc.width / 2, 60), rc.top + rc.height / 2); return sleep(2600); });
+                // 視窗較矮時，依據句可能落在下方說明列底下；先把句子捲到原文區上半部，再點
+                var rg = textRange(t.p, t.s0, t.s1), rc0 = rg && rg.getClientRects()[0]; if (!rc0) return sleep(200);
+                var mob = window.innerWidth <= 900, tx = $('#txt'), box = mob ? { top: topH(), bottom: innerHeight } : tx.getBoundingClientRect();
+                var bar = $('#dBar'), lim = Math.min(box.bottom, bar ? bar.getBoundingClientRect().top : innerHeight) - 24;
+                var want = box.top + (lim - box.top) * .35;
+                if (rc0.top < box.top + 8 || rc0.bottom > lim) { var dy = rc0.top - want; if (mob) window.scrollBy(0, dy); else tx.scrollTop += dy; }
+                var rc = rg.getClientRects()[0], x = rc.left + Math.min(rc.width / 2, 60), y = rc.top + rc.height / 2;
+                var c = $('#dCur'); c.style.left = x + 'px'; c.style.top = y + 'px';
+                return sleep(1100).then(function () {
+                  c.classList.remove('click'); void c.offsetWidth; c.classList.add('click');
+                  // 點擊判斷靠「座標下是哪個字」，展示用的游標、說明列不能擋在上面
+                  var ov = ['dCur', 'dBar', 'dTag', 'dX'].map(function (id) { return $('#' + id); }).filter(Boolean);
+                  ov.forEach(function (e) { e.style.visibility = 'hidden'; });
+                  try { evCheckAt(x, y); } finally { ov.forEach(function (e) { e.style.visibility = ''; }); }
+                  return sleep(2600);
+                });
               });
           }
           if (r.title === '關羽對程遠志' && r.note.indexOf('一刀') >= 0) {

@@ -15,15 +15,15 @@ require('./harness')(async (p, f, errs) => {
   // 2) 完整跑一次：每一幕的說明出現時，戰況面板必須正好停在那一幕
   await f.evaluate(() => { localStorage.removeItem('sg_game_guest_1'); logout(true); window.__demoSpeed = 14; });
   await f.waitForSelector('#btnDemo'); await f.click('#btnDemo');
-  let last = '', mism = [], seen = { pd: false, comic: false, codex: false, atlas: false }, k = 0;
+  let last = '', mism = [], seen = { pd: false, comic: false, ev: false, codex: false, atlas: false }, k = 0;
   for (; k < 600; k++) {
     await p.waitForTimeout(150);
     if (await f.$('#dEnd')) break;
     const c = await f.evaluate(() => {
       const b = document.querySelector('#dBar'), t = document.querySelector('#bf .bf-title');
-      return { cap: b && !b.classList.contains('hide') ? b.innerText.replace(/\s+/g, ' ') : '', panel: t ? t.innerText.replace(/\s+/g, '') : '', pd: !!document.querySelector('.bf-pd'), cx: !!document.querySelector('#cxBody'), at: !!document.querySelector('#graph,#map') };
+      return { cap: b && !b.classList.contains('hide') ? b.innerText.replace(/\s+/g, ' ') : '', panel: t ? t.innerText.replace(/\s+/g, '') : '', pd: !!document.querySelector('.bf-pd'), cx: !!document.querySelector('#cxBody'), at: !!document.querySelector('#graph,#map'), ev: !!(S.game && S.game.ev && S.game.ev.length) };
     });
-    if (c.pd) seen.pd = true; if (c.cx) seen.codex = true; if (c.at) seen.atlas = true;
+    if (c.pd) seen.pd = true; if (c.ev) seen.ev = true; if (c.cx) seen.codex = true; if (c.at) seen.atlas = true;
     if (/連環畫/.test(c.cap)) seen.comic = true;
     if (c.cap && c.cap !== last) {
       last = c.cap;
@@ -33,8 +33,8 @@ require('./harness')(async (p, f, errs) => {
   console.log('end after', (k * 0.15).toFixed(0), 's', seen, 'mismatch', mism);
   await p.screenshot({ path: 'D_end.png' });
   assert(await f.$('#dEnd'), 'reached end screen');
-  assert(seen.pd && seen.comic && seen.codex && seen.atlas, 'all showcase steps ran');
+  assert(seen.pd && seen.comic && seen.ev && seen.codex && seen.atlas, 'all showcase steps ran (含找依據點中)');
   assert.strictEqual(mism.length, 0, 'panel in sync with captions');
   assert.strictEqual(await f.evaluate(() => localStorage.getItem('sg_game_guest_1')), null, 'demo leaves no guest progress behind');
   await f.click('#dHome'); await p.waitForTimeout(800);
-});
+}, +(process.env.DW || 1568), +(process.env.DH || 679));   // 預設用較矮的筆電視窗：說明列容易蓋到原文
