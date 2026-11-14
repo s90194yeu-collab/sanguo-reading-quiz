@@ -166,16 +166,65 @@ function seedIfEmpty_(name, rows) {
   if (sh && sh.getLastRow() < 2 && rows.length) sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
 }
 
+var CACHE_KEYS = ['catalog', 'settings', 'people', 'atlas', 'status', 'looks', 'codex', 'tch_chaps', 'ch_counts'];
+var CACHE_CHUNKED = ['people', 'atlas', 'codex', 'looks', 'tch_chaps'];
+
+/** 讀取快取（自動支援超過 100 KB 的分塊快取） */
+function cacheGet_(key) {
+  var c = CacheService.getScriptCache(), raw = c.get(key);
+  if (!raw) return null;
+  if (raw.charAt(0) === '{' && raw.indexOf('"__chunks":') === 1) {
+    try {
+      var meta = JSON.parse(raw), n = Number(meta.__chunks) || 0;
+      if (n > 0) {
+        var keys = [];
+        for (var i = 0; i < n; i++) keys.push(key + '__' + i);
+        var parts = c.getAll ? c.getAll(keys) : null, out = '';
+        for (var j = 0; j < keys.length; j++) {
+          var seg = parts ? parts[keys[j]] : c.get(keys[j]);
+          if (!seg) return null;
+          out += seg;
+        }
+        return JSON.parse(out);
+      }
+    } catch (e) { return null; }
+  }
+  try { return JSON.parse(raw); } catch (e) { return null; }
+}
+
+/** 寫入快取（自動切分每塊 <= 28000 字元，避開 GAS 單鍵 100 KB 限制） */
+function cachePut_(key, val, sec) {
+  try {
+    var c = CacheService.getScriptCache(), s = JSON.stringify(val), ttl = sec || 600, step = 28000;
+    if (s.length <= step) { c.put(key, s, ttl); return; }
+    var chunks = [];
+    for (var i = 0; i < s.length; i += step) chunks.push(s.slice(i, i + step));
+    if (chunks.length > 60) return;
+    if (c.putAll) {
+      var map = {}; map[key] = JSON.stringify({ __chunks: chunks.length });
+      for (var k = 0; k < chunks.length; k++) map[key + '__' + k] = chunks[k];
+      c.putAll(map, ttl);
+    } else {
+      for (var j = 0; j < chunks.length; j++) c.put(key + '__' + j, chunks[j], ttl);
+      c.put(key, JSON.stringify({ __chunks: chunks.length }), ttl);
+    }
+  } catch (e) { }
+}
+
 function ensureSetup_() {
+  var c = CacheService.getScriptCache();
+  if (c.get('setup_ok')) return;
   var ss = SpreadsheetApp.getActive();
   if (!ss.getSheetByName(SHEET.QB) || !ss.getSheetByName(SHEET.SAVE) || !ss.getSheetByName(SHEET.SUM)) setupSheets();
+  try { c.put('setup_ok', '1', 3600); } catch (e) { }
 }
 
 function clearContentCache() {
   var c = CacheService.getScriptCache();
-  var keys = ['catalog', 'settings', 'people', 'atlas', 'status', 'looks', 'codex'];
+  var keys = CACHE_KEYS.concat(['setup_ok']);
   for (var i = 1; i <= 120; i++) keys.push('ch_' + i);
-  c.removeAll(keys);
+  CACHE_CHUNKED.forEach(function (k) { for (var j = 0; j < 60; j++) keys.push(k + '__' + j); });
+  for (var s = 0; s < keys.length; s += 150) c.removeAll(keys.slice(s, s + 150));
 }
 
 /* ---------- 共用工具 ---------- */
@@ -192,11 +241,11 @@ function str_(v) {
 function now_() { return Utilities.formatDate(new Date(), 'Asia/Taipei', 'yyyy/MM/dd HH:mm:ss'); }
 
 function getSettings_() {
-  var c = CacheService.getScriptCache(), hit = c.get('settings');
-  if (hit) return JSON.parse(hit);
+  var hit = cacheGet_('settings');
+  if (hit) return hit;
   var o = {};
   rows_(SHEET.SET).forEach(function (r) { if (str_(r[0])) o[str_(r[0])] = str_(r[1]); });
-  c.put('settings', JSON.stringify(o), 300);
+  cachePut_('settings', o, 300);
   return o;
 }
 function yes_(v) { return /^(是|y|yes|true|1|開)$/i.test(str_(v)); }
@@ -254,18 +303,18 @@ function checkPw_(stored, input) {
 }
 
 /* ---------- 名單 ---------- */
-function findStudent_(account) {
+function findStudent_(account, data) {
   var key = str_(account).toLowerCase();
   if (!key) return null;
-  var data = rows_(SHEET.ROSTER);
+  data = data || rows_(SHEET.ROSTER);
   for (var i = 0; i < data.length; i++) {
     if (str_(data[i][0]).toLowerCase() === key) return { row: i + 2, r: data[i] };
   }
   return null;
 }
-function findByEmail_(email) {
+function findByEmail_(email, data) {
   email = str_(email).toLowerCase(); if (!email) return null;
-  var data = rows_(SHEET.ROSTER);
+  data = data || rows_(SHEET.ROSTER);
   for (var i = 0; i < data.length; i++) {
     if (str_(data[i][5]).toLowerCase() === email) return { row: i + 2, r: data[i] };
   }

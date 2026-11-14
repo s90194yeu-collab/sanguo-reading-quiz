@@ -12,8 +12,8 @@ function openChapters_() {
 /** 學生、訪客看得到這一回嗎（開放回數＋已上架） */
 function chOpen_(ch) { var o = openChapters_(); return !o || !!o[ch]; }
 function catalog_() {
-  var c = CacheService.getScriptCache(), hit = c.get('catalog');
-  if (hit) return JSON.parse(hit);
+  var hit = cacheGet_('catalog');
+  if (hit) return hit;
   var seen = {}, list = [];
   rows_(SHEET.TEXT).forEach(function (r) {
     var ch = Number(r[0]);
@@ -24,7 +24,7 @@ function catalog_() {
   var dn = drawN_(getSettings_());
   list.forEach(function (x) { x.qn = Math.min(qn[x.ch] || 0, dn); });
   list.sort(function (a, b) { return a.ch - b.ch; });
-  c.put('catalog', JSON.stringify(list), 600);
+  cachePut_('catalog', list, 600);
   return list;
 }
 function imgUrl_(v) {
@@ -35,10 +35,20 @@ function imgUrl_(v) {
   if (/^[\w-]{25,}$/.test(v)) return 'https://drive.google.com/thumbnail?id=' + v + '&sz=w2000';
   return v;
 }
+/** 解析單筆「戰況」工作表列（供 chapterFull_ 與 codexAll_ 共用） */
+function parseBfRow_(r, k) {
+  var units = function (v) { return str_(v).split(/[、,，]/).map(function (x) { return x.trim(); }).filter(String); };
+  var po = str_(r[21]).split(/[｜|]/).map(function (x) { return x.trim(); }).filter(String);
+  return { k: k, para: Number(r[1]) || 1, anchor: str_(r[2]), scene: str_(r[3]), title: str_(r[4]),
+    a: { name: str_(r[5]), units: units(r[6]), troops: str_(r[7]), state: str_(r[8]), fac: str_(r[18]) },
+    b: { name: str_(r[9]), units: units(r[10]), troops: str_(r[11]), state: str_(r[12]), fac: str_(r[19]) },
+    note: str_(r[13]), basis: Number(r[14]) || Number(r[1]) || 0,
+    bg: str_(r[15]), horse: str_(r[16]), face: str_(r[17]), pq: str_(r[20]), po: po.length >= 2 ? po : [] };
+}
 /** 含答案的完整一回（僅伺服器端使用） */
 function chapterFull_(ch) {
-  var c = CacheService.getScriptCache(), key = 'ch_' + ch, hit = c.get(key);
-  if (hit) return JSON.parse(hit);
+  var key = 'ch_' + ch, hit = cacheGet_(key);
+  if (hit) return hit;
   var paras = [], num = '', title = '';
   rows_(SHEET.TEXT).forEach(function (r) {
     if (Number(r[0]) === ch) { num = str_(r[1]); title = str_(r[2]); paras.push({ i: Number(r[3]), t: str_(r[4]) }); }
@@ -57,24 +67,16 @@ function chapterFull_(ch) {
     .map(function (r) { return { w: str_(r[1]), k: str_(r[2]) || '人名', note: str_(r[3]) }; });
   var sm = rows_(SHEET.SUM).filter(function (r) { return Number(r[0]) === ch; })[0];
   var summary = sm ? { events: str_(sm[1]).split(/\n+/).filter(String), quote: str_(sm[2]), think: str_(sm[3]) } : null;
-  var units = function (v) { return str_(v).split(/[、,，]/).map(function (x) { return x.trim(); }).filter(String); };
-  var bf = rows_(SHEET.BF).filter(function (r) { return Number(r[0]) === ch && str_(r[3]); }).map(function (r, k) {
-    var po = str_(r[21]).split(/[｜|]/).map(function (x) { return x.trim(); }).filter(String);
-    return { k: k, para: Number(r[1]) || 1, anchor: str_(r[2]), scene: str_(r[3]), title: str_(r[4]),
-      a: { name: str_(r[5]), units: units(r[6]), troops: str_(r[7]), state: str_(r[8]), fac: str_(r[18]) },
-      b: { name: str_(r[9]), units: units(r[10]), troops: str_(r[11]), state: str_(r[12]), fac: str_(r[19]) },
-      note: str_(r[13]), basis: Number(r[14]) || Number(r[1]) || 0,
-      bg: str_(r[15]), horse: str_(r[16]), face: str_(r[17]), pq: str_(r[20]), po: po.length >= 2 ? po : [] };
-  });
+  var bf = rows_(SHEET.BF).filter(function (r) { return Number(r[0]) === ch && str_(r[3]); }).map(parseBfRow_);
   var o = { ch: ch, num: num, title: title, paras: paras, qs: qs, ill: ill, notes: notes, names: names, summary: summary, bf: bf, art: artData_() };
-  try { c.put(key, JSON.stringify(o), 600); } catch (e) { }
+  cachePut_(key, o, 600);
   return o;
 }
 
 /* ---------- 人物 ---------- */
 function peopleAll_() {
-  var c = CacheService.getScriptCache(), hit = c.get('people');
-  if (hit) return JSON.parse(hit);
+  var hit = cacheGet_('people');
+  if (hit) return hit;
   var deeds = {};
   rows_(SHEET.DEED).forEach(function (r) { var n = str_(r[0]); if (n) (deeds[n] = deeds[n] || []).push({ ch: Number(r[1]) || 0, t: str_(r[2]) }); });
   var list = rows_(SHEET.PEOPLE).filter(function (r) { return str_(r[0]); }).map(function (r) {
@@ -83,7 +85,7 @@ function peopleAll_() {
       camp: str_(r[2]), first: Number(r[3]) || 1, intro: str_(r[4]),
       deeds: (deeds[n] || []).sort(function (a, b) { return a.ch - b.ch; }) };
   });
-  try { c.put('people', JSON.stringify(list), 600); } catch (e) { }
+  cachePut_('people', list, 600);
   return list;
 }
 /** 只給讀到第 ch 回為止的資訊，避免劇透 */
@@ -95,8 +97,8 @@ function peopleFor_(ch) {
 
 /* ---------- 人物關係圖・地圖與時間軸（只給已讀到的回次） ---------- */
 function atlasAll_() {
-  var c = CacheService.getScriptCache(), hit = c.get('atlas');
-  if (hit) return JSON.parse(hit);
+  var hit = cacheGet_('atlas');
+  if (hit) return hit;
   var o = {
     rels: rows_(SHEET.REL).filter(function (r) { return str_(r[0]) && str_(r[1]); })
       .map(function (r) { return { a: str_(r[0]), b: str_(r[1]), rel: str_(r[2]), ch: Number(r[3]) || 1 }; }),
@@ -104,7 +106,7 @@ function atlasAll_() {
       .map(function (r) { return { ch: Number(r[0]), no: Number(r[1]) || 0, year: str_(r[2]), place: str_(r[3]), event: str_(r[4]), lon: Number(r[5]), lat: Number(r[6]), fac: str_(r[7]) }; })
       .sort(function (a, b) { return a.ch - b.ch || a.no - b.no; })
   };
-  try { c.put('atlas', JSON.stringify(o), 600); } catch (e) { }
+  cachePut_('atlas', o, 600);
   return o;
 }
 function atlas_(reach, allOpen) {
@@ -144,9 +146,9 @@ function saveObj_(r) {
     lastAns: j(r[8]), firstTime: str_(r[9]), lastTime: str_(r[10]), updated: str_(r[11]),
     spent: Number(r[12]) || 0, opened: str_(r[13]) };
 }
-function progress_(account) {
+function progress_(account, saveRows) {
   var a = str_(account).toLowerCase(), o = {};
-  rows_(SHEET.SAVE).forEach(function (r) {
+  (saveRows || rows_(SHEET.SAVE)).forEach(function (r) {
     if (str_(r[0]).toLowerCase() === a) {
       var s = saveObj_(r);
       o[s.ch] = { submitted: s.submitted, best: s.best, last: s.last, tries: s.tries, hasDraft: !!(s.draft && ((s.draft.ans && Object.keys(s.draft.ans).length) || (s.draft.bt && !s.draft.bt.fin && Object.keys(s.draft.bt.ans || {}).length))) };
@@ -165,7 +167,8 @@ function guestChapters_(set) {
 }
 
 function apiInit(token) {
-  var set = getSettings_();
+  var set = getSettings_(), rosterRows = null, stHit = null;
+  var getRoster = function () { return rosterRows || (rosterRows = rows_(SHEET.ROSTER)); };
   var out = { title: set['網站標題'] || '三國演義・閱讀試煉', subtitle: set['副標題'] || '',
     allowRegister: yes_(set['開放外人註冊'] || '是'), googleClientId: str_(set['Google登入ClientID']), user: null, token: null,
     guestChapters: Object.keys(guestChapters_(set)).map(Number),
@@ -175,7 +178,7 @@ function apiInit(token) {
     try {
       var p = verify_(token);
       if (p.r === 't') { out.teacher = true; out.token = token; if (p.em) out.email = p.em; }
-      else { var hit = findStudent_(p.a); if (hit) { out.user = userObj_(hit.r); out.token = token; } }
+      else { stHit = findStudent_(p.a, getRoster()); if (stHit) { out.user = userObj_(stHit.r); out.token = token; } }
     } catch (e) { }
   }
   if (!out.user && !out.teacher) {
@@ -184,13 +187,14 @@ function apiInit(token) {
     if (isTeacherEmail_(email, set)) {
       var tIss = issueTeacher_(email);
       out.teacher = true; out.token = tIss.token; out.auto = true; out.email = email;
-    } else {
-      var byMail = findByEmail_(email);
-      if (byMail) { var iss = issueStudent_(byMail); out.user = iss.user; out.token = iss.token; out.auto = true; }
+    } else if (email) {
+      var byMail = findByEmail_(email, getRoster());
+      if (byMail) { var iss = issueStudent_(byMail); stHit = byMail; out.user = iss.user; out.token = iss.token; out.auto = true; }
       out.email = email;
     }
   }
-  if (out.user) out.home = homeData_(out.user.account);
+  if (out.teacher) out.tdata = teacherData_({ lite: true, ch: 1 });
+  else if (out.user) out.home = homeData_(out.user.account, rosterRows, stHit);
   return out;
 }
 
@@ -205,12 +209,14 @@ function teacherHomeData_() {
   return { chapters: list, progress: {}, ann: annAll_().slice(0, 8), board: null, teacher: true };
 }
 
-function homeData_(account) {
+function homeData_(account, rosterRows, stHit) {
+  rosterRows = rosterRows || rows_(SHEET.ROSTER);
+  var saveRows = rows_(SHEET.SAVE);
   var open = openChapters_();
   var list = catalog_().filter(function (x) { return !open || open[x.ch]; });
-  var st = findStudent_(account), cls = st ? str_(st.r[3]) : '';
-  var out = { chapters: list, progress: progress_(account), ann: annFor_(cls) };
-  try { out.board = board_(account, cls, list.length); } catch (e) { out.board = null; }
+  var st = stHit || findStudent_(account, rosterRows), cls = st ? str_(st.r[3]) : '';
+  var out = { chapters: list, progress: progress_(account, saveRows), ann: annFor_(cls) };
+  try { out.board = board_(account, cls, list.length, rosterRows, saveRows); } catch (e) { out.board = null; }
   return out;
 }
 
@@ -241,17 +247,17 @@ function maskName_(n) {
   if (n.length === 2) return n[0] + '○';
   return n[0] + new Array(n.length - 1).join('○') + n[n.length - 1];
 }
-function board_(account, cls, nOpen) {
+function board_(account, cls, nOpen, rosterRows, saveRows) {
   var set = getSettings_();
   if (!yes_(set['排行榜'] || '是') || !cls) return null;
   var me = str_(account).toLowerCase(), full = str_(set['排行榜姓名顯示']) === '完整';
   var mates = {};
-  rows_(SHEET.ROSTER).forEach(function (r) {
+  (rosterRows || rows_(SHEET.ROSTER)).forEach(function (r) {
     if (str_(r[0]) && str_(r[3]) === cls) mates[str_(r[0]).toLowerCase()] = { name: str_(r[2]), done: 0, best: 0, perfect: 0, last: '' };
   });
   var qn = {}; catalog_().forEach(function (c) { qn[c.ch] = c.qn; });
   var open = openChapters_();
-  rows_(SHEET.SAVE).forEach(function (r) {
+  (saveRows || rows_(SHEET.SAVE)).forEach(function (r) {
     var a = str_(r[0]).toLowerCase(), m = mates[a]; if (!m) return;
     var s = saveObj_(r); if (!s.submitted || (open && !open[s.ch])) return;
     m.done++; m.best += s.best || 0; if (qn[s.ch] && s.best === qn[s.ch]) m.perfect++;

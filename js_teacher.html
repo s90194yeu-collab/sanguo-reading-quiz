@@ -1,8 +1,23 @@
 /* 教師後台。本檔是純 JavaScript，由 Index.html 的 include() 併入同一個 <script>。 */
 /* ================= 教師後台 ================= */
-function renderTeacher() {
+function renderTeacher(force) {
+  if (S.tdata && force !== true && !S.tStale) return drawTeacher();
+  S.tStale = false;
   loading('調閱名冊');
-  call('apiTeacherData', S.teacher).then(function (d) { S.tdata = d; drawTeacher(); }).catch(fail);
+  var ch = S.tCh || 1;
+  call('apiTeacherData', S.teacher, { lite: true, ch: ch }).then(function (d) {
+    S.tdata = d; S._tqAll = !d.lite; S._tqP = null; drawTeacher();
+  }).catch(fail);
+}
+function ensureTQs() {
+  if (!S.tdata || !S.tdata.lite || S._tqAll) return Promise.resolve(S.tdata);
+  if (S._tqP) return S._tqP;
+  S._tqP = call('apiTeacherQMeta', S.teacher).then(function (map) {
+    (S.tdata.chapters || []).forEach(function (c) { if (!c.qs && map[c.ch]) c.qs = map[c.ch]; });
+    S._tqAll = true;
+    return S.tdata;
+  }, function (e) { S._tqP = null; throw e; });
+  return S._tqP;
 }
 function natural(a, b) { return String(a).localeCompare(String(b), 'zh-Hant', { numeric: true }); }
 function tIndex() {
@@ -29,7 +44,7 @@ function bindTTabs() {
   $$('[data-tt]').forEach(function (b) {
     b.onclick = function () {
       var was = S.tTab || 'ov'; S.tTab = b.dataset.tt;
-      if (S.tTab === 'ov' && S.tStale) { S.tStale = false; return renderTeacher(); }
+      if (S.tTab === 'ov' && S.tStale) { S.tStale = false; return renderTeacher(true); }
       if (was !== S.tTab) drawTeacher();
     };
   });
@@ -71,7 +86,7 @@ function drawTeacher() {
   }).join('');
   // 該回各題答對率
   var chap = chMap[ch], stat = qStats(studs, ch, idx);
-  var bars = chap ? chap.qs.map(function (q) {
+  var bars = chap && chap.qs ? chap.qs.map(function (q) {
     var st = stat[q.no] || { n: 0, ok: 0, pick: {} }, rate = st.n ? Math.round(st.ok / st.n * 100) : 0;
     return '<div class="b"><span>第' + cnum(q.no) + '題 <span class="tag ' + typeCls(q.type) + '">' + esc(q.type) + '</span></span><div class="track"><div class="fill' + (rate < 60 ? ' low' : '') + '" style="width:' + rate + '%"></div></div><b>' + (st.n ? rate + '%' : '—') + '</b>' +
       '<div class="dist">' + esc(q.stem.slice(0, 44)) + (q.stem.length > 44 ? '…' : '') + '<br>正解 ' + q.ans + '｜' + 'ABCD'.split('').map(function (L) { return L + '：' + (st.pick[L] || 0) + '人'; }).join('　') + '（共 ' + st.n + ' 人）</div></div>';
@@ -85,24 +100,36 @@ function drawTeacher() {
     '<div class="kpi"><span>交卷回次</span><b>' + subs + '</b></div><div class="kpi"><span>平均答對率（最高分）</span><b>' + (sumQ ? Math.round(sumBest / sumQ * 100) + '%' : '—') + '</b></div>' +
     '<div class="kpi"><span>' + esc(chap ? chap.num : '') + ' 完成人數</span><b>' + cur + '</b></div></div>' +
     '<h4 class="sec">班級總表（' + ({ score: '格內為最高分', time: '格內為最近交卷時間', dur: '格內為累計閱讀作答用時' })[S.tMode || 'score'] + '；滑鼠移到格子上看詳細）</h4><div class="tablewrap"><table class="grid"><thead>' + thead + '</thead><tbody>' + (tbody || '<tr><td colspan="99">此班尚無名單</td></tr>') + '</tbody></table></div>' +
-    '<h4 class="sec">' + esc(chap ? chap.num + '　' + chap.title : '') + '・各題答對率（以最近一次作答計）</h4><div class="scrollpanel bars">' + (bars || '無題目') + '</div>' +
-    '<h4 class="sec">' + esc(chap ? chap.num : '') + '・最需要講解的段落（依答錯率排序，點一下看原文）</h4><div class="scrollpanel bars">' + paraAnalysis(studs, ch, idx) + '</div>');
+    '<h4 class="sec">' + esc(chap ? chap.num + '　' + chap.title : '') + '・各題答對率（以最近一次作答計）</h4><div class="scrollpanel bars">' + (bars || (chap && !chap.qs ? '<p class="note">載入題目分析中…</p>' : '無題目')) + '</div>' +
+    '<h4 class="sec">' + esc(chap ? chap.num : '') + '・最需要講解的段落（依答錯率排序，點一下看原文）</h4><div class="scrollpanel bars">' + (chap && chap.qs ? paraAnalysis(studs, ch, idx) : '<p class="note">載入段落分析中…</p>') + '</div>');
   $$('.pa').forEach(function (el) {
     el.onclick = function () {
-      var g = S.paraList[+el.dataset.k];
-      modal('<h3>第 ' + g.para + ' 段</h3><p style="line-height:2;text-indent:2em">' + esc(g.text) + '</p><div class="note">' +
+      var g = S.paraList[+el.dataset.k], cached = S._fullParas && S._fullParas[ch + '_' + g.para];
+      var txt = cached || (g.text + (g.more ? '…（載入全文中）' : ''));
+      modal('<h3>第 ' + g.para + ' 段</h3><p id="paTxt" style="line-height:2;text-indent:2em">' + esc(txt) + '</p><div class="note">' +
         g.qs.map(function (q) { var qq = chap.qs.filter(function (x) { return x.no === q.no; })[0]; return '<p>第' + cnum(q.no) + '題（答錯 ' + Math.round(q.rate * 100) + '%，' + q.n + ' 人作答）：' + esc(qq ? qq.stem : '') + '</p>'; }).join('') +
         '</div><div class="mbtns"><button class="btn" onclick="closeModal()">關閉</button></div>');
+      if (g.more && !cached) call('apiTeacherPara', S.teacher, ch, g.para).then(function (full) {
+        (S._fullParas = S._fullParas || {})[ch + '_' + g.para] = full;
+        var p = $('#paTxt'); if (p) p.textContent = full;
+      }).catch(function () { });
     };
   });
   bindTTabs();
   $('#selCls').onchange = function () { S.tCls = this.value; drawTeacher(); };
-  $('#selCh').onchange = function () { S.tCh = +this.value; drawTeacher(); };
+  $('#selCh').onchange = function () {
+    S.tCh = +this.value;
+    var c = S.tdata.chapters.filter(function (x) { return x.ch === S.tCh; })[0];
+    if (c && !c.qs) { toast('載入該回題目分析…', 1500); return ensureTQs().then(drawTeacher).catch(fail); }
+    drawTeacher();
+  };
   $('#selMode').onchange = function () { S.tMode = this.value; drawTeacher(); };
-  $('#tRefresh').onclick = renderTeacher;
+  $('#tRefresh').onclick = function () { renderTeacher(true); };
   $('#tXlsx').onclick = downloadXlsx;
   $('#tDrive').onclick = exportDrive;
   $$('tr.clk').forEach(function (tr) { tr.onclick = function () { studentDetail(tr.dataset.a); }; });
+  if (chap && !chap.qs) ensureTQs().then(drawTeacher).catch(function () { });
+  else if (d.lite && !S._tqAll) ensureTQs().catch(function () { });
 }
 
 
@@ -240,13 +267,14 @@ function drawQB() {
 
 function nAns(v, c) {
   var n = v && v.lastAns ? Object.keys(v.lastAns).filter(function (k) { return String(v.lastAns[k] || '').trim(); }).length : 0;
-  return n || (c && (c.qn || c.qs.length)) || 5;
+  return n || (c && (c.qn || (c.qs && c.qs.length))) || 5;
 }
 function qStats(studs, ch, idx) {
   var o = {};
+  var chap = S.tdata.chapters.filter(function (c) { return c.ch === ch; })[0];
+  if (!chap || !chap.qs) return o;
   studs.forEach(function (s) {
     var v = (idx[s.account.toLowerCase()] || {})[ch]; if (!v || !v.submitted || !v.lastAns) return;
-    var chap = S.tdata.chapters.filter(function (c) { return c.ch === ch; })[0]; if (!chap) return;
     chap.qs.forEach(function (q) {
       var a = String(v.lastAns[q.no] || '').toUpperCase(); if (!a) return;   // 沒被抽到的題不計
       var st = o[q.no] = o[q.no] || { n: 0, ok: 0, pick: {} };
@@ -256,6 +284,7 @@ function qStats(studs, ch, idx) {
   return o;
 }
 function studentDetail(acc) {
+  if (S.tdata && S.tdata.lite && !S._tqAll) { toast('載入作答明細…', 1500); return ensureTQs().then(function () { studentDetail(acc); }).catch(fail); }
   var s = S.tdata.roster.filter(function (r) { return r.account === acc; })[0], m = tIndex()[acc.toLowerCase()] || {};
   var html = '<h3>' + esc(s.cls) + ' ' + esc(s.seat) + ' ' + esc(s.name) + '</h3><p class="note">帳號 ' + esc(s.account) + '・' + esc(s.kind) + (s.school ? '・' + esc(s.school) : '') + '・最近登入 ' + esc(s.last || '—') + '</p>';
   html += S.tdata.chapters.map(function (c) {
@@ -291,9 +320,25 @@ function exportSheets() {
   var name = '三國演義閱讀檢測_' + (cls === '__all' ? '全部班級' : cls.replace(/[\\\/:*?"<>|【】]/g, '')) + '_' + d.time.slice(0, 10).replace(/\//g, '');
   return { name: name, sheets: [{ name: '班級總表', rows: r1 }, { name: '作答明細', rows: r2 }, { name: '各題答對率', rows: r3 }] };
 }
+function ensureXlsx() {
+  if (typeof XLSX !== 'undefined') return Promise.resolve();
+  if (S._xlsxP) return S._xlsxP;
+  S._xlsxP = new Promise(function (res, rej) {
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    s.onload = function () { typeof XLSX !== 'undefined' ? res() : rej(new Error('XLSX')); };
+    s.onerror = rej;
+    document.head.appendChild(s);
+  });
+  return S._xlsxP;
+}
 function downloadXlsx() {
+  if (S.tdata && S.tdata.lite && !S._tqAll) { toast('準備匯出題庫資料…', 2000); return ensureTQs().then(downloadXlsx).catch(fail); }
+  if (typeof XLSX === 'undefined') {
+    toast('正在載入 Excel 匯出元件…', 2500);
+    return ensureXlsx().then(downloadXlsx).catch(function () { toast('Excel 元件載入失敗，改用雲端硬碟匯出'); return exportDrive(); });
+  }
   var x = exportSheets();
-  if (typeof XLSX === 'undefined') { toast('Excel 元件載入失敗，改用雲端硬碟匯出'); return exportDrive(); }
   try {
     var wb = XLSX.utils.book_new();
     x.sheets.forEach(function (s) {
@@ -309,6 +354,7 @@ function downloadXlsx() {
   } catch (e) { toast('瀏覽器擋下下載，改用雲端硬碟匯出'); exportDrive(); }
 }
 function exportDrive() {
+  if (S.tdata && S.tdata.lite && !S._tqAll) { toast('準備匯出題庫資料…', 2000); return ensureTQs().then(exportDrive).catch(fail); }
   var x = exportSheets(); toast('正在雲端硬碟建立檔案…', 4000);
   call('apiTeacherExportDrive', S.teacher, x.sheets, x.name).then(function (r) {
     modal('<h3>匯出完成</h3><p>檔案已存到你的雲端硬碟。</p><div class="mbtns"><a class="btn ghost" href="' + esc(r.sheetUrl) + '" target="_blank">開啟試算表</a><a class="btn" href="' + esc(r.url) + '" target="_blank">下載 xlsx</a></div>');

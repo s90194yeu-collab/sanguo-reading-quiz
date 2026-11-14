@@ -78,7 +78,8 @@ function paraAnalysis(studs, ch, idx) {
   var st = qStats(studs, ch, idx), groups = {};
   chap.qs.forEach(function (q) {
     var x = st[q.no]; if (!x || !x.n) return;
-    var g = groups[q.para] = groups[q.para] || { para: q.para, text: q.paraText, qs: [], max: 0 };
+    var g = groups[q.para] = groups[q.para] || { para: q.para, text: q.paraText, more: q.paraMore, qs: [], max: 0 };
+    if (q.paraMore) g.more = 1;
     var rate = 1 - x.ok / x.n; g.qs.push({ no: q.no, type: q.type, rate: rate, n: x.n }); g.max = Math.max(g.max, rate);
   });
   var list = Object.keys(groups).map(function (k) { return groups[k]; }).sort(function (a, b) { return b.max - a.max; });

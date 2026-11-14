@@ -16,14 +16,14 @@ var CH_STATUS = ['草稿', '待審', '上架', '下架'];
 /* ================= 回目狀態（審核上架） ================= */
 /** { 回: { status, imported, reviewed, note } }；表上沒有的回＝視為上架（相容舊資料） */
 function chapterStatus_() {
-  var c = CacheService.getScriptCache(), hit = c.get('status');
-  if (hit) return JSON.parse(hit);
+  var hit = cacheGet_('status');
+  if (hit) return hit;
   var o = {};
   rows_(SHEET.STAT).forEach(function (r) {
     var ch = Number(r[0]); if (!ch) return;
     o[ch] = { status: CH_STATUS.indexOf(str_(r[1])) >= 0 ? str_(r[1]) : '草稿', imported: str_(r[2]), reviewed: str_(r[3]), note: str_(r[4]) };
   });
-  try { c.put('status', JSON.stringify(o), 600); } catch (e) { }
+  cachePut_('status', o, 600);
   return o;
 }
 function setChapterStatus_(ch, status, note, imported) {
@@ -38,8 +38,8 @@ function setChapterStatus_(ch, status, note, imported) {
 
 /* ================= 人物造型與勢力（前端 16-bit 畫面用） ================= */
 function artData_() {
-  var c = CacheService.getScriptCache(), hit = c.get('looks');
-  if (hit) return JSON.parse(hit);
+  var hit = cacheGet_('looks');
+  if (hit) return hit;
   var looks = rows_(SHEET.LOOK).filter(function (r) { return str_(r[0]); }).map(function (r) {
     return { key: str_(r[0]), kw: str_(r[1]) === '關鍵字', head: LOOK_HEAD[str_(r[2])] || 'helm', beard: LOOK_BEARD[str_(r[3])] || 'none',
       weapon: LOOK_WEAPON[str_(r[4])] || 'sword', hair: color_(r[5]), plume: color_(r[6]), armor: color_(r[7]), cloth: color_(r[8]),
@@ -50,7 +50,7 @@ function artData_() {
       keys: str_(r[3]).split(/[、,，\s]+/).filter(String), note: str_(r[4]) };
   });
   var o = { looks: looks, factions: factions };
-  try { c.put('looks', JSON.stringify(o), 600); } catch (e) { }
+  cachePut_('looks', o, 600);
   return o;
 }
 function color_(v) { v = str_(v); return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(v) ? v : ''; }
@@ -86,8 +86,8 @@ function apiSaveGame(token, ch, g) {
 
 /* ================= 圖鑑：人物（依讀到的段落解鎖）、戰役 ================= */
 function codexAll_() {
-  var c = CacheService.getScriptCache(), hit = c.get('codex');
-  if (hit) return JSON.parse(hit);
+  var hit = cacheGet_('codex');
+  if (hit) return hit;
   var text = {};
   rows_(SHEET.TEXT).forEach(function (r) { var ch = Number(r[0]); if (ch) (text[ch] = text[ch] || []).push({ i: Number(r[3]), t: str_(r[4]) }); });
   var people = peopleAll_().map(function (p) {
@@ -95,15 +95,21 @@ function codexAll_() {
     for (var i = 0; i < ps.length && !at; i++) for (var k = 0; k < keys.length; k++) if (ps[i].t.indexOf(keys[k]) >= 0) { at = ps[i].i; break; }
     return { name: p.name, camp: p.camp, first: p.first, para: at || 1, intro: p.intro, deeds: p.deeds };
   });
+  var bfByCh = {};
+  rows_(SHEET.BF).forEach(function (r) {
+    var ch = Number(r[0]);
+    if (ch && str_(r[3])) (bfByCh[ch] = bfByCh[ch] || []).push(r);
+  });
   var battles = [];
   catalog_().forEach(function (cc) {
-    (chapterFull_(cc.ch).bf || []).forEach(function (r) {
+    (bfByCh[cc.ch] || []).forEach(function (row, k) {
+      var r = parseBfRow_(row, k);
       if (r.scene === '平時') return;
       battles.push({ ch: cc.ch, k: r.k, para: r.para, title: r.title, scene: r.scene, a: r.a, b: r.b, note: r.note, bg: r.bg, horse: r.horse });
     });
   });
   var o = { people: people, battles: battles };
-  try { c.put('codex', JSON.stringify(o), 600); } catch (e) { }
+  cachePut_('codex', o, 600);
   return o;
 }
 function codexFor_(prog, allOpen) {
@@ -375,13 +381,29 @@ function applyChapter1Upgrade() {
 }
 
 /* ================= 教師後台：審核上架、預覽 ================= */
+function chapterCounts_() {
+  var hit = cacheGet_('ch_counts');
+  if (hit) return hit;
+  var counts = {}, inc = function (ch, k) {
+    ch = Number(ch); if (!ch) return;
+    var o = counts[ch] || (counts[ch] = { paras: 0, qs: 0, bf: 0, notes: 0 });
+    o[k]++;
+  };
+  rows_(SHEET.TEXT).forEach(function (r) { inc(r[0], 'paras'); });
+  rows_(SHEET.QB).forEach(function (r) { inc(r[0], 'qs'); });
+  rows_(SHEET.BF).forEach(function (r) { if (str_(r[3])) inc(r[0], 'bf'); });
+  rows_(SHEET.NOTE).forEach(function (r) { if (str_(r[1])) inc(r[0], 'notes'); });
+  cachePut_('ch_counts', counts, 600);
+  return counts;
+}
 function apiTeacherStatus(token) {
   verify_(token, 't');
-  var st = chapterStatus_();
+  var st = chapterStatus_(), counts = chapterCounts_();
   return catalog_().map(function (c) {
-    var f = chapterFull_(c.ch), s = st[c.ch] || { status: '上架', imported: '', reviewed: '', note: '（未列入審核表，視為上架）' };
+    var cnt = counts[c.ch] || { paras: 0, qs: 0, bf: 0, notes: 0 };
+    var s = st[c.ch] || { status: '上架', imported: '', reviewed: '', note: '（未列入審核表，視為上架）' };
     return { ch: c.ch, num: c.num, title: c.title, status: s.status, imported: s.imported, reviewed: s.reviewed, note: s.note,
-      paras: f.paras.length, qs: f.qs.length, bf: f.bf.length, notes: f.notes.length };
+      paras: cnt.paras, qs: cnt.qs, bf: cnt.bf, notes: cnt.notes };
   });
 }
 function apiTeacherSetStatus(token, ch, status) {

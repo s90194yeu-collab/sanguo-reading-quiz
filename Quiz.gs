@@ -201,13 +201,30 @@ function applyQuestionBank1() {
 function apiMistakes(token) {
   var p = authAny_(token); if (p.r === 't') return [];
   var a = str_(p.a).toLowerCase(), showExp = yes_(getSettings_()['交卷後顯示解析'] || '是'), out = [];
+  var subs = [];
   rows_(SHEET.SAVE).forEach(function (r) {
     if (str_(r[0]).toLowerCase() !== a) return;
-    var s = saveObj_(r); if (!s.submitted || !s.lastAns) return;
-    var full = chapterFull_(s.ch);
-    full.qs.forEach(function (q) {
+    var s = saveObj_(r); if (s.submitted && s.lastAns) subs.push(s);
+  });
+  var catMap = null, qbByCh = null;
+  subs.forEach(function (s) {
+    var cached = cacheGet_('ch_' + s.ch), num, title, qs;
+    if (cached) { num = cached.num; title = cached.title; qs = cached.qs; }
+    else {
+      if (!catMap) {
+        catMap = {}; catalog_().forEach(function (c) { catMap[c.ch] = c; });
+        qbByCh = {};
+        rows_(SHEET.QB).forEach(function (r) {
+          var ch = Number(r[0]); if (!ch) return;
+          (qbByCh[ch] = qbByCh[ch] || []).push({ no: Number(r[1]), type: str_(r[2]), stem: str_(r[3]), opts: [str_(r[4]), str_(r[5]), str_(r[6]), str_(r[7])],
+            ans: str_(r[8]).toUpperCase(), exp: str_(r[9]), para: Number(r[10]) || 0 });
+        });
+      }
+      var cc = catMap[s.ch] || {}; num = cc.num || ''; title = cc.title || ''; qs = qbByCh[s.ch] || [];
+    }
+    qs.forEach(function (q) {
       var mine = str_(s.lastAns[q.no]).toUpperCase();
-      if (mine && mine !== q.ans) out.push({ ch: s.ch, num: full.num, title: full.title, no: q.no, type: q.type, stem: q.stem, opts: q.opts,
+      if (mine && mine !== q.ans) out.push({ ch: s.ch, num: num, title: title, no: q.no, type: q.type, stem: q.stem, opts: q.opts,
         ans: q.ans, mine: mine, exp: showExp ? q.exp : '', para: q.para });
     });
   });

@@ -3,7 +3,7 @@
 function apiTeacherLogin(pw) {
   var set = getSettings_();
   if (!str_(pw) || str_(pw) !== str_(set['教師密碼'])) throw new Error('教師密碼錯誤');
-  return { token: issueTeacher_('').token };
+  return { token: issueTeacher_('').token, tdata: teacherData_({ lite: true, ch: 1 }) };
 }
 
 /** 前端 Google Identity Services 登入：驗證 id_token，教師信箱進後台並全解鎖，學生信箱比對名單登入 */
@@ -22,20 +22,51 @@ function apiGoogleLogin(idToken) {
   if (!email) throw new Error('無法取得 Google 信箱');
   if (isTeacherEmail_(email, set)) {
     var t = issueTeacher_(email);
-    return { teacher: true, token: t.token, email: email };
+    return { teacher: true, token: t.token, email: email, tdata: teacherData_({ lite: true, ch: 1 }) };
   }
-  var byMail = findByEmail_(email);
+  var rosterRows = rows_(SHEET.ROSTER), byMail = findByEmail_(email, rosterRows);
   if (byMail) {
     var iss = issueStudent_(byMail);
-    iss.home = homeData_(iss.user.account);
+    iss.home = homeData_(iss.user.account, rosterRows, byMail);
     iss.email = email;
     return iss;
   }
   throw new Error('帳號 ' + email + ' 不是教師信箱，也尚未登錄在學生名單中');
 }
 
-function apiTeacherData(token) {
-  verify_(token, 't');
+/** 一次掃描原文與題庫建立教師後台章題摘要（避免 N×chapterFull_ 重複讀表，並分塊快取） */
+function teacherChapters_() {
+  var hit = cacheGet_('tch_chaps');
+  if (hit) return hit;
+  var meta = {}, paras = {};
+  rows_(SHEET.TEXT).forEach(function (r) {
+    var ch = Number(r[0]); if (!ch) return;
+    if (!meta[ch]) meta[ch] = { ch: ch, num: str_(r[1]), title: str_(r[2]) };
+    (paras[ch] = paras[ch] || {})[Number(r[3])] = str_(r[4]).replace(/^〔詩〕/, '');
+  });
+  var qsByCh = {};
+  rows_(SHEET.QB).forEach(function (r) {
+    var ch = Number(r[0]); if (!ch) return;
+    var para = Number(r[10]) || 0, pt = (paras[ch] && paras[ch][para]) || '';
+    var q = { no: Number(r[1]), type: str_(r[2]), stem: str_(r[3]), ans: str_(r[8]).toUpperCase(), para: para,
+      paraText: pt.slice(0, 60) };
+    if (pt.length > 60) q.paraMore = 1;
+    (qsByCh[ch] = qsByCh[ch] || []).push(q);
+  });
+  var dn = drawN_(getSettings_()), chs = Object.keys(meta).map(Number).sort(function (a, b) { return a - b; });
+  var list = [], cat = [];
+  chs.forEach(function (ch) {
+    var m = meta[ch], qs = (qsByCh[ch] || []).sort(function (a, b) { return a.no - b.no; }), qn = Math.min(qs.length, dn);
+    list.push({ ch: ch, num: m.num, title: m.title, qn: qn, qs: qs });
+    cat.push({ ch: ch, num: m.num, title: m.title, qn: qn });
+  });
+  cachePut_('catalog', cat, 600);
+  cachePut_('tch_chaps', list, 600);
+  return list;
+}
+
+function teacherData_(opts) {
+  opts = opts || {};
   var roster = rows_(SHEET.ROSTER).filter(function (r) { return str_(r[0]); }).map(function (r) {
     return { account: str_(r[0]), name: str_(r[2]), cls: str_(r[3]), seat: str_(r[4]), kind: str_(r[6]) || '校內',
       school: str_(r[7]), last: str_(r[9]), pwSet: !!str_(r[1]) };
@@ -43,16 +74,38 @@ function apiTeacherData(token) {
   var saves = rows_(SHEET.SAVE).filter(function (r) { return str_(r[0]); }).map(function (r) {
     var s = saveObj_(r); s.account = str_(r[0]); delete s.draft; return s;
   });
-  var chapters = catalog_().map(function (c) {
-    var f = chapterFull_(c.ch);
-    return { ch: c.ch, num: c.num, title: c.title, qn: c.qn,
-      qs: f.qs.map(function (q) {
-        var pr = f.paras.filter(function (x) { return x.i === q.para; })[0];
-        return { no: q.no, type: q.type, stem: q.stem, ans: q.ans, para: q.para, paraText: pr ? pr.t.replace(/^〔詩〕/, '') : '' };
-      }) };
-  });
+  var allCh = teacherChapters_(), chapters = allCh;
+  if (opts.lite) {
+    var activeCh = Number(opts.ch) || (allCh[0] && allCh[0].ch) || 1;
+    chapters = allCh.map(function (c) {
+      return c.ch === activeCh ? c : { ch: c.ch, num: c.num, title: c.title, qn: c.qn };
+    });
+  }
   var fixes = rows_(SHEET.FIX).filter(function (r) { return str_(r[0]); }).map(function (r) { return { account: str_(r[0]), ch: Number(r[1]), no: Number(r[2]) }; });
-  return { roster: roster, saves: saves, chapters: chapters, anns: annAll_(), fixes: fixes, time: now_() };
+  var out = { roster: roster, saves: saves, chapters: chapters, anns: annAll_(), fixes: fixes, time: now_() };
+  if (opts.lite) out.lite = true;
+  return out;
+}
+
+function apiTeacherData(token, opts) {
+  verify_(token, 't');
+  return teacherData_(opts);
+}
+
+/** 背景補齊全回題庫摘要（不含已截斷的長段全文，供切換回次／學生明細／匯出使用） */
+function apiTeacherQMeta(token) {
+  verify_(token, 't');
+  var out = {};
+  teacherChapters_().forEach(function (c) { out[c.ch] = c.qs; });
+  return out;
+}
+
+/** 點開「最需要講解的段落」時才讀取完整段落原文 */
+function apiTeacherPara(token, ch, para) {
+  verify_(token, 't'); ch = Number(ch); para = Number(para);
+  var f = chapterFull_(ch);
+  var pr = f.paras.filter(function (x) { return x.i === para; })[0];
+  return pr ? pr.t.replace(/^〔詩〕/, '') : '';
 }
 
 /* ---------- 教師：公告 ---------- */
@@ -81,10 +134,7 @@ function apiTeacherDelAnn(token, id) {
 function apiTeacherQs(token, ch) {
   verify_(token, 't'); ch = Number(ch);
   var f = chapterFull_(ch);
-  return { ch: ch, num: f.num, title: f.title, nParas: f.paras.length,
-    qs: rows_(SHEET.QB).filter(function (r) { return Number(r[0]) === ch; }).map(function (r) {
-      return { no: Number(r[1]), type: str_(r[2]), stem: str_(r[3]), opts: [str_(r[4]), str_(r[5]), str_(r[6]), str_(r[7])], ans: str_(r[8]).toUpperCase(), exp: str_(r[9]), para: Number(r[10]) || 0, who: str_(r[11]) };
-    }).sort(function (a, b) { return a.no - b.no; }) };
+  return { ch: ch, num: f.num, title: f.title, nParas: f.paras.length, qs: f.qs };
 }
 function apiTeacherSaveQ(token, q) {
   verify_(token, 't'); q = q || {};

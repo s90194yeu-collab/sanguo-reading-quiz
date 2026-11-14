@@ -179,7 +179,7 @@ function setTop() {
 function logout(silent) {
   flushDraft();
   var wasGuest = S.guest;
-  S.token = S.user = S.teacher = S.teacherEmail = S.home = S.chap = null; S.guest = false; store('sg_token', null); setTop(); renderLogin();
+  S.token = S.user = S.teacher = S.teacherEmail = S.home = S.chap = S.tdata = S._tqAll = S._tqP = S._fullParas = null; S.guest = false; store('sg_token', null); setTop(); renderLogin();
   if (!silent && !wasGuest) toast('已登出，後會有期');
 }
 
@@ -190,7 +190,9 @@ call('apiInit', store('sg_token')).then(function (d) {
   if (d.teacher) {
     S.teacher = d.token; S.token = d.token; S.teacherEmail = d.email || ''; store('sg_token', d.token); setTop();
     if (d.auto && d.email) toast('已以教師信箱 ' + d.email + ' 自動登入');
-    renderTeacher(); return;
+    if (d.tdata) { S.tdata = d.tdata; S._tqAll = !d.tdata.lite; S._tqP = null; drawTeacher(); }
+    else renderTeacher();
+    return;
   }
   if (d.user) {
     S.token = d.token; S.user = d.user; S.home = d.home; store('sg_token', d.token); setTop();
@@ -209,7 +211,8 @@ function onGoogleCredential(resp) {
       S.teacher = d.token; S.token = d.token; S.user = null; S.teacherEmail = d.email || '';
       store('sg_token', d.token); setTop(); Qin.sfx('gong');
       toast('歡迎教師 ' + (d.email || '') + '（全內容已解鎖）');
-      renderTeacher();
+      if (d.tdata) { S.tdata = d.tdata; S._tqAll = !d.tdata.lite; S._tqP = null; drawTeacher(); }
+      else renderTeacher();
       return;
     }
     afterLogin(d);
@@ -276,7 +279,9 @@ function renderLogin(tab) {
   if (fT) (function (f) { f.onsubmit = function (e) {
     e.preventDefault(); var b = $('button', f); b.disabled = true; $('#err').textContent = '';
     call('apiTeacherLogin', f.pw.value).then(function (d) {
-      S.teacher = d.token; S.token = d.token; S.teacherEmail = ''; store('sg_token', d.token); setTop(); Qin.sfx('gong'); renderTeacher();
+      S.teacher = d.token; S.token = d.token; S.teacherEmail = ''; store('sg_token', d.token); setTop(); Qin.sfx('gong');
+      if (d.tdata) { S.tdata = d.tdata; S._tqAll = !d.tdata.lite; S._tqP = null; drawTeacher(); }
+      else renderTeacher();
     }).catch(function (e) { b.disabled = false; $('#err').textContent = e.message; });
   }; })(fT);
 }
