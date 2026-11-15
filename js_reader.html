@@ -290,7 +290,7 @@ function arcRailHTML(c, curId, isT) {
   }).join('') + '</div>';
 }
 function progressHTML(h) {
-  if (S.guest) return '<div class="progress scrollpanel"><p class="note" style="margin:0">全書一百二十回依六大劇本分卷排列；登入後可記錄個人閱讀進度、收集全書十六枚成就印章，並使用錯題本。</p></div>';
+  if (S.guest) return '<div class="progress scrollpanel"><p class="note" style="margin:0">目前為免登入模式，可自由閱讀全書與作答（作答成績不會寫入雲端紀錄）；點右上角「登入」可記錄個人閱讀進度、收集全書十六枚成就印章，並使用錯題本。</p></div>';
   var c = achCtx(h), TOTAL = 120, isT = !!(S.teacher || h.teacher);
   var curId = pickPgArc(c, isT), curArc = SANGUO_ARCS.filter(function (a) { return a.id === curId; })[0] || SANGUO_ARCS[0];
   var curList = c.arc[curId].list;

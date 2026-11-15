@@ -155,8 +155,13 @@ function endDemo(quit) {
   var D = S.demo; if (!D) return; D.abort = true; S.demo = null; S.demoPos = null;
   if (S.viewSaved) { try { PREF.view = JSON.parse(S.viewSaved); } catch (e) { } S.viewSaved = null; applyView(); }
   ['dTag', 'dX', 'dBar', 'dCur'].forEach(function (id) { var e = $('#' + id); if (e) e.remove(); });
-  if (quit) { S.guest = false; S.token ? goHome() : renderLogin(); return; }
+  var leaveDemo = function () {
+    if (S.token) { S.guest = false; goHome(); }
+    else if (S.guestChapters && S.guestChapters.length) { S.guest = true; setTop(); goHome(); }
+    else { S.guest = false; setTop(); renderLogin(); }
+  };
+  if (quit) return leaveDemo();
   document.body.insertAdjacentHTML('beforeend', '<div class="demo-end" id="dEnd"><div><h3>展示結束</h3><p>這是電腦自動示範的流程，沒有記錄任何成績。<br>戰況面板會隨閱讀位置變化，答題對錯只計成績；<br>圖鑑與人物・地圖隨閱讀進度解鎖。</p><div class="bt-act"><button class="btn" id="dAgain">重新展示</button><button class="btn ghost" id="dHome">回首頁</button></div></div></div>');
   $('#dAgain').onclick = function () { $('#dEnd').remove(); startDemo(); };
-  $('#dHome').onclick = function () { $('#dEnd').remove(); S.guest = false; S.token ? goHome() : renderLogin(); };
+  $('#dHome').onclick = function () { $('#dEnd').remove(); leaveDemo(); };
 }

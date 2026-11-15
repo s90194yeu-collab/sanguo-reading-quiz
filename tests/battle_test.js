@@ -51,11 +51,13 @@ const w2 = ctx.apiBattleStart(t2, 2); assert(w2.qs.length === 5);
 // 位置洗牌確實隨機：同題 40 次出現的選項排列不只一種
 const perms = new Set(); for (let i = 0; i < 40; i++) { const tk = ctx.apiGuestBattleStart(1); const q = tk.qs.find(x => x.no === 3); if (q) perms.add(q.opts.join('|')); }
 console.log('distinct perms of Q3 over draws', perms.size); assert(perms.size > 3);
-// 訪客：票證
+// 訪客：票證（預設全部開放；設為 1 時第 2 回需登入）
 const gs = ctx.apiGuestBattleStart(1); assert(gs.ticket && gs.qs.length === 10);
 const gr = ctx.apiGuestBattleAnswer(gs.ticket, gs.qs[0].no, 'A'); assert(typeof gr.ok === 'boolean' && 'ABCD'.includes(gr.ans));
 const ga = {}; gs.qs.forEach(q => ga[q.no] = 'A'); const gf = ctx.apiGuestBattleFinish(gs.ticket, ga); assert(gf.total === 10 && gf.review.length === 10);
 assert.throws(() => ctx.apiGuestBattleFinish(gs.ticket, {}), /未作答/);
+const gs2 = ctx.apiGuestBattleStart(2); assert(gs2.ticket && gs2.qs.length === 5);
+main.getSheetByName('設定').d.forEach(r => { if (r[0] === '訪客試讀回數') r[1] = '1'; }); ctx.clearContentCache();
 assert.throws(() => ctx.apiGuestBattleStart(2), /需登入/);
 assert.throws(() => ctx.apiGuestBattleAnswer(gs.ticket + 'x', 1, 'A'), /重新登入/);
 // 老師後台：每回 qn、不因沒被抽到而算錯

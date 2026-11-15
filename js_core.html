@@ -174,7 +174,7 @@ document.addEventListener('pointerdown', function first(e) {
 }, true);
 $('#btnHome').onclick = function () { if (S.demo) stopDemo(); if (S.chap && S.chap.preview) { S.guest = !!S.guestBak; S.chap = null; S.tTab = 'rv'; S.rv = null; return renderTeacher(); } goHome(); };
 $('#btnTeacher').onclick = function () { if (!S.teacher) return; if (S.demo) stopDemo(); if (S.chap && S.chap.preview) { S.guest = !!S.guestBak; S.chap = null; } S.tTab = S.tTab || 'ov'; renderTeacher(); };
-$('#brand').onclick = function () { if (S.teacher) renderTeacher(); else if (S.user) goHome(); };
+$('#brand').onclick = function () { if (S.teacher) renderTeacher(); else if (S.user || S.guest) goHome(); };
 $('#btnLogout').onclick = function () { logout(); };
 function setTop() {
   var logged = !!(S.user || S.teacher || S.guest);
@@ -183,7 +183,7 @@ function setTop() {
   $('#btnLogout').classList.toggle('hidden', !logged);
   $('#btnHome').textContent = '目錄';
   $('#btnLogout').textContent = S.guest ? '登入' : '登出';
-  $('#who').textContent = S.teacher ? ('教師' + (S.teacherEmail ? '・' + S.teacherEmail : '後台')) : S.guest ? '訪客試讀' : S.user ? (S.user.cls + ' ' + (S.user.seat ? S.user.seat + '號 ' : '') + S.user.name) : '';
+  $('#who').textContent = S.teacher ? ('教師' + (S.teacherEmail ? '・' + S.teacherEmail : '後台')) : S.guest ? '免登入閱讀（不記成績）' : S.user ? (S.user.cls + ' ' + (S.user.seat ? S.user.seat + '號 ' : '') + S.user.name) : '';
 }
 function logout(silent) {
   flushDraft();
@@ -195,7 +195,7 @@ function logout(silent) {
 /* ================= 啟動 ================= */
 call('apiInit', store('sg_token')).then(function (d) {
   $('#siteTitle').textContent = d.title; $('#siteSub').textContent = d.subtitle; document.title = d.title;
-  S.allowRegister = d.allowRegister; S.googleClientId = d.googleClientId || ''; S.guestChapters = d.guestChapters || []; S.about = d.about || {};
+  S.allowRegister = d.allowRegister; S.googleClientId = d.googleClientId || ''; S.guestChapters = d.guestChapters || []; S.guestAll = !!d.guestAll; S.about = d.about || {};
   if (d.teacher) {
     S.teacher = d.token; S.token = d.token; S.teacherEmail = d.email || ''; store('sg_token', d.token); setTop();
     if (d.auto && d.email) toast('已以教師信箱 ' + d.email + ' 自動登入');
@@ -206,6 +206,10 @@ call('apiInit', store('sg_token')).then(function (d) {
   if (d.user) {
     S.token = d.token; S.user = d.user; S.home = d.home; store('sg_token', d.token); setTop();
     if (d.auto) toast('已用 ' + d.email + ' 自動登入');
+    renderHome(); return;
+  }
+  if (d.guest && d.home) {
+    S.guest = true; S.home = d.home; setTop();
     renderHome(); return;
   }
   renderLogin();
@@ -264,8 +268,11 @@ function renderLogin(tab) {
     '<div class="err" id="err"></div><button class="btn wide">升　帳</button></form>' +
     '<p class="note">' + (S.googleClientId ? '授權教師信箱（如 @gm.nssh.ntpc.edu.tw、@gmail.com）可直接點上方 Google 帳號登入，或用密碼進入。' : '若需在公開網址使用 Google 帳號一鍵登入，請於試算表「設定」填入「Google登入ClientID」。') + '</p>';
   var gbox = S.googleClientId ? '<div class="gbox"><div id="gSignIn" class="gsign"></div><p class="note">教師（授權信箱）或名單內同學可直接用 Google 帳號登入</p></div>' : '';
-  var guest = S.guestChapters && S.guestChapters.length ? '<div class="guestbox"><button class="btn wide jade" id="btnGuest">免註冊、免登入　直接試閱' +
-    S.guestChapters.map(function (n) { return '第' + cnum(n) + '回'; }).join('、') + '</button><button class="btn wide ghost demo-start" id="btnDemo">▶ 展示模式（電腦自動示範）</button><p class="note">試閱可閱讀並作答；成績不記錄，答案與書籤暫存在這台裝置。要累積成績請在下方登入。</p></div>' : '';
+  var gLabel = (S.guestAll || (S.guestChapters && S.guestChapters.length > 5))
+    ? '免註冊、免登入　直接進入全書目錄閱讀'
+    : ('免註冊、免登入　直接試閱' + (S.guestChapters || []).map(function (n) { return '第' + cnum(n) + '回'; }).join('、'));
+  var guest = S.guestChapters && S.guestChapters.length ? '<div class="guestbox"><button class="btn wide jade" id="btnGuest">' + gLabel +
+    '</button><button class="btn wide ghost demo-start" id="btnDemo">▶ 展示模式（電腦自動示範）</button><p class="note">免登入即可閱讀並作答；作答成績不寫入雲端紀錄，答案與書籤暫存在這台裝置。要累積成績請在下方登入。</p></div>' : '';
   view('<div class="loginwrap scrollpanel"><p class="poemline">滾滾長江東逝水　浪花淘盡英雄</p>' + guest + gbox + tabs + body + '</div>');
   renderGsiBtn(0);
   if ($('#btnGuest')) $('#btnGuest').onclick = function () { Qin.sfx('wood'); S.guest = true; setTop(); goHome(); };
@@ -319,7 +326,11 @@ function cardHTML(c, h, isT, mustMap) {
     else if (p.hasDraft) { stamp = '<div class="stamp draft">存檔<br>中</div>'; st = '尚未交卷'; }
   }
   var lock = S.guest && !c.guest;
-  if (S.guest) { stamp = c.guest ? '<div class="stamp draft">試讀</div>' : ''; st = c.guest ? '免登入' : '登入後閱讀'; }
+  if (S.guest) {
+    var allG = S.guestAll || (h.chapters && h.chapters.every(function (x) { return x.guest; }));
+    stamp = (!allG && c.guest) ? '<div class="stamp draft">試讀</div>' : '';
+    st = c.guest ? (allG ? '免登入閱讀' : '免登入') : '登入後閱讀';
+  }
   var t = c.title.split(/\s+/), must = !S.guest && !isT && mustMap[c.ch] && !p.submitted;
   return '<div class="card' + (lock ? ' locked' : '') + '" data-ch="' + c.ch + '">' + (must ? '<div class="must">必讀</div>' : '') + '<div class="no">' + esc(c.num) + '</div><div class="vt"><span>' + esc(t[0] || '') +
     '</span><span>' + esc(t[1] || '') + '</span></div>' + stamp + '<div class="st' + (stamp ? '' : ' c') + '">' + st + '</div></div>';
@@ -340,7 +351,7 @@ function catalogHTML(h, isT) {
     SANGUO_ARCS.filter(function (a) { return byArc[a.id].length > 0; }).map(function (a) {
       return '<button type="button" class="chip' + (cur === a.id ? ' on' : '') + '" data-arc-filter="' + a.id + '">' + esc(a.n + '・' + a.title) + '（' + byArc[a.id].length + '）</button>';
     }).join('');
-  var resumeBtn = nextCh ? '<button type="button" class="chip on" data-goch="' + nextCh + '">' + (S.guest ? '試讀' : '續讀') + '：' + esc(chName(h, nextCh)) + ' →</button>' : '';
+  var resumeBtn = nextCh ? '<button type="button" class="chip on" data-goch="' + nextCh + '">' + (S.guest ? (S.guestAll ? '開始閱讀' : '試讀') : '續讀') + '：' + esc(chName(h, nextCh)) + ' →</button>' : '';
   var fold = S.arcFold || (S.arcFold = {});
   var secs = SANGUO_ARCS.filter(function (a) { return byArc[a.id].length && (cur === 'all' || cur === a.id); }).map(function (a) {
     var list = byArc[a.id], doneN = 0, pubN = 0;
@@ -414,17 +425,19 @@ function renderHome() {
     var p = h.progress[c.ch] || {};
     if (!isT && p.submitted) { done++; sum += p.best; tot += c.qn; }
   });
+  var allG = S.guest && (S.guestAll || (h.chapters && h.chapters.every(function (c) { return c.guest; })));
   var subDesc = isT ? '教師全解鎖模式：已開啟所有回目（含未上架與未開放）、完整圖鑑與輿圖；閱讀與測驗不記入學生統計。'
-    : S.guest ? '訪客可試讀標有「試讀」的回目；其餘回目請登入後閱讀。' : '依全書六大卷展開閱讀並作答，答案會自動存檔。';
+    : S.guest ? (allG ? '免登入即可閱讀全書並作答測驗；作答成績不寫入紀錄（登入後才會累積成績與成就）。' : '免登入可試讀標有「試讀」的回目；其餘回目請登入後閱讀。') : '依全書六大卷展開閱讀並作答，答案會自動存檔。';
   var statHTML = isT
     ? '<div class="stat"><div><button class="btn" id="btnToTea">教師後台</button></div><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>'
     : S.guest
-      ? '<div class="stat"><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>'
+      ? '<div class="stat"><div><button class="btn ghost demo-start" id="btnDemo">▶ 展示模式</button></div><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>'
       : '<div class="stat"><div><b>' + done + '</b>已完成回數</div><div><b>' + (tot ? Math.round(sum / tot * 100) : 0) + '%</b>最佳答對率</div>' +
         '<div><button class="btn ghost" id="btnMist">錯題本</button></div><div><button class="btn ghost" id="btnAtlas">人物・地圖</button></div><div><button class="btn ghost" id="btnCodex">圖鑑</button></div></div>';
   view('<div class="homehead"><div><h2>回目</h2><p>' + subDesc + '</p></div>' + statHTML + '</div>' +
     annHTML(h) + '<div id="pgWrap">' + progressHTML(h) + '</div>' + boardHTML(h) + '<div id="catWrap">' + catalogHTML(h, isT) + '</div>');
   if ($('#btnToTea')) $('#btnToTea').onclick = function () { Qin.sfx('wood'); renderTeacher(); };
+  if ($('#btnDemo')) $('#btnDemo').onclick = function () { startDemo(); };
   if ($('#btnMist')) $('#btnMist').onclick = function () { Qin.sfx('wood'); openMistakes(); };
   if ($('#btnAtlas')) $('#btnAtlas').onclick = function () { Qin.sfx('wood'); openAtlas(); };
   if ($('#btnCodex')) $('#btnCodex').onclick = function () { Qin.sfx('wood'); openCodex(); };

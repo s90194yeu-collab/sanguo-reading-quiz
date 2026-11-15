@@ -1,6 +1,6 @@
 const assert = require('assert');
 require('./harness')(async (p, f, errs) => {
-  await f.waitForSelector('#fLogin');
+  await f.waitForSelector('#btnDemo');
   // 1) 展示中途按頂欄「目錄」：應乾淨結束展示、回到訪客目錄、不報錯
   await f.evaluate(() => { window.__demoSpeed = 6; });
   await f.click('#btnDemo');

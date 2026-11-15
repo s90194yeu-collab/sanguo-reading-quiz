@@ -5,6 +5,7 @@ require('./harness')(async (p, f, errs) => {
   const tk = a => ctx.apiLogin(a, a === 's002' ? '1234' : '1', '').token;
   const full = ctx.chapterFull_(1), right = {}; full.qs.forEach(q => right[q.no] = q.ans);
   SUB(ctx, tk('s002'), 1, right, 0, 300); SUB(ctx, tk('s003'), 1, {}, 0, 200);
+  await f.waitForSelector('#btnLogout:not(.hidden)'); await f.click('#btnLogout');
   await f.waitForSelector('.tab[data-t="tea"]'); await f.click('.tab[data-t="tea"]');
   await f.fill('[name=pw]', 'nanshan'); await f.click('#fTea button'); await f.waitForSelector('table.grid'); await p.waitForTimeout(600);
   await p.screenshot({ path: 'T_teacher.png', fullPage: true });

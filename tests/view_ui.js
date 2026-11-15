@@ -1,6 +1,6 @@
 const assert = require('assert');
 require('./harness')(async (p, f, errs) => {
-  await f.waitForSelector('#fLogin');
+  await f.waitForSelector('.card');
   // 音樂：上次開著，下次進站第一下就點「琴音」鈕 → 應該是開，而不是先開再關
   await f.evaluate(() => localStorage.setItem('sg_music', '1'));
   await p.reload(); await p.waitForTimeout(1500); const ff = p.frame({ url: /inner/ });
@@ -9,7 +9,7 @@ require('./harness')(async (p, f, errs) => {
   const on = await ff.evaluate(() => ({ on: Qin.isOn(), cls: document.querySelector('#btnMusic').classList.contains('on') }));
   console.log('music after first click:', JSON.stringify(on)); assert(on.on && on.cls);
   await ff.click('#btnMusic'); await p.waitForTimeout(200); assert(!(await ff.evaluate(() => Qin.isOn())));
-  await ff.click('#btnGuest'); await ff.waitForSelector('.card'); await p.waitForTimeout(500);
+  await ff.waitForSelector('.card'); await p.waitForTimeout(500);
   await ff.click('.card[data-ch="1"]'); await ff.waitForSelector('#txt'); await p.waitForTimeout(1500);
   const vis = async () => ff.evaluate(() => ['txt', 'bf', 'quiz'].map(id => { const e = document.getElementById(id); return id + ':' + (e && e.offsetParent !== null ? 1 : 0); }).join(' '));
   const combos = [[1, 1, 1], [1, 0, 0], [1, 1, 0], [1, 0, 1], [0, 1, 0], [0, 1, 1], [0, 0, 1]];

@@ -7,6 +7,7 @@ require('./harness')(async (p,f,errs)=>{
  const t2=tk('s002'),t3=tk('s003');ans(t2,1,'A');ans(t2,2,'B');ans(t2,3,'C');ans(t3,1,'B');
  const tt=ctx.apiTeacherLogin('nanshan').token;
  ctx.apiTeacherSaveAnn(tt,{title:'本週必讀：第二、三回',body:'週五前讀完並交卷。',chs:[2,3],to:'301',due:'2099/12/31',pin:true});
+ await f.waitForSelector('#btnLogout:not(.hidden)');await f.click('#btnLogout');await f.waitForSelector('#fLogin');
  await f.fill('[name=account]','s002');await f.fill('[name=password]','1234');await f.click('#fLogin button');
  await f.waitForSelector('.cards');await p.waitForTimeout(800);
  await p.screenshot({path:'F1_home.png',fullPage:true});

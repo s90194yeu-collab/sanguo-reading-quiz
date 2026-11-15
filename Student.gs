@@ -163,19 +163,32 @@ function progress_(account, saveRows) {
 
 /* ================= 對前端開放的 API ================= */
 
+function isGuestAll_(set) {
+  var v = set['訪客試讀回數'];
+  if (v === undefined) v = '全部';
+  v = str_(v);
+  return v === '全部' || v === '全' || v.toLowerCase() === 'all';
+}
 function guestChapters_(set) {
   var o = {}, v = set['訪客試讀回數'];
-  if (v === undefined) v = '1';
-  str_(v).split(/[,，、\s]+/).forEach(function (x) { if (Number(x)) o[Number(x)] = true; });
+  if (v === undefined) v = '全部';
+  v = str_(v);
+  if (!v) return o;
+  if (isGuestAll_(set)) {
+    catalog_().forEach(function (c) { if (chOpen_(c.ch)) o[c.ch] = true; });
+    return o;
+  }
+  v.split(/[,，、\s]+/).forEach(function (x) { if (Number(x)) o[Number(x)] = true; });
   return o;
 }
 
 function apiInit(token) {
   var set = getSettings_(), rosterRows = null, stHit = null;
   var getRoster = function () { return rosterRows || (rosterRows = rows_(SHEET.ROSTER)); };
+  var gChs = Object.keys(guestChapters_(set)).map(Number);
   var out = { title: set['網站標題'] || '三國演義・閱讀試煉', subtitle: set['副標題'] || '',
     allowRegister: yes_(set['開放外人註冊'] || '是'), googleClientId: str_(set['Google登入ClientID']), user: null, token: null,
-    guestChapters: Object.keys(guestChapters_(set)).map(Number),
+    guestChapters: gChs, guestAll: isGuestAll_(set),
     about: { maker: set['製作者'] || '', contact: set['聯絡方式'] || '', license: set['授權聲明'] || '',
       base: sourceOf_(set, 1, '第一回').base, refRoot: 'https://zh.wikisource.org/zh-hant/三國演義', note: set['校勘說明'] || '' } };
   if (token) {
@@ -199,6 +212,7 @@ function apiInit(token) {
   }
   if (out.teacher) out.tdata = teacherData_({ lite: true, ch: 1 });
   else if (out.user) out.home = homeData_(out.user.account, rosterRows, stHit);
+  else if (gChs.length) { out.guest = true; out.home = apiGuestHome(); }
   return out;
 }
 

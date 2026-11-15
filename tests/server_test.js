@@ -61,13 +61,21 @@ qb.forEach(q => assert(q[8] === seedAns[q[0] + '-' + q[1]]));
 console.log('ALL SERVER TESTS PASSED');
 module.exports = {};
 { const { makeEnv } = require('./gasmock'); const e = makeEnv(''); e.ctx.setupSheets();
+  // 預設「全部」：免登入即可進入並閱讀、作答所有開放回目，且不寫入紀錄
+  const initG = e.ctx.apiInit(null);
+  if (!initG.guest || !initG.home || !initG.home.chapters.every(c => c.guest)) throw 'init guest all';
+  const c2 = e.ctx.apiGuestChapter(2); if (!c2.paras || !c2.paras.length) throw 'guest ch2 open';
+  // 設定限制為第 1 回時：第 2 回需登入
+  const s = e.main.getSheetByName('設定');
+  s.d.forEach(r => { if (r[0] === '訪客試讀回數') r[1] = '1'; });
+  e.ctx.clearContentCache();
   const h = e.ctx.apiGuestHome(); if (!(h.chapters[0].guest && !h.chapters[1].guest)) throw 'guest home';
   const c = e.ctx.apiGuestChapter(1); if (c.qs !== undefined || c.qn !== 10) throw 'leak';
   let thrown = false; try { e.ctx.apiGuestChapter(2); } catch (x) { thrown = true; } if (!thrown) throw 'guest ch2';
   const gs = e.ctx.apiGuestBattleStart(1), ga = {}; gs.qs.forEach(q => ga[q.no] = 'A'); const r = e.ctx.apiGuestBattleFinish(gs.ticket, ga); if (r.total !== 10) throw 'guest total';
   if (e.main.getSheetByName('存檔').getLastRow() !== 1 || e.main.getSheetByName('作答紀錄').getLastRow() !== 1) throw 'guest wrote records';
   // existing sheet gets new setting row
-  const s = e.main.getSheetByName('設定'); s.d = s.d.filter(r => r[0] !== '訪客試讀回數'); e.ctx.setupSheets();
+  s.d = s.d.filter(r => r[0] !== '訪客試讀回數'); e.ctx.setupSheets();
   if (!s.d.some(r => r[0] === '訪客試讀回數')) throw 'setting not added';
   console.log('GUEST TESTS PASSED'); }
 { // 教師雙信箱自動登入、Google ID Token 登入、全內容解鎖、不污染學生紀錄

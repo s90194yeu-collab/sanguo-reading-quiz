@@ -2,6 +2,7 @@
 const assert = require('assert');
 require('./harness')(async (p, f, errs) => {
   const ctx = global.__ctx, main = global.__main;
+  await f.waitForSelector('#btnLogout:not(.hidden)'); await f.click('#btnLogout');
   await f.waitForSelector('#fLogin');
   await f.fill('[name=account]', 's002'); await f.fill('[name=password]', '1234'); await f.click('#fLogin button');
   await f.waitForSelector('.card'); await f.click('.card[data-ch="1"]'); await f.waitForSelector('#bf .bf-title'); await p.waitForTimeout(800);

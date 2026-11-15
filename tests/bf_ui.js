@@ -1,6 +1,6 @@
 const assert = require('assert');
 require('./harness')(async (p, f, errs) => {
-  await f.waitForSelector('#fLogin'); await f.click('#btnGuest'); await f.waitForSelector('.card'); await p.waitForTimeout(500);
+  await f.waitForSelector('.card'); await p.waitForTimeout(500);
   await f.click('.card[data-ch="1"]'); await f.waitForSelector('#txt'); await p.waitForTimeout(1500);
   const seen = [];
   const title = async () => (await f.$eval('#bf .bf-title', e => e.textContent).catch(() => '(none)'));
